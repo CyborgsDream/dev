@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no"/>
+  <title>NeuroGrid Trainer</title>
+  <style>
+    html,body{margin:0;padding:0;height:100%;background:#000;color:#0ff;font-family:Orbitron,Arial,Helvetica,sans-serif;overflow:hidden}
+    #scene{position:absolute;top:0;left:0;width:100%;height:100%;perspective:1000px}
+    #grid{
+      position:absolute;top:50%;left:50%;
+      transform-style:preserve-3d;
+      transition:transform .1s ease-out;
+    }
+    .grid-line{
+      position:absolute;
+      background:#0ff1;
+      box-shadow:0 0 4px #0ff,0 0 8px #0ff;
+    }
+    #hud{
+      position:fixed;top:8px;left:8px;right:8px;
+      display:flex;justify-content:space-between;align-items:center;
+      font-size:18px;text-shadow:0 0 4px #0ff;z-index:10
+    }
+    button{
+      background:#0ff2;border:none;border-radius:4px;
+      padding:8px 12px;color:#000;font-weight:bold;
+    }
+    #startBtn{background:#00ff41}
+    #stopBtn{background:#ff0040}
+    #overlay{
+      position:fixed;top:0;left:0;width:100%;height:100%;
+      background:#000e;display:flex;flex-direction:column;
+      justify-content:center;align-items:center;z-index:20
+    }
+    #overlay h1{font-size:28px;margin:0 0 24px}
+  </style>
+</head>
+<body>
+  <div id="overlay">
+    <h1>NEUROGRID TRAINER</h1>
+    <button id="goBtn">START SESSION</button>
+  </div>
+
+  <div id="scene">
+    <div id="grid"></div>
+  </div>
+
+  <div id="hud">
+    <span id="reps">Reps: 0</span>
+    <span id="rate">Rate: 0 /min</span>
+    <button id="startBtn" disabled>START</button>
+    <button id="stopBtn" disabled>STOP</button>
+  </div>
+
+  <script>
+    // --- DOM refs ---
+    const overlay = document.getElementById('overlay');
+    const goBtn   = document.getElementById('goBtn');
+    const startBtn= document.getElementById('startBtn');
+    const stopBtn = document.getElementById('stopBtn');
+    const repsEl  = document.getElementById('reps');
+    const rateEl  = document.getElementById('rate');
+    const grid    = document.getElementById('grid');
+
+    // --- 3D grid size ---
+    const GRID_SIZE   = 20; // units
+    const LINE_COUNT  = 10;
+
+    // --- build grid ---
+    function buildGrid(){
+      const step = GRID_SIZE / LINE_COUNT;
+      for(let i=0;i<=LINE_COUNT;i++){
+        const pos = -GRID_SIZE/2 + i*step;
+        // vertical lines (z)
+        const vLine = document.createElement('div');
+        vLine.className='grid-line';
+        vLine.style.width='1px';vLine.style.height=GRID_SIZE+'px';
+        vLine.style.transform=`translate3d(${pos}px, 0, 0) rotateY(90deg)`;
+        grid.appendChild(vLine);
+        // horizontal lines (x)
+        const hLine = document.createElement('div');
+        hLine.className='grid-line';
+        hLine.style.width=GRID_SIZE+'px';hLine.style.height='1px';
+        hLine.style.transform=`translate3d(0, 0, ${pos}px) rotateX(90deg)`;
+        grid.appendChild(hLine);
+      }
+      // floor
+      const floor = document.createElement('div');
+      floor.className='grid-line';
+      floor.style.width=GRID_SIZE+'px';floor.style.height=GRID_SIZE+'px';
+      floor.style.border='1px solid #0ff';
+      floor.style.transform='translate3d(0, '+GRID_SIZE/2+'px, 0) rotateX(-90deg)';
+      floor.style.opacity='0.3';
+      grid.appendChild(floor);
+    }
+    buildGrid();
+
+    // --- orientation ---
+    let orient = {alpha:0,beta:0,gamma:0};
+    let smooth = {...orient};
+    function onOrient(e){
+      orient = e;
+    }
+    window.addEventListener('deviceorientation', onOrient);
+
+    // --- animation loop ---
+    function animate(){
+      smooth.alpha += (orient.alpha - smooth.alpha)*0.1;
+      smooth.beta  += (orient.beta  - smooth.beta )*0.1;
+      smooth.gamma += (orient.gamma - smooth.gamma)*0.1;
+      grid.style.transform = `
+        translate(-50%,-50%)
+        rotateX(${smooth.beta}deg)
+        rotateY(${smooth.gamma}deg)
+        rotateZ(${-smooth.alpha}deg)
+      `;
+      requestAnimationFrame(animate);
+    }
+    animate();
+
+    // --- session logic ---
+    let reps = 0;
+    let lastY = null;
+    let lastT = 0;
+    let rates = [];
+    let active = false;
+    let hndl;
+
+    function start(){
+      reps=0;lastY=null;rates=[];
+      active=true;
+      hndl = setInterval(()=>{
+        if(rates.length){
+          const avg = rates.reduce((a,b)=>a+b,0)/rates.length;
+          rateEl.textContent = `Rate: ${avg.toFixed(1)} /min`;
+        }
+      },1000);
+      startBtn.disabled=true;
+      stopBtn.disabled=false;
+    }
+    function stop(){
+      active=false;
+      clearInterval(hndl);
+      startBtn.disabled=false;
+      stopBtn.disabled=true;
+    }
+
+    function onMotion(e){
+      if(!active) return;
+      const y = e.accelerationIncludingGravity.y;
+      const t = Date.now();
+      if(lastY !== null){
+        const diff = y - lastY;
+        if(Math.abs(diff) > 1){ // simple threshold
+          reps++;
+          repsEl.textContent = `Reps: ${reps}`;
+          const dt = (t - lastT)/1000;
+          if(dt>0) rates.push(60/dt);
+          if(rates.length>5) rates.shift();
+        }
+      }
+      lastY = y;
+      lastT = t;
+    }
+    window.addEventListener('devicemotion', onMotion);
+
+    // --- UI bind ---
+    goBtn.onclick   = ()=> overlay.style.display='none';
+    startBtn.onclick= start;
+    stopBtn.onclick = stop;
+  </script>
+</body>
+</html>
