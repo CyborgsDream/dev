@@ -1,0 +1,595 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CyberFit - Train Like An Android</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Courier New', monospace;
+            background: #000;
+            color: #00ff00;
+            overflow: hidden;
+            height: 100vh;
+            width: 100vw;
+            position: relative;
+        }
+
+        #canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle at center, #001122 0%, #000000 100%);
+        }
+
+        .hud {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 100;
+        }
+
+        .top-bar {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            right: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            pointer-events: auto;
+        }
+
+        .logo {
+            font-size: 24px;
+            font-weight: bold;
+            color: #00ffff;
+            text-shadow: 0 0 10px #00ffff, 0 0 20px #00ffff, 0 0 30px #00ffff;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+
+        .status {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            font-size: 12px;
+            line-height: 1.4;
+        }
+
+        .status-item {
+            color: #00ff00;
+            text-shadow: 0 0 5px #00ff00;
+        }
+
+        .center-hud {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            pointer-events: auto;
+        }
+
+        .training-mode {
+            font-size: 18px;
+            color: #ff6600;
+            text-shadow: 0 0 10px #ff6600;
+            margin-bottom: 20px;
+            animation: glow 3s ease-in-out infinite alternate;
+        }
+
+        @keyframes glow {
+            from { text-shadow: 0 0 10px #ff6600, 0 0 20px #ff6600; }
+            to { text-shadow: 0 0 20px #ff6600, 0 0 30px #ff6600, 0 0 40px #ff6600; }
+        }
+
+        .rep-counter {
+            font-size: 48px;
+            font-weight: bold;
+            color: #00ffff;
+            text-shadow: 0 0 20px #00ffff;
+            margin-bottom: 10px;
+        }
+
+        .rep-label {
+            font-size: 14px;
+            color: #ffffff;
+            opacity: 0.8;
+        }
+
+        .control-panel {
+            position: absolute;
+            bottom: 40px;
+            left: 20px;
+            right: 20px;
+            display: flex;
+            justify-content: space-around;
+            pointer-events: auto;
+        }
+
+        .cyber-button {
+            background: linear-gradient(45deg, #001122, #003344);
+            border: 2px solid #00ffff;
+            color: #00ffff;
+            padding: 12px 24px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            font-weight: bold;
+            cursor: pointer;
+            text-transform: uppercase;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .cyber-button:hover {
+            background: linear-gradient(45deg, #003344, #005566);
+            box-shadow: 0 0 20px #00ffff;
+            transform: translateY(-2px);
+        }
+
+        .cyber-button:active {
+            transform: translateY(0);
+        }
+
+        .cyber-button::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, #00ffff, transparent);
+            transition: left 0.5s;
+        }
+
+        .cyber-button:hover::before {
+            left: 100%;
+        }
+
+        .orientation-indicator {
+            position: absolute;
+            top: 100px;
+            right: 20px;
+            width: 80px;
+            height: 80px;
+            border: 2px solid #00ff00;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+            background: rgba(0, 255, 0, 0.1);
+        }
+
+        .horizon-line {
+            position: absolute;
+            width: 100%;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, #ffff00, transparent);
+            top: 50%;
+            left: 0;
+            transform: translateY(-50%);
+            box-shadow: 0 0 10px #ffff00;
+            animation: horizonPulse 4s ease-in-out infinite;
+        }
+
+        @keyframes horizonPulse {
+            0%, 100% { opacity: 0.6; }
+            50% { opacity: 1; }
+        }
+
+        .permission-prompt {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 17, 34, 0.95);
+            border: 2px solid #00ffff;
+            padding: 30px;
+            text-align: center;
+            border-radius: 10px;
+            backdrop-filter: blur(10px);
+        }
+
+        .permission-prompt h3 {
+            color: #00ffff;
+            margin-bottom: 15px;
+            font-size: 18px;
+        }
+
+        .permission-prompt p {
+            color: #ffffff;
+            margin-bottom: 20px;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .scanlines {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(transparent 50%, rgba(0, 255, 0, 0.03) 50%);
+            background-size: 100% 4px;
+            pointer-events: none;
+            animation: scanlines 0.1s linear infinite;
+        }
+
+        @keyframes scanlines {
+            0% { background-position: 0 0; }
+            100% { background-position: 0 4px; }
+        }
+    </style>
+</head>
+<body>
+    <canvas id="canvas"></canvas>
+    
+    <div class="scanlines"></div>
+    
+    <div class="hud">
+        <div class="top-bar">
+            <div class="logo">CYBERFIT</div>
+            <div class="status">
+                <div class="status-item">SYSTEM: ONLINE</div>
+                <div class="status-item">GYRO: <span id="gyro-status">CALIBRATING</span></div>
+                <div class="status-item">HORIZON: <span id="horizon-status">LOCKED</span></div>
+            </div>
+        </div>
+
+        <div class="center-hud">
+            <div class="training-mode">ISOMETRIC KINETIC MODE</div>
+            <div class="rep-counter" id="rep-counter">0</div>
+            <div class="rep-label">REPETITIONS</div>
+        </div>
+
+        <div class="orientation-indicator" id="orientation">
+            <div>LEVEL</div>
+        </div>
+
+        <div class="horizon-line" id="horizon-line"></div>
+
+        <div class="control-panel">
+            <button class="cyber-button" id="start-btn">START</button>
+            <button class="cyber-button" id="reset-btn">RESET</button>
+            <button class="cyber-button" id="mode-btn">MODE</button>
+        </div>
+    </div>
+
+    <div class="permission-prompt" id="permission-prompt">
+        <h3>NEURAL INTERFACE REQUIRED</h3>
+        <p>This app requires device orientation access to align the training grid with reality. Enable sensors to begin your android training.</p>
+        <button class="cyber-button" id="enable-sensors">ENABLE SENSORS</button>
+    </div>
+
+    <script>
+        class CyberFitTracker {
+            constructor() {
+                this.canvas = document.getElementById('canvas');
+                this.ctx = this.canvas.getContext('2d');
+                this.width = 0;
+                this.height = 0;
+                
+                this.orientation = { alpha: 0, beta: 0, gamma: 0 };
+                this.reps = 0;
+                this.isTraining = false;
+                this.lastMovement = 0;
+                this.movementThreshold = 10;
+                
+                this.grid = {
+                    size: 50,
+                    lines: 20,
+                    horizonOffset: 0
+                };
+                
+                this.particles = [];
+                this.time = 0;
+                
+                this.init();
+            }
+            
+            init() {
+                this.setupCanvas();
+                this.setupEventListeners();
+                this.requestPermissions();
+                this.animate();
+            }
+            
+            setupCanvas() {
+                this.resizeCanvas();
+                window.addEventListener('resize', () => this.resizeCanvas());
+            }
+            
+            resizeCanvas() {
+                this.canvas.width = window.innerWidth;
+                this.canvas.height = window.innerHeight;
+                this.width = this.canvas.width;
+                this.height = this.canvas.height;
+            }
+            
+            setupEventListeners() {
+                document.getElementById('start-btn').addEventListener('click', () => this.toggleTraining());
+                document.getElementById('reset-btn').addEventListener('click', () => this.resetCounter());
+                document.getElementById('mode-btn').addEventListener('click', () => this.cycleMode());
+                document.getElementById('enable-sensors').addEventListener('click', () => this.requestPermissions());
+            }
+            
+            async requestPermissions() {
+                try {
+                    if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
+                        const permission = await DeviceOrientationEvent.requestPermission();
+                        if (permission === 'granted') {
+                            this.enableSensors();
+                        }
+                    } else {
+                        this.enableSensors();
+                    }
+                } catch (error) {
+                    console.log('Orientation not supported, using fallback');
+                    this.enableSensors();
+                }
+            }
+            
+            enableSensors() {
+                document.getElementById('permission-prompt').classList.add('hidden');
+                
+                if (window.DeviceOrientationEvent) {
+                    window.addEventListener('deviceorientation', (event) => {
+                        this.orientation.alpha = event.alpha || 0;
+                        this.orientation.beta = event.beta || 0;
+                        this.orientation.gamma = event.gamma || 0;
+                        
+                        this.detectMovement();
+                        this.updateHUD();
+                    });
+                    
+                    document.getElementById('gyro-status').textContent = 'ACTIVE';
+                } else {
+                    document.getElementById('gyro-status').textContent = 'SIMULATED';
+                    // Fallback: simulate movement for demo
+                    this.simulateMovement();
+                }
+            }
+            
+            simulateMovement() {
+                setInterval(() => {
+                    this.orientation.beta = Math.sin(Date.now() * 0.001) * 30;
+                    this.orientation.gamma = Math.cos(Date.now() * 0.0015) * 20;
+                    this.detectMovement();
+                    this.updateHUD();
+                }, 50);
+            }
+            
+            detectMovement() {
+                if (!this.isTraining) return;
+                
+                const movement = Math.abs(this.orientation.beta) + Math.abs(this.orientation.gamma);
+                
+                if (movement > this.movementThreshold && this.lastMovement <= this.movementThreshold) {
+                    this.reps++;
+                    this.addParticleExplosion();
+                    this.updateRepCounter();
+                }
+                
+                this.lastMovement = movement;
+            }
+            
+            toggleTraining() {
+                this.isTraining = !this.isTraining;
+                const btn = document.getElementById('start-btn');
+                btn.textContent = this.isTraining ? 'STOP' : 'START';
+                btn.style.borderColor = this.isTraining ? '#ff6600' : '#00ffff';
+                btn.style.color = this.isTraining ? '#ff6600' : '#00ffff';
+            }
+            
+            resetCounter() {
+                this.reps = 0;
+                this.updateRepCounter();
+                this.particles = [];
+            }
+            
+            cycleMode() {
+                // Placeholder for different training modes
+                const modes = ['ISOMETRIC KINETIC', 'POWER BURST', 'ENDURANCE FLOW'];
+                const current = document.querySelector('.training-mode').textContent;
+                const currentIndex = modes.indexOf(current);
+                const nextIndex = (currentIndex + 1) % modes.length;
+                document.querySelector('.training-mode').textContent = modes[nextIndex] + ' MODE';
+            }
+            
+            updateRepCounter() {
+                document.getElementById('rep-counter').textContent = this.reps;
+            }
+            
+            updateHUD() {
+                // Update orientation indicator
+                const indicator = document.getElementById('orientation');
+                const tilt = Math.sqrt(this.orientation.beta ** 2 + this.orientation.gamma ** 2);
+                indicator.style.borderColor = tilt < 10 ? '#00ff00' : '#ff6600';
+                indicator.style.backgroundColor = tilt < 10 ? 'rgba(0, 255, 0, 0.1)' : 'rgba(255, 102, 0, 0.1)';
+                
+                // Update horizon line
+                const horizonLine = document.getElementById('horizon-line');
+                horizonLine.style.transform = `translateY(-50%) rotate(${this.orientation.gamma * 0.5}deg)`;
+            }
+            
+            addParticleExplosion() {
+                for (let i = 0; i < 10; i++) {
+                    this.particles.push({
+                        x: this.width / 2 + (Math.random() - 0.5) * 100,
+                        y: this.height / 2 + (Math.random() - 0.5) * 100,
+                        vx: (Math.random() - 0.5) * 10,
+                        vy: (Math.random() - 0.5) * 10,
+                        life: 1,
+                        decay: 0.02,
+                        color: `hsl(${180 + Math.random() * 60}, 100%, 50%)`
+                    });
+                }
+            }
+            
+            drawGrid() {
+                this.ctx.strokeStyle = '#00ffff';
+                this.ctx.lineWidth = 1;
+                this.ctx.globalAlpha = 0.3;
+                
+                // Calculate perspective and horizon alignment
+                const horizonY = this.height / 2 + this.orientation.beta * 2;
+                const perspectiveScale = 1 + this.orientation.beta * 0.01;
+                
+                // Draw horizontal grid lines
+                for (let i = -this.grid.lines; i <= this.grid.lines; i++) {
+                    const y = horizonY + i * this.grid.size * perspectiveScale;
+                    
+                    if (y > 0 && y < this.height) {
+                        this.ctx.beginPath();
+                        this.ctx.moveTo(0, y);
+                        this.ctx.lineTo(this.width, y);
+                        this.ctx.stroke();
+                    }
+                }
+                
+                // Draw vertical grid lines
+                for (let i = -this.grid.lines; i <= this.grid.lines; i++) {
+                    const x = this.width / 2 + i * this.grid.size + this.orientation.gamma * 2;
+                    
+                    if (x > 0 && x < this.width) {
+                        this.ctx.beginPath();
+                        this.ctx.moveTo(x, 0);
+                        this.ctx.lineTo(x, this.height);
+                        this.ctx.stroke();
+                    }
+                }
+                
+                this.ctx.globalAlpha = 1;
+            }
+            
+            drawParticles() {
+                this.particles.forEach((particle, index) => {
+                    this.ctx.fillStyle = particle.color;
+                    this.ctx.globalAlpha = particle.life;
+                    
+                    this.ctx.beginPath();
+                    this.ctx.arc(particle.x, particle.y, 3, 0, Math.PI * 2);
+                    this.ctx.fill();
+                    
+                    particle.x += particle.vx;
+                    particle.y += particle.vy;
+                    particle.life -= particle.decay;
+                    
+                    if (particle.life <= 0) {
+                        this.particles.splice(index, 1);
+                    }
+                });
+                
+                this.ctx.globalAlpha = 1;
+            }
+            
+            drawHorizonColumns() {
+                this.ctx.strokeStyle = '#ff6600';
+                this.ctx.lineWidth = 2;
+                this.ctx.globalAlpha = 0.6;
+                
+                const numColumns = 8;
+                const columnSpacing = this.width / numColumns;
+                const horizonY = this.height / 2 + this.orientation.beta * 2;
+                
+                for (let i = 0; i < numColumns; i++) {
+                    const x = i * columnSpacing + (this.time * 0.5) % columnSpacing;
+                    const height = 200 + Math.sin(this.time * 0.01 + i) * 50;
+                    
+                    this.ctx.beginPath();
+                    this.ctx.moveTo(x, horizonY);
+                    this.ctx.lineTo(x, horizonY - height);
+                    this.ctx.stroke();
+                    
+                    // Add glow effect
+                    this.ctx.shadowColor = '#ff6600';
+                    this.ctx.shadowBlur = 10;
+                    this.ctx.stroke();
+                    this.ctx.shadowBlur = 0;
+                }
+                
+                this.ctx.globalAlpha = 1;
+            }
+            
+            render() {
+                // Clear canvas
+                this.ctx.fillStyle = '#000';
+                this.ctx.fillRect(0, 0, this.width, this.height);
+                
+                // Draw background gradient
+                const gradient = this.ctx.createRadialGradient(
+                    this.width / 2, this.height / 2, 0,
+                    this.width / 2, this.height / 2, this.width
+                );
+                gradient.addColorStop(0, '#001122');
+                gradient.addColorStop(1, '#000000');
+                this.ctx.fillStyle = gradient;
+                this.ctx.fillRect(0, 0, this.width, this.height);
+                
+                // Draw 3D grid
+                this.drawGrid();
+                
+                // Draw horizon columns
+                this.drawHorizonColumns();
+                
+                // Draw particles
+                this.drawParticles();
+                
+                // Draw center targeting reticle
+                this.ctx.strokeStyle = '#00ffff';
+                this.ctx.lineWidth = 2;
+                this.ctx.globalAlpha = 0.8;
+                
+                const centerX = this.width / 2;
+                const centerY = this.height / 2;
+                const reticleSize = 20;
+                
+                this.ctx.beginPath();
+                this.ctx.arc(centerX, centerY, reticleSize, 0, Math.PI * 2);
+                this.ctx.stroke();
+                
+                // Cross hairs
+                this.ctx.beginPath();
+                this.ctx.moveTo(centerX - reticleSize, centerY);
+                this.ctx.lineTo(centerX + reticleSize, centerY);
+                this.ctx.moveTo(centerX, centerY - reticleSize);
+                this.ctx.lineTo(centerX, centerY + reticleSize);
+                this.ctx.stroke();
+                
+                this.ctx.globalAlpha = 1;
+            }
+            
+            animate() {
+                this.time++;
+                this.render();
+                requestAnimationFrame(() => this.animate());
+            }
+        }
+        
+        // Initialize the app
+        window.addEventListener('load', () => {
+            new CyberFitTracker();
+        });
+    </script>
+</body>
+</html>
