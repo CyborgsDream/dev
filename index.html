@@ -117,7 +117,7 @@
     });
   </script>
   <script>
-    fetch('data/files.json')
+    fetch(`data/files.json?cache=${Date.now()}`)
       .then(r => r.json())
       .then(data => {
         const list = document.getElementById('file-list');
