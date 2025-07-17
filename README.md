@@ -36,3 +36,7 @@ To add a new page:
 1. Create a new JSON file in `data/pages` (e.g. `my-page.json`).
 2. Add an entry for it in `data/pages.json` with the desired slug and title.
 3. Navigate to `page.html?slug=my-page` to view it.
+
+## Debug Console
+
+All pages now include a simple JavaScript console overlay. Click the **Console** button in the bottom-right corner to open it and view log output or run code snippets.
