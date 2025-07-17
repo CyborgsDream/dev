@@ -70,6 +70,9 @@
   <canvas id="bg"></canvas>
   <div class="dashboard">
     <h1>KodeDok DEV</h1>
+    <h2>Pages</h2>
+    <ul id="page-list"></ul>
+    <h2>Demos</h2>
     <ul id="file-list"></ul>
   </div>
 
@@ -117,6 +120,20 @@
     });
   </script>
   <script>
+    fetch(`data/pages.json?cache=${Date.now()}`)
+      .then(r => r.json())
+      .then(data => {
+        const list = document.getElementById('page-list');
+        data.pages.forEach(p => {
+          const li = document.createElement('li');
+          const a = document.createElement('a');
+          a.href = `page.html?slug=${encodeURIComponent(p.slug)}`;
+          a.textContent = p.title;
+          li.appendChild(a);
+          list.appendChild(li);
+        });
+      });
+
     fetch(`data/files.json?cache=${Date.now()}`)
       .then(r => r.json())
       .then(data => {

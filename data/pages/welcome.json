@@ -1,0 +1,4 @@
+{
+  "title": "Welcome",
+  "body": "<p>This is the welcome page of our simple JSON based CMS.</p><p>You can easily add more pages by editing JSON files.</p>"
+}
