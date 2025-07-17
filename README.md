@@ -29,6 +29,8 @@ The `server.js` file scans the project directory for HTML files. When you add mo
 
 Content pages are now stored as JSON files inside `data/pages`. The list of pages is defined in `data/pages.json`. Each page JSON contains a `title` and `body` field. The `page.html` template reads these files and displays the content dynamically.
 
+The dashboard heading is loaded from `data/site.json`. Update that file to change the main page title shown on `index.html`.
+
 To add a new page:
 
 1. Create a new JSON file in `data/pages` (e.g. `my-page.json`).
