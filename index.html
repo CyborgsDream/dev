@@ -124,7 +124,7 @@
 <body>
   <canvas id="bg"></canvas>
   <div class="dashboard">
-    <h1>DEV</h1>
+    <h1 id="site-title">Loading...</h1>
     <h2>Pages</h2>
     <ul id="page-list"></ul>
     <h2>Demos</h2>
@@ -227,6 +227,17 @@
           li.appendChild(a);
           list.appendChild(li);
         });
+      });
+
+    // load site title
+    fetch(`data/site.json?cache=${Date.now()}`)
+      .then(r => r.json())
+      .then(data => {
+        const titleEl = document.getElementById('site-title');
+        if (data.title) {
+          titleEl.textContent = data.title;
+          document.title = data.title;
+        }
       });
   </script>
 </body>
