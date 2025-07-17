@@ -201,9 +201,19 @@
     });
   </script>
   <script>
-    fetch(`data/pages.json?cache=${Date.now()}`)
-      .then(r => r.json())
-      .then(data => {
+    function loadJson(url, fallback, callback) {
+      fetch(url)
+        .then(r => r.json())
+        .then(callback)
+        .catch(err => {
+          console.error('Failed to load', url, err);
+          callback(fallback);
+        });
+    }
+
+    loadJson(`data/pages.json?cache=${Date.now()}`,
+      { pages: [] },
+      data => {
         const list = document.getElementById('page-list');
         data.pages.forEach(p => {
           const li = document.createElement('li');
@@ -215,9 +225,9 @@
         });
       });
 
-    fetch(`data/files.json?cache=${Date.now()}`)
-      .then(r => r.json())
-      .then(data => {
+    loadJson(`data/files.json?cache=${Date.now()}`,
+      { demoFiles: [] },
+      data => {
         const list = document.getElementById('file-list');
         data.demoFiles.forEach(f => {
           const li = document.createElement('li');
@@ -230,9 +240,9 @@
       });
 
     // load site title
-    fetch(`data/site.json?cache=${Date.now()}`)
-      .then(r => r.json())
-      .then(data => {
+    loadJson(`data/site.json?cache=${Date.now()}`,
+      { title: 'DEV' },
+      data => {
         const titleEl = document.getElementById('site-title');
         if (data.title) {
           titleEl.textContent = data.title;
