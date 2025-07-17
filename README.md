@@ -1,4 +1,4 @@
-# KodeDok DEV
+# DEV
 
 This project includes a small Node.js server used to serve `index.html` and list any additional `.html` or `.htm` files in the project directory.
 
