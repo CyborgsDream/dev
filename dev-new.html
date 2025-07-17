@@ -50,6 +50,7 @@
       scene.add(wallGrids);
 
       createVerticalLines();
+      loadOpenStreetMap();
       window.addEventListener('resize',onResize);
     }
 
@@ -67,6 +68,45 @@
       const mat=new THREE.LineBasicMaterial({color:0xff00ff,opacity:0.6,transparent:true});
       verticalLines=new THREE.LineSegments(geo,mat);
       scene.add(verticalLines);
+    }
+
+    function loadOpenStreetMap(){
+      const center={lat:52.3676,lon:4.9041};
+      const bbox=[52.366,4.902,52.369,4.907];
+      const query=`[out:json];(way["highway"](${bbox.join(',')});way["building"](${bbox.join(',')}));out geom;`;
+      const url='https://overpass-api.de/api/interpreter?data='+encodeURIComponent(query);
+      fetch(url)
+        .then(r=>r.json())
+        .then(data=>drawOSM(data,center))
+        .catch(e=>console.error('OSM load',e));
+    }
+
+    function drawOSM(data,center){
+      if(!data||!data.elements)return;
+      const R=6378137;
+      const deg=Math.PI/180;
+      const lat0=center.lat*deg;
+      const toXZ=(lat,lon)=>{
+        const x=(lon-center.lon)*deg*Math.cos(lat0)*R*0.001;
+        const z=(lat-center.lat)*deg*R*0.001;
+        return [x,-z];
+      };
+      const roadMat=new THREE.LineBasicMaterial({color:0xffff00});
+      const buildMat=new THREE.LineBasicMaterial({color:0xff0000});
+      data.elements.forEach(el=>{
+        if(!el.geometry) return;
+        const pts=el.geometry.map(g=>{const[vx,vz]=toXZ(g.lat,g.lon);return new THREE.Vector3(vx,0,vz);});
+        if(el.tags&&el.tags.highway){
+          const geo=new THREE.BufferGeometry().setFromPoints(pts);
+          const line=new THREE.Line(geo,roadMat);
+          scene.add(line);
+        }else if(el.tags&&el.tags.building){
+          if(!pts[0].equals(pts[pts.length-1]))pts.push(pts[0].clone());
+          const geo=new THREE.BufferGeometry().setFromPoints(pts);
+          const line=new THREE.Line(geo,buildMat);
+          scene.add(line);
+        }
+      });
     }
 
     function onResize(){
