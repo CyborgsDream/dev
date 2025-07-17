@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>SuperMegaGigaGraphics - Cube Demo with Resolution Selector</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background-color: #000;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            font-family: sans-serif;
+            color: #eee;
+        }
+        #ui-container {
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 10;
+            background-color: rgba(0, 0, 0, 0.7);
+            padding: 10px 15px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+        }
+        #resolution-select {
+            padding: 5px 8px;
+            border-radius: 4px;
+            background-color: #333;
+            color: #eee;
+            border: 1px solid #555;
+            font-size: 1rem;
+        }
+    </style>
+</head>
+<body>
+    <div id="ui-container">
+        <label for="resolution-select">Select Resolution:</label>
+        <select id="resolution-select"></select>
+    </div>
+    <script>
+(function(){"use strict";const t={name:"SuperMegaGigaGraphics",version:"1.0.0",description:"Ultra-modern, pixel-perfect, resolution-agnostic HTML5 Canvas graphics engine for indie games and apps.",author:"Sophie Loopmaker & Team",defaultResolution:"hi-res",resolutions:[{name:"low-res",width:320,height:200,scale:1,aspect:"16:10"},{name:"midres",width:640,height:400,scale:2,aspect:"16:10"},{name:"hi-res",width:960,height:600,scale:3,aspect:"16:10"},{name:"super-hi-res",width:1280,height:800,scale:4,aspect:"16:10"},{name:"mega-hi-res",width:1600,height:1000,scale:5,aspect:"16:10"},{name:"giga-hi-res",width:1920,height:1200,scale:6,aspect:"16:10"},{name:"super-mega-giga-hi-res",width:2560,height:1600,scale:8,aspect:"16:10"},{name:"240p",width:426,height:240,scale:1,aspect:"16:9"},{name:"480p",width:854,height:480,scale:2,aspect:"16:9"},{name:"720p",width:1280,height:720,scale:3,aspect:"16:9"},{name:"1080p",width:1920,height:1080,scale:4,aspect:"16:9"}],canvas:{autoFit:!0,pixelPerfect:!0,backgroundColor:"#181820",smoothing:!1,scalingMode:"integer",allowHiDPIScaling:!0,centered:!0,defaultFont:"Orbitron, monospace"},storage:{type:"localStorage",autosave:!0,fields:["lastResolution","settings","canvasData"]},ui:{showResolutionSelector:!0,resolutionSelectorStyle:"dropdown",customCSS:""}};let e=null,i=null,s=null,o=null;const n=[{x:-50,y:-50,z:-50},{x:50,y:-50,z:-50},{x:50,y:50,z:-50},{x:-50,y:50,z:-50},{x:-50,y:-50,z:50},{x:50,y:-50,z:50},{x:50,y:50,z:50},{x:-50,y:50,z:50}],a=[[0,1,2,3],[4,7,6,5],[0,3,7,4],[1,5,6,2],[3,2,6,7],[0,4,5,1]];let r=0,c=0,l=0;const d={x:0,y:0,z:-300},h=(t,e)=>({x:t.x-e.x,y:t.y-e.y,z:t.z-e.z}),m=(t,e)=>({x:t.y*e.z-t.z*e.y,y:t.z*e.x-t.x*e.z,z:t.x*e.y-t.y*e.x}),u=(t,e)=>t.x*e.x+t.y*e.y+t.z*e.z,p=(t,e)=>{const i=Math.cos(e),s=Math.sin(e),o=t.y*i-t.z*s,n=t.y*s+t.z*i;return{x:t.x,y:o,z:n}},x=(t,e)=>{const i=Math.cos(e),s=Math.sin(e),o=t.x*i+t.z*s,n=-t.x*s+t.z*i;return{x:o,y:t.y,z:n}},g=(t,e)=>{const i=Math.cos(e),s=Math.sin(e),o=t.x*i-t.y*s,n=t.x*s+t.y*i;return{x:o,y:n,z:t.z}},f=t=>{const e=400,o=t.z+e;if(o<.00001)return null;const n=e/o;return{x:s.width/2+t.x*n,y:s.height/2+t.y*n}};const S={config:t,initCanvas:function(o=this.config.defaultResolution,n=null){e=document.createElement("canvas"),i=e.getContext("2d"),n?(function(t){const i=document.getElementById(t);i?i.appendChild(e):(console.warn(`SuperMegaGigaGraphics: Container with ID '${t}' not found. Appending canvas to body.`),document.body.appendChild(e))})(n):document.body.appendChild(e),this.setResolution(o),e.style.backgroundColor=this.config.canvas.backgroundColor,e.style.display="block",this.config.canvas.centered&&(e.style.margin="auto"),this.config.canvas.autoFit&&(window.addEventListener("resize",this.resizeToFitScreen.bind(this)),this.resizeToFitScreen());return i},setResolution:function(t){const o=this.config.resolutions.find((e=>e.name===t));if(!o)return void console.error(`SuperMegaGigaGraphics: Resolution '${t}' not found.`);s=o,e.width=o.width,e.height=o.height,i.imageSmoothingEnabled=!this.config.canvas.smoothing,this.config.canvas.pixelPerfect&&(i.imageSmoothingEnabled=!1,e.style.imageRendering="-moz-crisp-edges",e.style.imageRendering="-webkit-crisp-edges",e.style.imageRendering="pixelated"),this.resizeToFitScreen(),console.log(`SuperMegaGigaGraphics: Resolution set to ${o.name} (${o.width}x${o.height})`)},clear:function(){i&&i.clearRect(0,0,e.width,e.height)},drawImage:function(t,s,o,n,a){i&&i.drawImage(t,s,o,n,a)},drawRect:function(t,e,s,o,n){i&&(i.fillStyle=n,i.fillRect(t,e,s,o))},drawText:function(t,e,s,o,n,a=this.config.canvas.defaultFont){i&&(i.font=`${o}px ${a}`,i.fillStyle=n,i.fillText(t,e,s))},resizeToFitScreen:function(){if(!e||!s)return;const t=window.innerWidth,o=window.innerHeight,n=s.width/s.height;let a,r,c=1;"integer"===this.config.canvas.scalingMode?(c=Math.max(1,Math.min(Math.floor(t/s.width),Math.floor(o/s.height))),a=s.width*c,r=s.height*c):(t/o>n?(r=o,a=o*n):(a=t,r=t/n),c=a/s.width),e.style.width=`${a}px`,e.style.height=`${r}px`,this.config.canvas.centered&&(e.style.position="absolute",e.style.left=`${(t-a)/2}px`,e.style.top=`${(o-r)/2}px`)},getCurrentResolution:function(){return s},saveScreenshot:function(t="image/png",e=1){return e?e.toDataURL(t,e):null},start3DCubeAnimation:function(){if(!i)return void console.error("SuperMegaGigaGraphics: Canvas not initialized. Call initCanvas() first.");const t=()=>{this.clear(),r+=.01,c+=.015,l+=.008;const t=n.map((t=>{let e={...t};return e=p(e,r),e=x(e,c),e=g(e,l),e})),e=t.map((t=>f(t))),s=new Array(a.length);a.forEach(((o,n)=>{const a=t[o[0]],r=t[o[1]],c=t[o[2]];if(!a||!r||!c)return void(s[n]=!1);const l=h(r,a),u=h(c,a),p=m(l,u),x=h(d,a);s[n]=u(p,x)<-.0001})),i.strokeStyle="lime",i.lineWidth=1;const o=new Set;a.forEach(((t,n)=>{for(let a=0;a<t.length;a++){const r=t[a],c=t[(a+1)%t.length];let l=r<c?`${r}-${c}`:`${c}-${r}`;if(o.has(l))continue;const d=e[r],h=e[c];if(!d||!h)continue;let m=!1;const u=[];a.forEach(((t,e)=>{let i=!1;for(let s=0;s<t.length;s++){const o=t[s],n=t[(s+1)%t.length];if(o===r&&n===c||o===c&&n===r){i=!0;break}}i&&u.push(e)}));2===u.length?(m=s[u[0]]!==s[u[1]]):1===u.length&&s[u[0]]&&(m=!0),(s[n]||m)&&(i.beginPath(),i.moveTo(d.x,d.y),i.lineTo(h.x,h.y),i.stroke(),o.add(l))}})),o=requestAnimationFrame(t)};t()},stopAnimation:function(){o&&(cancelAnimationFrame(o),o=null,console.log("SuperMegaGigaGraphics: Animation stopped."))},getCanvas:function(){return e},getContext:function(){return i}};window.SuperMegaGigaGraphics=S})();
+let currentTestText="";
+function drawTestOverlay(){
+    const currentRes=SuperMegaGigaGraphics.getCurrentResolution();
+    if(!currentRes)return;
+    const ctx=SuperMegaGigaGraphics.getContext();
+    const canvasWidth=currentRes.width;
+    const canvasHeight=currentRes.height;
+    currentTestText=`Current Resolution: ${currentRes.name} (${currentRes.width}x${currentRes.height})`;
+    ctx.fillStyle='rgba(0, 0, 0, 0.5)';
+    ctx.fillRect(5,5,canvasWidth-10,40);
+    SuperMegaGigaGraphics.drawText(currentTestText,10,30,20,'#FFF','monospace');
+}
+document.addEventListener('DOMContentLoaded',()=>{
+    const resolutionSelect=document.getElementById('resolution-select');
+    const resolutions=SuperMegaGigaGraphics.config.resolutions;
+    const aspect16x9Resolutions=resolutions.filter(res=>res.aspect==='16:9');
+    aspect16x9Resolutions.forEach(res=>{
+        const option=document.createElement('option');
+        option.value=res.name;
+        option.textContent=`${res.name} (${res.width}x${res.height})`;
+        resolutionSelect.appendChild(option);
+    });
+    const initialRes=SuperMegaGigaGraphics.config.defaultResolution;
+    const default16x9=aspect16x9Resolutions.find(res=>res.name===initialRes)||aspect16x9Resolutions[2];
+    SuperMegaGigaGraphics.initCanvas(default16x9.name);
+    resolutionSelect.value=default16x9.name;
+    const originalStart3DCubeAnimation=SuperMegaGigaGraphics.start3DCubeAnimation;
+    SuperMegaGigaGraphics.start3DCubeAnimation=function(){
+        originalStart3DCubeAnimation.apply(this,arguments);
+        SuperMegaGigaGraphics.stopAnimation();
+        const animateCubeWithOverlay=()=>{
+            SuperMegaGigaGraphics.clear();
+            r+=0.01;
+            c+=0.015;
+            l+=0.008;
+            const transformedVertices=n.map(v=>{
+                let vv={...v};
+                vv=p(vv,r);
+                vv=x(vv,c);
+                vv=g(vv,l);
+                return vv;
+            });
+            const projectedVertices=transformedVertices.map(vv=>f(vv));
+            const faceIsFrontFacing=new Array(a.length);
+            a.forEach((o,idx)=>{
+                const v0=transformedVertices[o[0]];
+                const v1=transformedVertices[o[1]];
+                const v2=transformedVertices[o[2]];
+                if(!v0||!v1||!v2){faceIsFrontFacing[idx]=false;return;}
+                const vecA=h(v1,v0);
+                const vecB=h(v2,v0);
+                const normal=m(vecA,vecB);
+                const viewVector=h(d,v0);
+                faceIsFrontFacing[idx]=u(normal,viewVector)<-0.0001;
+            });
+            i.strokeStyle='lime';
+            i.lineWidth=1;
+            const drawnEdges=new Set();
+            a.forEach((t,faceIdx)=>{
+                for(let edgeIdx=0;edgeIdx<t.length;edgeIdx++){
+                    const vIndex1=t[edgeIdx];
+                    const vIndex2=t[(edgeIdx+1)%t.length];
+                    const edgeKey=vIndex1<vIndex2?`${vIndex1}-${vIndex2}`:`${vIndex2}-${vIndex1}`;
+                    if(drawnEdges.has(edgeKey))continue;
+                    const p1=projectedVertices[vIndex1];
+                    const p2=projectedVertices[vIndex2];
+                    if(!p1||!p2)continue;
+                    let isSilhouette=false;
+                    const connectedFaceIndices=[];
+                    a.forEach((f,fIdx)=>{
+                        let edgeFoundInFace=false;
+                        for(let j=0;j<f.length;j++){
+                            const fv1=f[j];
+                            const fv2=f[(j+1)%f.length];
+                            if((fv1===vIndex1&&fv2===vIndex2)||(fv1===vIndex2&&fv2===vIndex1)){edgeFoundInFace=true;break;}
+                        }
+                        if(edgeFoundInFace)connectedFaceIndices.push(fIdx);
+                    });
+                    if(connectedFaceIndices.length===2){
+                        const face1Visible=faceIsFrontFacing[connectedFaceIndices[0]];
+                        const face2Visible=faceIsFrontFacing[connectedFaceIndices[1]];
+                        isSilhouette=(face1Visible!==face2Visible);
+                    }else if(connectedFaceIndices.length===1&&faceIsFrontFacing[connectedFaceIndices[0]]){
+                        isSilhouette=true;
+                    }else{continue;}
+                    if(faceIsFrontFacing[faceIdx]||isSilhouette){
+                        i.beginPath();
+                        i.moveTo(p1.x,p1.y);
+                        i.lineTo(p2.x,p2.y);
+                        i.stroke();
+                        drawnEdges.add(edgeKey);
+                    }
+                }
+            });
+            drawTestOverlay();
+            o=requestAnimationFrame(animateCubeWithOverlay);
+        };
+        animateCubeWithOverlay();
+    };
+    SuperMegaGigaGraphics.start3DCubeAnimation();
+    resolutionSelect.addEventListener('change',event=>{
+        SuperMegaGigaGraphics.setResolution(event.target.value);
+    });
+});
+    </script>
+    <script src="debug-console.js"></script>
+</body>
+</html>
