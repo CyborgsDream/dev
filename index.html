@@ -86,8 +86,26 @@
     camera.position.z = 5;
 
     const geometry = new THREE.TorusGeometry(1, 0.3, 16, 60);
-    const material = new THREE.MeshStandardMaterial({ color: 0x00ffff, wireframe: true });
-    const torus = new THREE.Mesh(geometry, material);
+    const torusShader = new THREE.ShaderMaterial({
+      wireframe: true,
+      vertexShader: `
+        varying float vDist;
+        void main() {
+          vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
+          vDist = length(mvPosition.xyz);
+          gl_Position = projectionMatrix * mvPosition;
+        }
+      `,
+      fragmentShader: `
+        varying float vDist;
+        void main() {
+          float t = smoothstep(4.0, 6.0, vDist);
+          vec3 color = mix(vec3(0.0, 1.0, 0.0), vec3(1.0, 0.5, 0.0), t);
+          gl_FragColor = vec4(color, 1.0);
+        }
+      `
+    });
+    const torus = new THREE.Mesh(geometry, torusShader);
     scene.add(torus);
 
     const pointLight = new THREE.PointLight(0xffffff, 1);
