@@ -76,9 +76,14 @@
       const query=`[out:json];(way["highway"](${bbox.join(',')});way["building"](${bbox.join(',')}));out geom;`;
       const url='https://overpass-api.de/api/interpreter?data='+encodeURIComponent(query);
       fetch(url)
-        .then(r=>r.json())
+        .then(r=>{if(!r.ok)throw new Error('Network error');return r.json();})
         .then(data=>drawOSM(data,center))
-        .catch(e=>console.error('OSM load',e));
+        .catch(e=>{
+          console.error('OSM load',e);
+          fetch('data/osm-sample.json')
+            .then(r=>r.json())
+            .then(d=>drawOSM(d,center));
+        });
     }
 
     function drawOSM(data,center){
