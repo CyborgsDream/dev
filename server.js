@@ -19,7 +19,10 @@ function sendFile(res, filePath) {
 }
 
 const server = http.createServer((req, res) => {
-  if (req.url === '/files') {
+  const url = new URL(req.url, `http://${req.headers.host}`);
+  const pathname = url.pathname;
+
+  if (pathname === '/files') {
     fs.readdir(dirPath, (err, files) => {
       if (err) {
         res.writeHead(500, { 'Content-Type': 'application/json' });
@@ -30,10 +33,10 @@ const server = http.createServer((req, res) => {
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify(htmlFiles));
     });
-  } else if (req.url === '/' || req.url === '/index.html') {
+  } else if (pathname === '/' || pathname === '/index.html') {
     sendFile(res, path.join(dirPath, 'index.html'));
   } else {
-    const filePath = path.join(dirPath, req.url);
+    const filePath = path.join(dirPath, pathname);
     sendFile(res, filePath);
   }
 });
