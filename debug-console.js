@@ -2,7 +2,7 @@
   const overlay=document.createElement('div');
   overlay.id='debug-console-overlay';
   overlay.style.cssText=
-    'position:fixed;top:0;left:0;right:0;bottom:0;display:none;background:rgba(0,0,0,0.85);color:#0f0;font-family:monospace;font-size:12px;z-index:9999;padding:8px;box-sizing:border-box;flex-direction:column;';
+    'position:fixed;left:0;right:0;bottom:0;height:40vh;display:none;background:rgba(0,0,0,0.8);color:#0f0;font-family:monospace;font-size:12px;z-index:9999;padding:8px;box-sizing:border-box;flex-direction:column;';
   const logEl=document.createElement('div');
   logEl.style.cssText='flex:1;overflow-y:auto;white-space:pre-wrap;margin-bottom:4px;';
   const input=document.createElement('input');
