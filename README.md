@@ -40,11 +40,11 @@ To add a new page:
 ## Debug Console
 
 All pages now include a simple JavaScript console overlay. A reusable library is
-available in `console-overlay.js`. Include the script and call
+available in `_console.js`. Include the script and call
 `createDebugConsole()` to enable it:
 
 ```html
-<script src="console-overlay.js"></script>
+<script src="_console.js"></script>
 <script>createDebugConsole();</script>
 ```
 
