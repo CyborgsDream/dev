@@ -39,4 +39,19 @@ To add a new page:
 
 ## Debug Console
 
-All pages now include a simple JavaScript console overlay. Click the **Console** button in the bottom-right corner to open it and view log output or run code snippets.
+All pages now include a simple JavaScript console overlay. A reusable library is
+available in `console-overlay.js`. Include the script and call
+`createDebugConsole()` to enable it:
+
+```html
+<script src="console-overlay.js"></script>
+<script>createDebugConsole();</script>
+```
+
+You can pass options to customise the appearance, for example:
+
+```javascript
+createDebugConsole({ buttonLabel: 'Debug', color: '#0ff' });
+```
+
+Click the **Console** button in the bottom-right corner to toggle the overlay.
