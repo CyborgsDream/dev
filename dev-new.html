@@ -15,7 +15,7 @@
   <canvas id="sceneCanvas"></canvas>
   <button id="permissionBtn" style="display:none;">Enable Motion</button>
   <script>
-    let scene,camera,renderer,wallGrids,verticalLines;
+    let scene,camera,renderer,wallGrids,verticalLines,balls=[];
     let orientationBuffer=[];
     function initScene(){
       scene=new THREE.Scene();
@@ -37,6 +37,10 @@
       const floorGrid=new THREE.GridHelper(floorSize,floorDiv,0x00ffff,0x008888);
       floorGrid.material=floorMat;
       scene.add(floorGrid);
+      const upperFloor=floorGrid.clone();
+      upperFloor.material=floorMat.clone();
+      upperFloor.position.y=floorSize/floorDiv;
+      scene.add(upperFloor);
 
       wallGrids=new THREE.Group();
       const wallSize=50;
@@ -50,6 +54,7 @@
       scene.add(wallGrids);
 
       createVerticalLines();
+      createBalls();
       loadOpenStreetMap();
       window.addEventListener('resize',onResize);
     }
@@ -68,6 +73,18 @@
       const mat=new THREE.LineBasicMaterial({color:0xff00ff,opacity:0.6,transparent:true});
       verticalLines=new THREE.LineSegments(geo,mat);
       scene.add(verticalLines);
+    }
+
+    function createBalls(){
+      const geo=new THREE.SphereGeometry(0.5,16,16);
+      const mat=new THREE.MeshStandardMaterial({color:0xffaa00});
+      for(let i=0;i<10;i++){
+        const ball=new THREE.Mesh(geo,mat);
+        ball.position.set((Math.random()-0.5)*20,5+Math.random()*5,(Math.random()-0.5)*20);
+        ball.userData.vy=0;
+        balls.push(ball);
+        scene.add(ball);
+      }
     }
 
     function loadOpenStreetMap(){
@@ -149,6 +166,14 @@
 
     function animate(){
       requestAnimationFrame(animate);
+      balls.forEach(b=>{
+        b.userData.vy-=0.01;
+        b.position.y+=b.userData.vy;
+        if(b.position.y<0.5){
+          b.position.y=0.5;
+          b.userData.vy*=-0.6;
+        }
+      });
       renderer.render(scene,camera);
     }
 
