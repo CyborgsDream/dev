@@ -31,6 +31,7 @@ main {
   width: 848px;
   height: 420px;
   margin: 0 auto;
+  overflow: hidden;
 }
 
 #fps-counter {
@@ -43,13 +44,14 @@ main {
   padding: 2px 4px;
   font-size: 0.8rem;
   pointer-events: none;
+  overflow-wrap: anywhere;
 }
 #cinematic-heading {
   position: absolute;
   top: 20px;
   width: 100%;
   text-align: center;
-  font-size: 3rem;
+  font-size: clamp(1rem, 6vw, 3rem);
   letter-spacing: 0.3rem;
   color: #fff;
   text-shadow: 0 0 10px rgba(255, 255, 255, 0.8);
@@ -57,6 +59,7 @@ main {
   pointer-events: none;
   z-index: 20;
   text-transform: uppercase;
+  overflow-wrap: anywhere;
 }
 #bottom-text {
   position: absolute;
@@ -67,6 +70,7 @@ main {
   color: #fff;
   pointer-events: none;
   z-index: 20;
+  overflow-wrap: anywhere;
 }
 #scene-container canvas {
   background: #000033;
