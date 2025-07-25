@@ -14,6 +14,7 @@ body {
   min-height: 100vh;
   display: flex;
   flex-direction: column;
+  position: relative;
 }
 
 main {
@@ -41,6 +42,30 @@ main {
   padding: 2px 4px;
   font-size: 0.8rem;
   pointer-events: none;
+}
+#cinematic-heading {
+  position: fixed;
+  top: 20px;
+  width: 100%;
+  text-align: center;
+  font-size: 3rem;
+  letter-spacing: 0.3rem;
+  color: #fff;
+  text-shadow: 0 0 10px rgba(255, 255, 255, 0.8);
+  font-weight: bold;
+  pointer-events: none;
+  z-index: 20;
+  text-transform: uppercase;
+}
+#bottom-text {
+  position: fixed;
+  bottom: 10px;
+  width: 100%;
+  text-align: center;
+  font-size: 0.7rem;
+  color: #fff;
+  pointer-events: none;
+  z-index: 20;
 }
 #scene-container canvas {
   background: #000033;
