@@ -56,7 +56,7 @@ if (typeof THREE !== 'undefined') {
   const mesh2 = createMesh(new THREE.TorusGeometry(1.2, 0.4, 16, 30), 0x0096D6, 0);
   const mesh3 = createMesh(new THREE.DodecahedronGeometry(1.5), 0x9932cc, 4);
 
-  camera.position.set(0, 5, 8);
+  camera.position.set(0, 5, 6);
   camera.lookAt(0, 1, 0);
 
   let lastTime;
