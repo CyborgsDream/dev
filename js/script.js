@@ -1,3 +1,4 @@
+// Version: 003
 // Basic THREE.js example with multiple objects
 console.log('Responsive boilerplate loaded');
 
