@@ -15,8 +15,21 @@ if (typeof THREE !== 'undefined') {
   renderer.shadowMap.enabled = true;
   container.appendChild(renderer.domElement);
 
-  // Ground (standard material for debugging visibility)
-  const groundGeo = new THREE.PlaneGeometry(50, 50);
+  // Ground with custom height pattern
+  const groundSize = 32;
+  const groundGeo = new THREE.PlaneGeometry(
+    groundSize,
+    groundSize,
+    groundSize,
+    groundSize
+  );
+  const pos = groundGeo.attributes.position;
+  for (let i = 0; i < pos.count; i++) {
+    const height = i % 2 === 0 ? 0 : -1;
+    pos.setZ(i, height);
+  }
+  groundGeo.computeVertexNormals();
+
   const groundMat = new THREE.MeshStandardMaterial({ color: 0x222222 });
   const ground = new THREE.Mesh(groundGeo, groundMat);
   ground.rotation.x = -Math.PI / 2;
