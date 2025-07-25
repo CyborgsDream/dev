@@ -1,4 +1,4 @@
-// Version: 0.0.4
+// Version: 0.0.5
 // Codename: Nebula
 // Basic THREE.js example with multiple objects
 console.log('Responsive boilerplate loaded');
@@ -117,6 +117,8 @@ if (typeof THREE !== 'undefined') {
 
   window.addEventListener('resize', onWindowResize);
   window.addEventListener('orientationchange', checkOrientation);
+  window.addEventListener('click', checkOrientation);
+  window.addEventListener('touchend', checkOrientation);
   onWindowResize();
   checkOrientation();
 
