@@ -57,11 +57,12 @@ if (typeof THREE !== 'undefined') {
   camera.position.set(0, 6, 10);
   camera.lookAt(0, 1, 0);
 
-  let lastTime = performance.now();
+  let lastTime;
   let frames = 0;
 
   function animate(timestamp) {
     requestAnimationFrame(animate);
+    if (lastTime === undefined) lastTime = timestamp;
     frames++;
     if (timestamp - lastTime >= 1000) {
       const fps = Math.round((frames * 1000) / (timestamp - lastTime));
@@ -104,5 +105,5 @@ if (typeof THREE !== 'undefined') {
   onWindowResize();
   checkOrientation();
 
-  animate();
+  requestAnimationFrame(animate);
 }
