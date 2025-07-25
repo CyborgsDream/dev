@@ -1,4 +1,5 @@
-// Version: 003
+// Version: 0.0.4
+// Codename: Nebula
 // Basic THREE.js example with multiple objects
 console.log('Responsive boilerplate loaded');
 
