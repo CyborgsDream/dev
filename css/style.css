@@ -1,4 +1,4 @@
-/* Version: 0.0.4 */
+/* Version: 0.0.5 */
 /* Codename: Nebula */
 /* Basic responsive CSS */
 * {
@@ -75,6 +75,11 @@ main {
 #scene-container canvas {
   background: #000033;
   display: block;
+}
+
+#scene-container:fullscreen {
+  width: 100vw;
+  height: 100vh;
 }
 
 @media (max-width: 848px), (orientation: portrait) {
