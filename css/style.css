@@ -44,7 +44,7 @@ main {
   pointer-events: none;
 }
 #cinematic-heading {
-  position: fixed;
+  position: absolute;
   top: 20px;
   width: 100%;
   text-align: center;
@@ -58,7 +58,7 @@ main {
   text-transform: uppercase;
 }
 #bottom-text {
-  position: fixed;
+  position: absolute;
   bottom: 10px;
   width: 100%;
   text-align: center;
