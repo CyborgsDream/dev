@@ -4,6 +4,7 @@ console.log('Responsive boilerplate loaded');
 // Ensure THREE is available
 if (typeof THREE !== 'undefined') {
   const container = document.getElementById('scene-container');
+  const fpsCounter = document.getElementById('fps-counter');
   const scene = new THREE.Scene();
   const camera = new THREE.PerspectiveCamera(75, container.clientWidth / container.clientHeight, 0.1, 1000);
   const renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -54,10 +55,20 @@ if (typeof THREE !== 'undefined') {
   const mesh3 = createMesh(new THREE.DodecahedronGeometry(1.5), 0x9932cc, 4);
 
   camera.position.set(0, 6, 10);
-  camera.lookAt(0, 0, 0);
+  camera.lookAt(0, 1, 0);
 
-  function animate() {
+  let lastTime = performance.now();
+  let frames = 0;
+
+  function animate(timestamp) {
     requestAnimationFrame(animate);
+    frames++;
+    if (timestamp - lastTime >= 1000) {
+      const fps = Math.round((frames * 1000) / (timestamp - lastTime));
+      if (fpsCounter) fpsCounter.textContent = fps + ' FPS';
+      frames = 0;
+      lastTime = timestamp;
+    }
     [mesh1, mesh2, mesh3].forEach(mesh => {
       mesh.rotation.x += 0.005;
       mesh.rotation.y += 0.01;
@@ -71,10 +82,27 @@ if (typeof THREE !== 'undefined') {
     camera.aspect = width / height;
     camera.updateProjectionMatrix();
     renderer.setSize(width, height);
+    checkOrientation();
+  }
+
+  function checkOrientation() {
+    const isLandscape = window.matchMedia('(orientation: landscape)').matches;
+    const isMobile = window.innerWidth <= 768;
+    if (isMobile && isLandscape) {
+      if (!document.fullscreenElement && container.requestFullscreen) {
+        container.requestFullscreen();
+      }
+    } else {
+      if (document.fullscreenElement && document.exitFullscreen) {
+        document.exitFullscreen();
+      }
+    }
   }
 
   window.addEventListener('resize', onWindowResize);
+  window.addEventListener('orientationchange', checkOrientation);
   onWindowResize();
+  checkOrientation();
 
   animate();
 }

@@ -24,11 +24,22 @@ main {
 }
 
 #scene-container {
+  position: relative;
   width: 848px;
   height: 420px;
   margin: 0 auto;
 }
 
+#fps-counter {
+  position: absolute;
+  top: 5px;
+  left: 5px;
+  color: #fff;
+  background: rgba(0, 0, 0, 0.5);
+  padding: 2px 4px;
+  font-size: 0.8rem;
+  pointer-events: none;
+}
 #scene-container canvas {
   background: #000033;
   display: block;
