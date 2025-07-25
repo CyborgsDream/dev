@@ -1,4 +1,4 @@
-// Basic THREE.js example with a spinning cube
+// Basic THREE.js example with multiple objects
 console.log('Responsive boilerplate loaded');
 
 // Ensure THREE is available
@@ -9,19 +9,66 @@ if (typeof THREE !== 'undefined') {
   const renderer = new THREE.WebGLRenderer({ antialias: true });
   renderer.setSize(container.clientWidth, container.clientHeight);
   renderer.setClearColor(0x000033);
+  renderer.shadowMap.enabled = true;
   container.appendChild(renderer.domElement);
 
+<<<<<<< HEAD
 <!--  const geometry = new THREE.BoxGeometry();
   const material = new THREE.MeshNormalMaterial();
   const cube = new THREE.Mesh(geometry, material);
   scene.add(cube); --
+=======
+  // Ground (standard material for debugging visibility)
+  const groundGeo = new THREE.PlaneGeometry(50, 50);
+  const groundMat = new THREE.MeshStandardMaterial({ color: 0x222222 });
+  const ground = new THREE.Mesh(groundGeo, groundMat);
+  ground.rotation.x = -Math.PI / 2;
+  ground.position.y = 0;
+  ground.receiveShadow = true;
+  scene.add(ground);
+>>>>>>> 80cc9c20dc787546e0d771354ff5f7119058120e
 
-  camera.position.z = 3;
+  // Lighting
+  const ambientLight = new THREE.AmbientLight(0xffffff, 0.3);
+  scene.add(ambientLight);
+
+  const dirLight = new THREE.DirectionalLight(0xffffff, 0.9);
+  dirLight.position.set(5, 10, 5);
+  dirLight.castShadow = true;
+  dirLight.shadow.mapSize.width = 2048;
+  dirLight.shadow.mapSize.height = 2048;
+  dirLight.shadow.camera.left = -15;
+  dirLight.shadow.camera.right = 15;
+  dirLight.shadow.camera.top = 15;
+  dirLight.shadow.camera.bottom = -15;
+  dirLight.shadow.camera.near = 1;
+  dirLight.shadow.camera.far = 50;
+  scene.add(dirLight);
+
+  // Helper function to create elevated mesh
+  function createMesh(geometry, color, x) {
+    const material = new THREE.MeshStandardMaterial({ color });
+    const mesh = new THREE.Mesh(geometry, material);
+    mesh.position.set(x, 3, 0);
+    mesh.castShadow = true;
+    scene.add(mesh);
+    return mesh;
+  }
+
+  // Create objects
+  const mesh1 = createMesh(new THREE.IcosahedronGeometry(1.5), 0xff6600, -4);
+  const mesh2 = createMesh(new THREE.TorusGeometry(1.2, 0.4, 16, 30), 0x0096D6, 0);
+  const mesh3 = createMesh(new THREE.DodecahedronGeometry(1.5), 0x9932cc, 4);
+
+  camera.position.set(0, 6, 10);
+  camera.lookAt(0, 0, 0);
 
   function animate() {
     requestAnimationFrame(animate);
-    cube.rotation.x += 0.01;
-    cube.rotation.y += 0.01;
+    [mesh1, mesh2, mesh3].forEach(mesh => {
+      mesh.rotation.x += 0.005;
+      mesh.rotation.y += 0.01;
+    });
     renderer.render(scene, camera);
   }
 
