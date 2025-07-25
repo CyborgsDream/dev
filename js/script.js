@@ -8,6 +8,7 @@ if (typeof THREE !== 'undefined') {
   const camera = new THREE.PerspectiveCamera(75, container.clientWidth / container.clientHeight, 0.1, 1000);
   const renderer = new THREE.WebGLRenderer({ antialias: true });
   renderer.setSize(container.clientWidth, container.clientHeight);
+  renderer.setClearColor(0x000033);
   container.appendChild(renderer.domElement);
 
   const geometry = new THREE.BoxGeometry();
@@ -23,6 +24,17 @@ if (typeof THREE !== 'undefined') {
     cube.rotation.y += 0.01;
     renderer.render(scene, camera);
   }
+
+  function onWindowResize() {
+    const width = container.clientWidth;
+    const height = container.clientHeight;
+    camera.aspect = width / height;
+    camera.updateProjectionMatrix();
+    renderer.setSize(width, height);
+  }
+
+  window.addEventListener('resize', onWindowResize);
+  onWindowResize();
 
   animate();
 }
