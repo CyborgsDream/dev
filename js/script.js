@@ -132,6 +132,7 @@ container.appendChild(renderer.domElement);
     const size = 0.4;
     const depth = 0.4;
     const colors = [0xff0000, 0xff5800, 0xffd500, 0x009b48, 0x0045ad, 0xffffff];
+    const availableColors = [...colors];
     const group = new THREE.Group();
     let offsetX = 0;
     text.toUpperCase().split('').forEach(ch => {
@@ -141,17 +142,20 @@ container.appendChild(renderer.domElement);
         return;
       }
       const letterGroup = new THREE.Group();
-      const letterMaterials = Array.from({ length: 6 }, () =>
-        new THREE.MeshStandardMaterial({
-          color: colors[Math.floor(Math.random() * colors.length)]
-        })
-      );
+      if (availableColors.length === 0) {
+        availableColors.push(...colors);
+      }
+      const color = availableColors.splice(
+        Math.floor(Math.random() * availableColors.length),
+        1
+      )[0];
+      const letterMaterial = new THREE.MeshStandardMaterial({ color });
       pattern.forEach((row, y) => {
         row.split('').forEach((bit, x) => {
           if (bit === '1') {
             const cube = new THREE.Mesh(
               new THREE.BoxGeometry(size, size, depth),
-              letterMaterials
+              letterMaterial
             );
             cube.position.set(x * size, (pattern.length - y - 1) * size, 0);
             cube.castShadow = true;

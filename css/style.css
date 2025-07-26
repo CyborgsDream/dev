@@ -141,18 +141,21 @@ main {
   }
 }
 
-.object-label {
-  position: absolute;
-  pointer-events: none;
-  font-family: monospace;
-  font-size: 0.7rem;
-  text-shadow: 0 0 5px rgba(0, 0, 0, 0.5);
-}
-
+.object-label,
 .object-info {
   position: absolute;
   pointer-events: none;
   font-family: monospace;
-  font-size: 0.55rem;
   text-shadow: 0 0 5px rgba(0, 0, 0, 0.5);
+  z-index: 40;
+}
+
+.object-label {
+  font-size: 0.7rem;
+  color: #fff;
+}
+
+.object-info {
+  font-size: 0.55rem;
+  color: #ccc;
 }
