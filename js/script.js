@@ -2,8 +2,8 @@
 // Codename: Celestia
 // Basic THREE.js example with multiple objects
 import * as THREE from 'https://unpkg.com/three@0.159.0/build/three.module.js';
-import { FontLoader } from 'https://unpkg.com/three@0.159.0/examples/jsm/loaders/FontLoader.js';
-import { TextGeometry } from 'https://unpkg.com/three@0.159.0/examples/jsm/geometries/TextGeometry.js';
+import { FontLoader } from 'https://unpkg.com/three@0.159.0/examples/jsm/loaders/FontLoader.js?module';
+import { TextGeometry } from 'https://unpkg.com/three@0.159.0/examples/jsm/geometries/TextGeometry.js?module';
 const consoleLogEl = document.getElementById('console-log');
 if (consoleLogEl) {
   const origLog = console.log;
