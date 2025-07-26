@@ -13,9 +13,11 @@ if (consoleLogEl) {
       .map(a => (typeof a === 'object' ? JSON.stringify(a) : String(a)))
       .join(' ');
     const line = document.createElement('div');
+    line.className = 'console-line';
     line.textContent = msg;
     consoleLogEl.appendChild(line);
     consoleLogEl.scrollTop = consoleLogEl.scrollHeight;
+    setTimeout(() => line.remove(), 3000);
   };
 }
 console.log('Responsive boilerplate loaded');
