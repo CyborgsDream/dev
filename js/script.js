@@ -1,4 +1,4 @@
-// Version: 0.0.10a
+// Version: 0.0.11
 // Codename: Celestia
 // Basic THREE.js example with multiple objects
 import * as THREE from 'https://unpkg.com/three@0.159.0/build/three.module.js';
@@ -213,8 +213,8 @@ container.appendChild(renderer.domElement);
     // apply wind effect to each text cube
     textCubes.forEach(cube => {
       const { initialX, initialZ, phase } = cube.userData;
-      cube.position.z = initialZ + Math.sin(timestamp / 500 + phase) * 0.2;
-      cube.position.x = initialX + Math.sin(timestamp / 600 + phase) * 0.15;
+      cube.position.z = initialZ + Math.sin(timestamp / 500 + phase) * 0.15;
+      cube.position.x = initialX + Math.sin(timestamp / 600 + phase) * 0.1;
     });
     // update object labels
     labels.forEach(({ mesh, el }) => {
