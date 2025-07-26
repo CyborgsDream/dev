@@ -1,4 +1,4 @@
-// Version: 0.0.10a
+// Version: 0.0.10b
 // Codename: Celestia
 // Basic THREE.js example with multiple objects
 import * as THREE from 'https://unpkg.com/three@0.159.0/build/three.module.js';
@@ -127,9 +127,17 @@ container.appendChild(renderer.domElement);
   function createVoxelText(text) {
     const size = 0.4;
     const depth = 0.4;
-    const colors = [0xff0000, 0xff5800, 0xffd500, 0x009b48, 0x0045ad, 0xffffff];
+    const rubikColors = [
+      0xff0000,
+      0xff5800,
+      0xffd500,
+      0x009b48,
+      0x0045ad,
+      0xffffff
+    ];
     const group = new THREE.Group();
     let offsetX = 0;
+    let letterIndex = 0;
     text.toUpperCase().split('').forEach(ch => {
       const pattern = LETTERS[ch];
       if (!pattern) {
@@ -137,10 +145,11 @@ container.appendChild(renderer.domElement);
         return;
       }
       const letterGroup = new THREE.Group();
-      const letterMaterials = Array.from({ length: 6 }, () =>
-        new THREE.MeshStandardMaterial({
-          color: colors[Math.floor(Math.random() * colors.length)]
-        })
+      const orientedColors = rubikColors
+        .slice(letterIndex)
+        .concat(rubikColors.slice(0, letterIndex));
+      const letterMaterials = orientedColors.map(
+        color => new THREE.MeshStandardMaterial({ color })
       );
       pattern.forEach((row, y) => {
         row.split('').forEach((bit, x) => {
@@ -152,7 +161,7 @@ container.appendChild(renderer.domElement);
             cube.position.set(x * size, (pattern.length - y - 1) * size, 0);
             cube.castShadow = true;
             cube.receiveShadow = true;
-            cube.userData.phase = 0; // synchronized wave
+            cube.userData.phase = Math.random() * Math.PI * 2;
             cube.userData.rotSpeed = new THREE.Vector3(0, 0, 0);
             letterGroup.add(cube);
             textCubes.push(cube);
@@ -169,6 +178,7 @@ container.appendChild(renderer.domElement);
       });
       letterGroup.position.x = offsetX + letterWidth / 2;
       group.add(letterGroup);
+      letterIndex++;
       offsetX += letterWidth + size;
     });
     const box = new THREE.Box3().setFromObject(group);
@@ -176,7 +186,7 @@ container.appendChild(renderer.domElement);
     group.children.forEach(c => c.position.sub(center));
     group.scale.set(2 / 3, 2 / 3, 2 / 3);
     group.position.set(0, 4.35, 0.5);
-    group.rotation.x = -Math.PI / 8;
+    group.rotation.x = 0;
     return group;
   }
 
@@ -213,8 +223,8 @@ container.appendChild(renderer.domElement);
     // apply wind effect to each text cube
     textCubes.forEach(cube => {
       const { initialX, initialZ, phase } = cube.userData;
-      cube.position.z = initialZ + Math.sin(timestamp / 500 + phase) * 0.2;
-      cube.position.x = initialX + Math.sin(timestamp / 600 + phase) * 0.15;
+      cube.position.z = initialZ + Math.sin(timestamp / 500 + phase) * 0.1;
+      cube.position.x = initialX + Math.sin(timestamp / 600 + phase) * 0.07;
     });
     // update object labels
     labels.forEach(({ mesh, el }) => {
