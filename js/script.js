@@ -1,4 +1,4 @@
-// Version: 0.0.12
+// Version: 0.0.13alfa
 // Codename: Celestia
 // Basic THREE.js example with multiple objects
 import * as THREE from 'https://unpkg.com/three@0.159.0/build/three.module.js';
@@ -100,9 +100,9 @@ container.appendChild(renderer.domElement);
   console.info('Meshes created', mesh1.position, mesh2.position, mesh3.position);
 
   const labels = [];
-  function addLabel(mesh, text, colorHex, offsetY = -1) {
+  function addLabel(mesh, text, colorHex, offsetY = -1, className = 'object-label') {
     const el = document.createElement('div');
-    el.className = 'object-label';
+    el.className = className;
     el.style.color = colorHex;
     el.textContent = text;
     container.appendChild(el);
@@ -110,8 +110,11 @@ container.appendChild(renderer.domElement);
   }
 
   addLabel(mesh1, 'Demo One', '#fff');
+  addLabel(mesh1, 'lorem ipsum doloret sit amet', '#ccc', -1.5, 'object-info');
   addLabel(mesh2, 'Demo Two', '#fff');
+  addLabel(mesh2, 'lorem ipsum doloret sit amet', '#ccc', -1.5, 'object-info');
   addLabel(mesh3, 'Demo Three', '#fff');
+  addLabel(mesh3, 'lorem ipsum doloret sit amet', '#ccc', -1.5, 'object-info');
 
   // Chunky voxel-style DEMOS heading
   // Each cube will move with a sinusoidal offset along the Z axis
