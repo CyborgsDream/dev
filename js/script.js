@@ -58,19 +58,57 @@ if (typeof THREE !== 'undefined') {
   function createMesh(geometry, color, x) {
     const material = new THREE.MeshStandardMaterial({ color });
     const mesh = new THREE.Mesh(geometry, material);
-    mesh.position.set(x, 3, 0);
+    mesh.position.set(x, 1.5, 0); // lowered to center objects
     mesh.castShadow = true;
     scene.add(mesh);
     return mesh;
   }
 
   // Create objects
-  const mesh1 = createMesh(new THREE.IcosahedronGeometry(1.5), 0xff6600, -4);
-  const mesh2 = createMesh(new THREE.TorusGeometry(1.2, 0.4, 16, 30), 0x0096D6, 0);
-  const mesh3 = createMesh(new THREE.DodecahedronGeometry(1.5), 0x9932cc, 4);
+  const mesh1 = createMesh(new THREE.IcosahedronGeometry(1.2), 0xff6600, -4);
+  const mesh2 = createMesh(new THREE.TorusGeometry(0.9, 0.3, 16, 30), 0x0096D6, 0);
+  const mesh3 = createMesh(new THREE.DodecahedronGeometry(1.2), 0x9932cc, 4);
+
+  // 3D text heading
+  let textMesh;
+  const fontLoader = new THREE.FontLoader();
+  fontLoader.load(
+    'https://unpkg.com/three@0.159.0/examples/fonts/helvetiker_regular.typeface.json',
+    font => {
+      const textGeo = new THREE.TextGeometry('DEMOS', {
+        font: font,
+        size: 1,
+        height: 0.2,
+        curveSegments: 12,
+        bevelEnabled: true,
+        bevelThickness: 0.02,
+        bevelSize: 0.02,
+        bevelSegments: 2
+      });
+      textGeo.center();
+      const textMat = new THREE.MeshStandardMaterial({ color: 0xffffff });
+      textMat.onBeforeCompile = shader => {
+        shader.uniforms.time = { value: 0 };
+        shader.vertexShader = shader.vertexShader.replace(
+          '#include <common>',
+          '#include <common>\nuniform float time;'
+        );
+        shader.vertexShader = shader.vertexShader.replace(
+          '#include <begin_vertex>',
+          `vec3 transformed = vec3(position);
+           transformed.x += sin(2.0 * position.y + time * 2.0) * 0.1;
+           transformed.y += sin(2.0 * position.x + time * 2.0) * 0.1;`
+        );
+        textMesh.userData.shader = shader;
+      };
+      textMesh = new THREE.Mesh(textGeo, textMat);
+      textMesh.position.set(0, 3.5, -1);
+      scene.add(textMesh);
+    }
+  );
 
   camera.position.set(0, 5, 6);
-  camera.lookAt(0, 1, 0);
+  camera.lookAt(0, 1.5, 0);
 
   let lastTime;
   let frames = 0;
@@ -89,6 +127,9 @@ if (typeof THREE !== 'undefined') {
       mesh.rotation.x += 0.005;
       mesh.rotation.y += 0.01;
     });
+    if (textMesh && textMesh.userData.shader) {
+      textMesh.userData.shader.uniforms.time.value = timestamp / 1000;
+    }
     renderer.render(scene, camera);
   }
 
