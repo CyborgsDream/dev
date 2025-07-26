@@ -121,6 +121,8 @@ container.appendChild(renderer.domElement);
     S: ['01111', '10000', '10000', '01110', '00001', '00001', '11110']
   };
 
+  const textCubes = [];
+
   function createVoxelText(text, color) {
     const size = 0.4;
     const depth = 0.4;
@@ -140,7 +142,10 @@ container.appendChild(renderer.domElement);
             cube.position.set(offsetX + x * size, (pattern.length - y - 1) * size, 0);
             cube.castShadow = true;
             cube.receiveShadow = true;
+            cube.userData.initialZ = cube.position.z;
+            cube.userData.phase = Math.random() * Math.PI * 2;
             group.add(cube);
+            textCubes.push(cube);
           }
         });
       });
@@ -149,6 +154,7 @@ container.appendChild(renderer.domElement);
     const box = new THREE.Box3().setFromObject(group);
     const center = box.getCenter(new THREE.Vector3());
     group.children.forEach(c => c.position.sub(center));
+    group.scale.set(2 / 3, 2 / 3, 2 / 3);
     group.position.set(0, 4.2, 0.5);
     group.rotation.x = -Math.PI / 8;
     return group;
@@ -177,6 +183,10 @@ container.appendChild(renderer.domElement);
     [mesh1, mesh2, mesh3].forEach(mesh => {
       mesh.rotation.x += 0.005;
       mesh.rotation.y += 0.01;
+    });
+    textCubes.forEach(cube => {
+      const { initialZ, phase } = cube.userData;
+      cube.position.z = initialZ + Math.sin(timestamp / 500 + phase) * 0.2;
     });
     // update object labels
     labels.forEach(({ mesh, el }) => {
