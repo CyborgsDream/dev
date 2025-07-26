@@ -153,6 +153,7 @@ main {
 .object-label {
   font-size: 0.7rem;
   color: #fff;
+  margin: 0;
 }
 
 .object-info {
