@@ -1,4 +1,4 @@
-// Version: 0.0.7
+// Version: 0.0.4
 // Codename: Nebula
 // Basic THREE.js example with multiple objects
 import * as THREE from 'https://unpkg.com/three@0.159.0/build/three.module.js';
