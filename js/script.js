@@ -103,12 +103,13 @@ if (typeof THREE !== 'undefined') {
       };
       textMesh = new THREE.Mesh(textGeo, textMat);
       textMesh.position.set(0, 3.5, -1);
+      textMesh.rotation.x = -Math.PI / 8;
       scene.add(textMesh);
     }
   );
 
-  camera.position.set(0, 5, 6);
-  camera.lookAt(0, 1.5, 0);
+  camera.position.set(0, 7, 6);
+  camera.lookAt(0, 2, 0);
 
   let lastTime;
   let frames = 0;
