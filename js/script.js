@@ -101,7 +101,7 @@ container.appendChild(renderer.domElement);
 
   const labels = [];
   function addLabel(mesh, text, colorHex, offsetY = -1, className = 'object-label') {
-    const el = document.createElement('div');
+    const el = document.createElement(className === 'object-label' ? 'h3' : 'div');
     el.className = className;
     el.style.color = colorHex;
     el.textContent = text;
