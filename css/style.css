@@ -67,8 +67,8 @@ main {
   width: 100%;
   max-height: 100px;
   overflow-y: auto;
-  color: transparent;
-  background: rgba(0, 0, 0, 0.7);
+  color: #0f0;
+  background: transparent;
   font-family: monospace;
   font-size: 0.65rem;
   padding: 2px 4px;
@@ -78,7 +78,7 @@ main {
 }
 
 #console-log .console-line {
-  animation: fade-out 1s ease-out 2s forwards;
+  animation: fade-out 1s ease-out 5s forwards;
 }
 
 @keyframes fade-out {

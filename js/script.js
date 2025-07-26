@@ -20,7 +20,7 @@ if (consoleLogEl) {
       line.textContent = `[${m}] ${msg}`;
       consoleLogEl.appendChild(line);
       consoleLogEl.scrollTop = consoleLogEl.scrollHeight;
-      setTimeout(() => line.remove(), 3000);
+      setTimeout(() => line.remove(), 6000);
     };
   });
 }
@@ -134,7 +134,7 @@ container.appendChild(renderer.domElement);
         textMesh.userData.shader = shader;
       };
       textMesh = new THREE.Mesh(textGeo, textMat);
-      textMesh.position.set(0, 3.5, 0.5);
+      textMesh.position.set(0, 4.2, 0.5);
       textMesh.rotation.x = -Math.PI / 8;
       scene.add(textMesh);
       console.info('3D text added', textMesh.position);
