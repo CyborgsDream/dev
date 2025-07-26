@@ -46,6 +46,23 @@ main {
   pointer-events: none;
   overflow-wrap: anywhere;
 }
+
+#console-log {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  max-height: 100px;
+  overflow-y: auto;
+  color: #0f0;
+  background: rgba(0, 0, 0, 0.7);
+  font-family: monospace;
+  font-size: 0.65rem;
+  padding: 2px 4px;
+  pointer-events: none;
+  z-index: 30;
+  overflow-wrap: anywhere;
+}
 #cinematic-heading {
   position: absolute;
   top: 20px;

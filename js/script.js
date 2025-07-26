@@ -1,6 +1,20 @@
-// Version: 0.0.5
+// Version: 0.0.6
 // Codename: Nebula
 // Basic THREE.js example with multiple objects
+const consoleLogEl = document.getElementById('console-log');
+if (consoleLogEl) {
+  const origLog = console.log;
+  console.log = (...args) => {
+    origLog(...args);
+    const msg = args
+      .map(a => (typeof a === 'object' ? JSON.stringify(a) : String(a)))
+      .join(' ');
+    const line = document.createElement('div');
+    line.textContent = msg;
+    consoleLogEl.appendChild(line);
+    consoleLogEl.scrollTop = consoleLogEl.scrollHeight;
+  };
+}
 console.log('Responsive boilerplate loaded');
 
 // Ensure THREE is available
