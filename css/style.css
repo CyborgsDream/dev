@@ -1,4 +1,4 @@
-/* Version: 0.0.12 */
+/* Version: 0.0.13alfa */
 /* Codename: Celestia */
 /* Basic responsive CSS */
 * {
@@ -146,5 +146,13 @@ main {
   pointer-events: none;
   font-family: monospace;
   font-size: 0.7rem;
+  text-shadow: 0 0 5px rgba(0, 0, 0, 0.5);
+}
+
+.object-info {
+  position: absolute;
+  pointer-events: none;
+  font-family: monospace;
+  font-size: 0.55rem;
   text-shadow: 0 0 5px rgba(0, 0, 0, 0.5);
 }
