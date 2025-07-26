@@ -6,19 +6,23 @@ import { FontLoader } from 'https://unpkg.com/three@0.159.0/examples/jsm/loaders
 import { TextGeometry } from 'https://unpkg.com/three@0.159.0/examples/jsm/geometries/TextGeometry.js?module';
 const consoleLogEl = document.getElementById('console-log');
 if (consoleLogEl) {
-  const origLog = console.log;
-  console.log = (...args) => {
-    origLog(...args);
-    const msg = args
-      .map(a => (typeof a === 'object' ? JSON.stringify(a) : String(a)))
-      .join(' ');
-    const line = document.createElement('div');
-    line.className = 'console-line';
-    line.textContent = msg;
-    consoleLogEl.appendChild(line);
-    consoleLogEl.scrollTop = consoleLogEl.scrollHeight;
-    setTimeout(() => line.remove(), 3000);
-  };
+  const methods = ['log', 'info', 'warn', 'error'];
+  const original = {};
+  methods.forEach(m => {
+    original[m] = console[m].bind(console);
+    console[m] = (...args) => {
+      original[m](...args);
+      const msg = args
+        .map(a => (typeof a === 'object' ? JSON.stringify(a) : String(a)))
+        .join(' ');
+      const line = document.createElement('div');
+      line.className = `console-line ${m}`;
+      line.textContent = `[${m}] ${msg}`;
+      consoleLogEl.appendChild(line);
+      consoleLogEl.scrollTop = consoleLogEl.scrollHeight;
+      setTimeout(() => line.remove(), 3000);
+    };
+  });
 }
 console.log('Responsive boilerplate loaded');
 
@@ -39,6 +43,7 @@ renderer.shadowMap.enabled = true;
 container.appendChild(renderer.domElement);
 
   // Ground with custom height pattern
+  console.info('Generating ground geometry');
   const groundSize = 32;
   const groundGeo = new THREE.PlaneGeometry(
     groundSize,
@@ -59,10 +64,12 @@ container.appendChild(renderer.domElement);
   ground.position.y = 0;
   ground.receiveShadow = true;
   scene.add(ground);
+  console.info('Ground added', ground.position);
 
   // Lighting
   const ambientLight = new THREE.AmbientLight(0xffffff, 0.3);
   scene.add(ambientLight);
+  console.info('Ambient light added');
 
   const dirLight = new THREE.DirectionalLight(0xffffff, 0.9);
   dirLight.position.set(5, 10, 5);
@@ -76,12 +83,13 @@ container.appendChild(renderer.domElement);
   dirLight.shadow.camera.near = 1;
   dirLight.shadow.camera.far = 50;
   scene.add(dirLight);
+  console.info('Directional light added');
 
   // Helper function to create elevated mesh
-  function createMesh(geometry, color, x) {
+  function createMesh(geometry, color, x, z = 1) {
     const material = new THREE.MeshStandardMaterial({ color });
     const mesh = new THREE.Mesh(geometry, material);
-    mesh.position.set(x, 1.5, 0); // lowered to center objects
+    mesh.position.set(x, 1.5, z); // lowered to center objects
     mesh.castShadow = true;
     scene.add(mesh);
     return mesh;
@@ -91,6 +99,7 @@ container.appendChild(renderer.domElement);
   const mesh1 = createMesh(new THREE.IcosahedronGeometry(1.2), 0xff6600, -4);
   const mesh2 = createMesh(new THREE.TorusGeometry(0.9, 0.3, 16, 30), 0x0096D6, 0);
   const mesh3 = createMesh(new THREE.DodecahedronGeometry(1.2), 0x9932cc, 4);
+  console.info('Meshes created', mesh1.position, mesh2.position, mesh3.position);
 
   // 3D text heading
   let textMesh;
@@ -125,13 +134,14 @@ container.appendChild(renderer.domElement);
         textMesh.userData.shader = shader;
       };
       textMesh = new THREE.Mesh(textGeo, textMat);
-      textMesh.position.set(0, 3.5, -1);
+      textMesh.position.set(0, 3.5, 0.5);
       textMesh.rotation.x = -Math.PI / 8;
       scene.add(textMesh);
+      console.info('3D text added', textMesh.position);
     }
   );
 
-  camera.position.set(0, 7, 6);
+  camera.position.set(0, 7, 5);
   camera.lookAt(0, 2, 0);
 
   let lastTime;
@@ -164,6 +174,7 @@ container.appendChild(renderer.domElement);
     camera.updateProjectionMatrix();
     renderer.setSize(width, height);
     checkOrientation();
+    console.info('Window resized', { width, height });
   }
 
   function checkOrientation() {
@@ -178,6 +189,7 @@ container.appendChild(renderer.domElement);
         document.exitFullscreen();
       }
     }
+    console.info('Orientation checked', { isLandscape, isMobile });
   }
 
   window.addEventListener('resize', onWindowResize);

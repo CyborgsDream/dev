@@ -67,7 +67,7 @@ main {
   width: 100%;
   max-height: 100px;
   overflow-y: auto;
-  color: #0f0;
+  color: transparent;
   background: rgba(0, 0, 0, 0.7);
   font-family: monospace;
   font-size: 0.65rem;
