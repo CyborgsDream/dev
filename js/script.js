@@ -1,4 +1,4 @@
-// Version: 0.0.10
+// Version: 0.0.10a
 // Codename: Celestia
 // Basic THREE.js example with multiple objects
 import * as THREE from 'https://unpkg.com/three@0.159.0/build/three.module.js';
@@ -123,7 +123,6 @@ container.appendChild(renderer.domElement);
   };
 
   const textCubes = [];
-  const letterGroups = [];
 
   function createVoxelText(text) {
     const size = 0.4;
@@ -137,21 +136,28 @@ container.appendChild(renderer.domElement);
         offsetX += size * 6;
         return;
       }
-      const material = new THREE.MeshStandardMaterial({
-        color: colors[Math.floor(Math.random() * colors.length)]
-      });
       const letterGroup = new THREE.Group();
       pattern.forEach((row, y) => {
         row.split('').forEach((bit, x) => {
           if (bit === '1') {
+            const cubeMaterials = Array.from({ length: 6 }, () =>
+              new THREE.MeshStandardMaterial({
+                color: colors[Math.floor(Math.random() * colors.length)]
+              })
+            );
             const cube = new THREE.Mesh(
               new THREE.BoxGeometry(size, size, depth),
-              material
+              cubeMaterials
             );
             cube.position.set(x * size, (pattern.length - y - 1) * size, 0);
             cube.castShadow = true;
             cube.receiveShadow = true;
             cube.userData.phase = Math.random() * Math.PI * 2;
+            cube.userData.rotSpeed = new THREE.Vector3(
+              (Math.random() - 0.5) * 0.02,
+              (Math.random() - 0.5) * 0.02,
+              (Math.random() - 0.5) * 0.02
+            );
             letterGroup.add(cube);
             textCubes.push(cube);
           }
@@ -167,14 +173,6 @@ container.appendChild(renderer.domElement);
       });
       letterGroup.position.x = offsetX + letterWidth / 2;
       group.add(letterGroup);
-      letterGroups.push({
-        group: letterGroup,
-        speed: new THREE.Vector3(
-          (Math.random() - 0.5) * 0.02,
-          (Math.random() - 0.5) * 0.02,
-          (Math.random() - 0.5) * 0.02
-        )
-      });
       offsetX += letterWidth + size;
     });
     const box = new THREE.Box3().setFromObject(group);
@@ -210,10 +208,11 @@ container.appendChild(renderer.domElement);
       mesh.rotation.x += 0.005;
       mesh.rotation.y += 0.01;
     });
-    letterGroups.forEach(({ group, speed }) => {
-      group.rotation.x += speed.x;
-      group.rotation.y += speed.y;
-      group.rotation.z += speed.z;
+    textCubes.forEach(cube => {
+      const { rotSpeed } = cube.userData;
+      cube.rotation.x += rotSpeed.x;
+      cube.rotation.y += rotSpeed.y;
+      cube.rotation.z += rotSpeed.z;
     });
     // apply wind effect to each text cube
     textCubes.forEach(cube => {
