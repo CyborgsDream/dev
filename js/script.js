@@ -210,10 +210,11 @@ container.appendChild(renderer.domElement);
       cube.rotation.y += rotSpeed.y;
       cube.rotation.z += rotSpeed.z;
     });
-    // apply sinusoidal offset to each text cube along the Z axis
+    // apply wind effect to each text cube
     textCubes.forEach(cube => {
-      const { initialZ, phase } = cube.userData;
+      const { initialX, initialZ, phase } = cube.userData;
       cube.position.z = initialZ + Math.sin(timestamp / 500 + phase) * 0.2;
+      cube.position.x = initialX + Math.sin(timestamp / 600 + phase) * 0.15;
     });
     // update object labels
     labels.forEach(({ mesh, el }) => {
