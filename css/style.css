@@ -60,6 +60,7 @@ main {
   z-index: 20;
   text-transform: uppercase;
   overflow-wrap: anywhere;
+  display: none; /* replaced by 3D text */
 }
 #bottom-text {
   position: absolute;
