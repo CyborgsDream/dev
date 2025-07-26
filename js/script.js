@@ -152,7 +152,7 @@ container.appendChild(renderer.domElement);
             cube.position.set(x * size, (pattern.length - y - 1) * size, 0);
             cube.castShadow = true;
             cube.receiveShadow = true;
-            cube.userData.phase = 0; // synchronized wave
+            cube.userData.phase = Math.random() * Math.PI * 2; // independent wave
             cube.userData.rotSpeed = new THREE.Vector3(0, 0, 0);
             letterGroup.add(cube);
             textCubes.push(cube);
@@ -176,7 +176,7 @@ container.appendChild(renderer.domElement);
     group.children.forEach(c => c.position.sub(center));
     group.scale.set(2 / 3, 2 / 3, 2 / 3);
     group.position.set(0, 4.35, 0.5);
-    group.rotation.x = -Math.PI / 8;
+    group.rotation.x = 0; // face the camera directly
     return group;
   }
 
@@ -213,8 +213,8 @@ container.appendChild(renderer.domElement);
     // apply wind effect to each text cube
     textCubes.forEach(cube => {
       const { initialX, initialZ, phase } = cube.userData;
-      cube.position.z = initialZ + Math.sin(timestamp / 500 + phase) * 0.15;
-      cube.position.x = initialX + Math.sin(timestamp / 600 + phase) * 0.1;
+      cube.position.z = initialZ + Math.sin(timestamp / 500 + phase) * 0.05;
+      cube.position.x = initialX + Math.sin(timestamp / 600 + phase) * 0.05;
     });
     // update object labels
     labels.forEach(({ mesh, el }) => {
