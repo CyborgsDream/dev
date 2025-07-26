@@ -1,6 +1,9 @@
-// Version: 0.0.6
+// Version: 0.0.7
 // Codename: Nebula
 // Basic THREE.js example with multiple objects
+import * as THREE from 'https://unpkg.com/three@0.159.0/build/three.module.js';
+import { FontLoader } from 'https://unpkg.com/three@0.159.0/examples/jsm/loaders/FontLoader.js';
+import { TextGeometry } from 'https://unpkg.com/three@0.159.0/examples/jsm/geometries/TextGeometry.js';
 const consoleLogEl = document.getElementById('console-log');
 if (consoleLogEl) {
   const origLog = console.log;
@@ -17,17 +20,21 @@ if (consoleLogEl) {
 }
 console.log('Responsive boilerplate loaded');
 
-// Ensure THREE is available
-if (typeof THREE !== 'undefined') {
-  const container = document.getElementById('scene-container');
-  const fpsCounter = document.getElementById('fps-counter');
-  const scene = new THREE.Scene();
-  const camera = new THREE.PerspectiveCamera(75, container.clientWidth / container.clientHeight, 0.1, 1000);
-  const renderer = new THREE.WebGLRenderer({ antialias: true });
-  renderer.setSize(container.clientWidth, container.clientHeight);
-  renderer.setClearColor(0x000033);
-  renderer.shadowMap.enabled = true;
-  container.appendChild(renderer.domElement);
+// Initialize scene
+const container = document.getElementById('scene-container');
+const fpsCounter = document.getElementById('fps-counter');
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(
+  75,
+  container.clientWidth / container.clientHeight,
+  0.1,
+  1000
+);
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setSize(container.clientWidth, container.clientHeight);
+renderer.setClearColor(0x000033);
+renderer.shadowMap.enabled = true;
+container.appendChild(renderer.domElement);
 
   // Ground with custom height pattern
   const groundSize = 32;
@@ -85,11 +92,11 @@ if (typeof THREE !== 'undefined') {
 
   // 3D text heading
   let textMesh;
-  const fontLoader = new THREE.FontLoader();
+  const fontLoader = new FontLoader();
   fontLoader.load(
     'https://unpkg.com/three@0.159.0/examples/fonts/helvetiker_regular.typeface.json',
     font => {
-      const textGeo = new THREE.TextGeometry('DEMOS', {
+      const textGeo = new TextGeometry('DEMOS', {
         font: font,
         size: 1,
         height: 0.2,
@@ -179,4 +186,4 @@ if (typeof THREE !== 'undefined') {
   checkOrientation();
 
   requestAnimationFrame(animate);
-}
+
