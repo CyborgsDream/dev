@@ -1,5 +1,5 @@
-// Version: 0.0.4
-// Codename: Nebula
+// Version: 0.0.7
+// Codename: Celestia
 // Basic THREE.js example with multiple objects
 import * as THREE from 'https://unpkg.com/three@0.159.0/build/three.module.js';
 import { FontLoader } from 'https://unpkg.com/three@0.159.0/examples/jsm/loaders/FontLoader.js';
