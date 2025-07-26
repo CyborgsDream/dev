@@ -62,7 +62,7 @@ main {
 
 #console-log {
   position: absolute;
-  top: 0;
+  bottom: 0;
   left: 0;
   width: 100%;
   max-height: 100px;
@@ -75,6 +75,16 @@ main {
   pointer-events: none;
   z-index: 30;
   overflow-wrap: anywhere;
+}
+
+#console-log .console-line {
+  animation: fade-out 1s ease-out 2s forwards;
+}
+
+@keyframes fade-out {
+  to {
+    opacity: 0;
+  }
 }
 #cinematic-heading {
   position: absolute;
