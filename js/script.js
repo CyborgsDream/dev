@@ -113,7 +113,7 @@ container.appendChild(renderer.domElement);
   addLabel(mesh3, 'Dodecahedron', '#9932cc');
 
   // Chunky voxel-style DEMOS heading
-  // Each cube will gently sway in the wind using a sinusoidal offset
+  // Each cube will move with a sinusoidal offset along the Z axis
   const LETTERS = {
     D: ['11110', '10001', '10001', '10001', '10001', '10001', '11110'],
     E: ['11111', '10000', '10000', '11110', '10000', '10000', '11111'],
@@ -210,11 +210,10 @@ container.appendChild(renderer.domElement);
       cube.rotation.y += rotSpeed.y;
       cube.rotation.z += rotSpeed.z;
     });
-    // apply wind effect to each text cube
+    // apply sinusoidal offset to each text cube along the Z axis
     textCubes.forEach(cube => {
-      const { initialX, initialZ, phase } = cube.userData;
-      cube.position.z = initialZ + Math.sin(timestamp / 500 + phase) * 0.05;
-      cube.position.x = initialX + Math.sin(timestamp / 600 + phase) * 0.05;
+      const { initialZ, phase } = cube.userData;
+      cube.position.z = initialZ + Math.sin(timestamp / 500 + phase) * 0.2;
     });
     // update object labels
     labels.forEach(({ mesh, el }) => {
