@@ -137,27 +137,23 @@ container.appendChild(renderer.domElement);
         return;
       }
       const letterGroup = new THREE.Group();
+      const letterMaterials = Array.from({ length: 6 }, () =>
+        new THREE.MeshStandardMaterial({
+          color: colors[Math.floor(Math.random() * colors.length)]
+        })
+      );
       pattern.forEach((row, y) => {
         row.split('').forEach((bit, x) => {
           if (bit === '1') {
-            const cubeMaterials = Array.from({ length: 6 }, () =>
-              new THREE.MeshStandardMaterial({
-                color: colors[Math.floor(Math.random() * colors.length)]
-              })
-            );
             const cube = new THREE.Mesh(
               new THREE.BoxGeometry(size, size, depth),
-              cubeMaterials
+              letterMaterials
             );
             cube.position.set(x * size, (pattern.length - y - 1) * size, 0);
             cube.castShadow = true;
             cube.receiveShadow = true;
-            cube.userData.phase = Math.random() * Math.PI * 2;
-            cube.userData.rotSpeed = new THREE.Vector3(
-              (Math.random() - 0.5) * 0.02,
-              (Math.random() - 0.5) * 0.02,
-              (Math.random() - 0.5) * 0.02
-            );
+            cube.userData.phase = 0; // synchronized wave
+            cube.userData.rotSpeed = new THREE.Vector3(0, 0, 0);
             letterGroup.add(cube);
             textCubes.push(cube);
           }
