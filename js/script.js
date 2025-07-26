@@ -100,17 +100,18 @@ container.appendChild(renderer.domElement);
   console.info('Meshes created', mesh1.position, mesh2.position, mesh3.position);
 
   const labels = [];
-  function addLabel(mesh, name, colorHex) {
+  function addLabel(mesh, text, colorHex, offsetY = -1) {
     const el = document.createElement('div');
     el.className = 'object-label';
     el.style.color = colorHex;
-    el.textContent = `${name} ${colorHex}`;
+    el.textContent = text;
     container.appendChild(el);
-    labels.push({ mesh, el });
+    labels.push({ mesh, el, offsetY });
   }
-  addLabel(mesh1, 'Icosahedron', '#ff6600');
-  addLabel(mesh2, 'Torus', '#0096D6');
-  addLabel(mesh3, 'Dodecahedron', '#9932cc');
+
+  addLabel(mesh1, 'Demo One', '#fff');
+  addLabel(mesh2, 'Demo Two', '#fff');
+  addLabel(mesh3, 'Demo Three', '#fff');
 
   // Chunky voxel-style DEMOS heading
   // Each cube will move with a sinusoidal offset along the Z axis
@@ -217,9 +218,9 @@ container.appendChild(renderer.domElement);
       cube.position.x = initialX + Math.sin(timestamp / 600 + phase) * 0.15;
     });
     // update object labels
-    labels.forEach(({ mesh, el }) => {
+    labels.forEach(({ mesh, el, offsetY }) => {
       const pos = mesh.position.clone();
-      pos.y += 1.5;
+      pos.y += offsetY;
       pos.project(camera);
       const x = (pos.x * 0.5 + 0.5) * container.clientWidth;
       const y = (-pos.y * 0.5 + 0.5) * container.clientHeight;
