@@ -1,4 +1,4 @@
-// Version: 0.0.11
+// Version: 0.0.12
 // Codename: Celestia
 // Basic THREE.js example with multiple objects
 import * as THREE from 'https://unpkg.com/three@0.159.0/build/three.module.js';
@@ -213,7 +213,7 @@ container.appendChild(renderer.domElement);
     // apply sinusoidal offset to each text cube along the Z axis
     textCubes.forEach(cube => {
       const { initialZ, phase } = cube.userData;
-      cube.position.z = initialZ + Math.sin(timestamp / 500 + phase) * 0.2;
+      cube.position.z = initialZ + Math.sin(timestamp / 500 + phase) * 0.1;
     });
     // update object labels
     labels.forEach(({ mesh, el }) => {
