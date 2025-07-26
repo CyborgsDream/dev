@@ -1,9 +1,7 @@
-// Version: 0.0.8
+// Version: 0.0.9
 // Codename: Celestia
 // Basic THREE.js example with multiple objects
 import * as THREE from 'https://unpkg.com/three@0.159.0/build/three.module.js';
-import { FontLoader } from 'https://unpkg.com/three@0.159.0/examples/jsm/loaders/FontLoader.js?module';
-import { TextGeometry } from 'https://unpkg.com/three@0.159.0/examples/jsm/geometries/TextGeometry.js?module';
 const consoleLogEl = document.getElementById('console-log');
 if (consoleLogEl) {
   const methods = ['log', 'info', 'warn', 'error'];
@@ -101,45 +99,64 @@ container.appendChild(renderer.domElement);
   const mesh3 = createMesh(new THREE.DodecahedronGeometry(1.2), 0x9932cc, 4);
   console.info('Meshes created', mesh1.position, mesh2.position, mesh3.position);
 
-  // 3D text heading
-  let textMesh;
-  const fontLoader = new FontLoader();
-  fontLoader.load(
-    'https://unpkg.com/three@0.159.0/examples/fonts/helvetiker_regular.typeface.json',
-    font => {
-      const textGeo = new TextGeometry('DEMOS', {
-        font: font,
-        size: 1,
-        height: 0.2,
-        curveSegments: 12,
-        bevelEnabled: true,
-        bevelThickness: 0.02,
-        bevelSize: 0.02,
-        bevelSegments: 2
+  const labels = [];
+  function addLabel(mesh, name, colorHex) {
+    const el = document.createElement('div');
+    el.className = 'object-label';
+    el.style.color = colorHex;
+    el.textContent = `${name} ${colorHex}`;
+    container.appendChild(el);
+    labels.push({ mesh, el });
+  }
+  addLabel(mesh1, 'Icosahedron', '#ff6600');
+  addLabel(mesh2, 'Torus', '#0096D6');
+  addLabel(mesh3, 'Dodecahedron', '#9932cc');
+
+  // Chunky voxel-style DEMOS heading
+  const LETTERS = {
+    D: ['11110', '10001', '10001', '10001', '10001', '10001', '11110'],
+    E: ['11111', '10000', '10000', '11110', '10000', '10000', '11111'],
+    M: ['10001', '11011', '10101', '10001', '10001', '10001', '10001'],
+    O: ['01110', '10001', '10001', '10001', '10001', '10001', '01110'],
+    S: ['01111', '10000', '10000', '01110', '00001', '00001', '11110']
+  };
+
+  function createVoxelText(text, color) {
+    const size = 0.4;
+    const depth = 0.4;
+    const material = new THREE.MeshStandardMaterial({ color });
+    const group = new THREE.Group();
+    let offsetX = 0;
+    text.toUpperCase().split('').forEach(ch => {
+      const pattern = LETTERS[ch];
+      if (!pattern) {
+        offsetX += size * 6;
+        return;
+      }
+      pattern.forEach((row, y) => {
+        row.split('').forEach((bit, x) => {
+          if (bit === '1') {
+            const cube = new THREE.Mesh(new THREE.BoxGeometry(size, size, depth), material);
+            cube.position.set(offsetX + x * size, (pattern.length - y - 1) * size, 0);
+            cube.castShadow = true;
+            cube.receiveShadow = true;
+            group.add(cube);
+          }
+        });
       });
-      textGeo.center();
-      const textMat = new THREE.MeshStandardMaterial({ color: 0xffffff });
-      textMat.onBeforeCompile = shader => {
-        shader.uniforms.time = { value: 0 };
-        shader.vertexShader = shader.vertexShader.replace(
-          '#include <common>',
-          '#include <common>\nuniform float time;'
-        );
-        shader.vertexShader = shader.vertexShader.replace(
-          '#include <begin_vertex>',
-          `vec3 transformed = vec3(position);
-           transformed.x += sin(2.0 * position.y + time * 2.0) * 0.1;
-           transformed.y += sin(2.0 * position.x + time * 2.0) * 0.1;`
-        );
-        textMesh.userData.shader = shader;
-      };
-      textMesh = new THREE.Mesh(textGeo, textMat);
-      textMesh.position.set(0, 4.2, 0.5);
-      textMesh.rotation.x = -Math.PI / 8;
-      scene.add(textMesh);
-      console.info('3D text added', textMesh.position);
-    }
-  );
+      offsetX += (pattern[0].length + 1) * size;
+    });
+    const box = new THREE.Box3().setFromObject(group);
+    const center = box.getCenter(new THREE.Vector3());
+    group.children.forEach(c => c.position.sub(center));
+    group.position.set(0, 4.2, 0.5);
+    group.rotation.x = -Math.PI / 8;
+    return group;
+  }
+
+  const textMesh = createVoxelText('DEMOS', 0xffffff);
+  scene.add(textMesh);
+  console.info('Voxel text added', textMesh.position);
 
   camera.position.set(0, 7, 5);
   camera.lookAt(0, 2, 0);
@@ -161,9 +178,15 @@ container.appendChild(renderer.domElement);
       mesh.rotation.x += 0.005;
       mesh.rotation.y += 0.01;
     });
-    if (textMesh && textMesh.userData.shader) {
-      textMesh.userData.shader.uniforms.time.value = timestamp / 1000;
-    }
+    // update object labels
+    labels.forEach(({ mesh, el }) => {
+      const pos = mesh.position.clone();
+      pos.y += 1.5;
+      pos.project(camera);
+      const x = (pos.x * 0.5 + 0.5) * container.clientWidth;
+      const y = (-pos.y * 0.5 + 0.5) * container.clientHeight;
+      el.style.transform = `translate(-50%, -50%) translate(${x}px, ${y}px)`;
+    });
     renderer.render(scene, camera);
   }
 
