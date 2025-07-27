@@ -613,7 +613,6 @@
                         if (now - lastIconTouch < 1000) return;
                         lastIconTouch = now;
                         if (e.type === 'touchstart') e.preventDefault();
-                        openWindow(icon.type);
                         loadApp(icon.label.toLowerCase());
                     };
                     el.addEventListener('click', handler);
