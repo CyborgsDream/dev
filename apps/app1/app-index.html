@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>WebGUI 0.0.15</title>
+    <title>WebGUI 0.0.15beta</title>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=VT323&display=swap">
     <style>
         * {
@@ -607,7 +607,10 @@
                 el.className = 'icon';
                 el.innerHTML = `<div class="icon-image">${icon.emoji}</div><div class="icon-label">${icon.label}</div>`;
                 if (icon.type) {
-                    const handler = () => loadApp(icon.label.toLowerCase());
+                    const handler = () => {
+                        openWindow(icon.type);
+                        loadApp(icon.label.toLowerCase());
+                    };
                     el.addEventListener('click', handler);
                     el.addEventListener('touchstart', handler);
                 }
