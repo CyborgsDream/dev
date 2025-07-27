@@ -1,0 +1,1 @@
+WinAPI.createWindow('puzzle-game');

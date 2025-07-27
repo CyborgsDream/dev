@@ -2,7 +2,7 @@
   "apps": [
     {
       "name": "Demo One",
-      "file": "apps/app1/index.html",
+      "file": "apps/app1/app-index.html",
       "short": "lorem ipsum doloret sit amet",
       "long": "This is the first demo showcasing features."
     },
