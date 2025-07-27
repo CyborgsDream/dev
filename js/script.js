@@ -1,4 +1,4 @@
-// Version: 0.0.14d
+// Version: 0.0.14e
 // Codename: Celestia
 // Basic THREE.js example with multiple objects
 import * as THREE from 'https://unpkg.com/three@0.159.0/build/three.module.js';
@@ -168,13 +168,23 @@ container.appendChild(renderer.domElement);
     infoBox.style.display = 'block';
   }
 
-  closeBtn.addEventListener('click', () => {
+  function hideDemoInfo() {
     infoBox.style.display = 'none';
     meshes.forEach(m => {
       m.scale.set(1, 1, 1);
       m.material.opacity = 1;
       m.material.transparent = false;
     });
+  }
+
+  closeBtn.addEventListener('click', hideDemoInfo);
+  container.addEventListener('click', e => {
+    if (infoBox.style.display === 'block' && !infoBox.contains(e.target)) {
+      hideDemoInfo();
+    }
+  });
+  window.addEventListener('keydown', e => {
+    if (e.key === 'Escape' && infoBox.style.display === 'block') hideDemoInfo();
   });
 
   function onPick(event) {
