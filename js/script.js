@@ -1,4 +1,4 @@
-// Version: 0.0.14a
+// Version: 0.0.14b
 // Codename: Celestia
 // Basic THREE.js example with multiple objects
 import * as THREE from 'https://unpkg.com/three@0.159.0/build/three.module.js';
@@ -88,8 +88,9 @@ container.appendChild(renderer.domElement);
   function createMesh(geometry, color, x, z = 1) {
     const material = new THREE.MeshStandardMaterial({ color });
     const mesh = new THREE.Mesh(geometry, material);
-    mesh.position.set(x, 1.5, z); // lowered to center objects
+    mesh.position.set(x, 2, z); // raised slightly
     mesh.castShadow = true;
+    mesh.receiveShadow = true;
     scene.add(mesh);
     return mesh;
   }
