@@ -1,4 +1,4 @@
-/* Version: 0.0.14a */
+/* Version: 0.0.14b */
 /* Codename: Celestia */
 /* Basic responsive CSS */
 * {
@@ -80,6 +80,7 @@ main {
 
 #console-log .console-line {
   background: none;
+  opacity: 0.5;
   animation: fade-out 0.5s ease-out 2.5s forwards;
 }
 
@@ -147,7 +148,7 @@ main {
   position: absolute;
   pointer-events: none;
   font-family: monospace;
-  text-shadow: 0 0 5px rgba(0, 0, 0, 0.5);
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
   z-index: 40;
   left: 0;
   top: 0;
