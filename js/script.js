@@ -165,9 +165,16 @@ container.appendChild(renderer.domElement);
     });
     infoTitle.textContent = data.name;
     infoText.textContent = data.long;
-    runBtn.onclick = () => (window.location.href = data.file);
+    runBtn.onclick = e => {
+      e.stopPropagation();
+      window.location.href = data.file;
+    };
+    runBtn.style.pointerEvents = 'none';
     infoBox.style.display = 'block';
     requestAnimationFrame(() => infoBox.classList.add('visible'));
+    setTimeout(() => {
+      runBtn.style.pointerEvents = 'auto';
+    }, 300);
     ignoreNextContainerClick = true;
   }
 
