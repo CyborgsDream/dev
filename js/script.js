@@ -106,7 +106,7 @@ container.appendChild(renderer.domElement);
     el.style.color = colorHex;
     el.textContent = text;
     container.appendChild(el);
-    labels.push({ mesh, el, offsetY });
+    labels.push({ mesh, el, offsetY, phase: Math.random() * Math.PI * 2 });
   }
 
   addLabel(mesh1, 'Demo One', '#fff');
@@ -224,14 +224,16 @@ container.appendChild(renderer.domElement);
       cube.position.z = initialZ + Math.sin(timestamp / 500 + phase) * 0.1;
       cube.position.x = initialX + Math.sin(timestamp / 600 + phase) * 0.15;
     });
-    // update object labels
-    labels.forEach(({ mesh, el, offsetY }) => {
+    // update object labels with a gentle waving motion
+    const screenOffset = 60; // push text below the objects
+    labels.forEach(({ mesh, el, offsetY, phase }) => {
       const pos = mesh.position.clone();
       pos.y += offsetY;
       pos.project(camera);
       const x = (pos.x * 0.5 + 0.5) * container.clientWidth;
-      const y = (-pos.y * 0.5 + 0.5) * container.clientHeight;
-      el.style.transform = `translate(-50%, -50%) translate(${x}px, ${y}px)`;
+      const y = (-pos.y * 0.5 + 0.5) * container.clientHeight + screenOffset;
+      const wave = Math.sin(timestamp / 1000 + phase) * 5;
+      el.style.transform = `translate(-50%, -50%) translate(${x}px, ${y + wave}px)`;
     });
     renderer.render(scene, camera);
   }
