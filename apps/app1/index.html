@@ -332,6 +332,11 @@
             cursor: pointer;
             font-size: 16px;
         }
+
+        .task-btn.active {
+            background: linear-gradient(to bottom, #0066cc, #004499);
+            color: #fff;
+        }
         
         .dialog {
             position: absolute;
@@ -687,6 +692,7 @@
             desktop.insertAdjacentHTML('beforeend', windowHtml);
             makeDraggable(id);
             state.windows.push(id);
+            updateTaskBar();
             
             // Initialize app-specific functionality
             if (type === 'puzzle-game') {
@@ -711,11 +717,34 @@
             const window = document.getElementById(id);
             if (window) window.remove();
             state.windows = state.windows.filter(winId => winId !== id);
+            updateTaskBar();
         }
-        
+
         function minimizeWindow(id) {
             const window = document.getElementById(id);
-            if (window) window.style.display = 'none';
+            if (window) {
+                window.style.display = 'none';
+                updateTaskBar();
+            }
+        }
+
+        function updateTaskBar() {
+            const bar = document.getElementById('task-bar');
+            bar.innerHTML = '';
+            state.windows.forEach(id => {
+                const win = document.getElementById(id);
+                if (!win) return;
+                const btn = document.createElement('div');
+                btn.className = 'task-btn';
+                if (win.style.display !== 'none') btn.classList.add('active');
+                btn.textContent = win.querySelector('.window-title').textContent;
+                btn.onclick = () => {
+                    if (win.style.display === 'none') win.style.display = 'block';
+                    win.style.zIndex = ++state.zIndex;
+                    updateTaskBar();
+                };
+                bar.appendChild(btn);
+            });
         }
         
         function maximizeWindow(id) {
@@ -733,6 +762,7 @@
                     window.style.left = '10px';
                 }
                 window.style.zIndex = ++state.zIndex;
+                updateTaskBar();
             }
         }
         
@@ -944,7 +974,7 @@
         
         // Initialize everything
         async function init() {
-            const res = await fetch('../../data/app1.json');
+            const res = await fetch('app-data/app1.json');
             appData = await res.json();
             buildMenus(appData.menus);
             buildIcons(appData.icons);
@@ -952,6 +982,7 @@
             buildWelcome(appData.welcome);
             initClock();
             initMenus();
+            updateTaskBar();
         }
 
         function updateViewportHeight() {
