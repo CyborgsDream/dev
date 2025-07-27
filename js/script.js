@@ -16,6 +16,7 @@ if (consoleLogEl) {
       const line = document.createElement('div');
       line.className = `console-line ${m}`;
       line.style.background = 'none';
+      line.style.opacity = '0.5';
       line.textContent = `[${m}] ${msg}`;
       consoleLogEl.appendChild(line);
       consoleLogEl.scrollTop = consoleLogEl.scrollHeight;
@@ -112,9 +113,22 @@ container.appendChild(renderer.domElement);
     const el = document.createElement(className === 'object-label' ? 'h3' : 'div');
     el.className = className;
     el.style.color = colorHex;
-    el.textContent = text;
+    let letters = null;
+    if (className === 'object-label') {
+      letters = [];
+      el.textContent = '';
+      [...text].forEach(ch => {
+        const span = document.createElement('span');
+        span.textContent = ch;
+        span.style.display = 'inline-block';
+        letters.push({ el: span, phase: Math.random() * Math.PI * 2 });
+        el.appendChild(span);
+      });
+    } else {
+      el.textContent = text;
+    }
     container.appendChild(el);
-    labels.push({ mesh, el, offsetY, phase: Math.random() * Math.PI * 2 });
+    labels.push({ mesh, el, offsetY, phase: Math.random() * Math.PI * 2, letters });
   }
 
   addLabel(mesh1, 'Demo One', '#fff');
@@ -241,7 +255,7 @@ container.appendChild(renderer.domElement);
       cube.position.x = initialX + Math.sin(timestamp / 600 + phase) * 0.15;
     });
     // update object labels with wind effect and downward offset
-    labels.forEach(({ mesh, el, offsetY, phase }) => {
+    labels.forEach(({ mesh, el, offsetY, phase, letters }) => {
       const pos = mesh.position.clone();
       pos.y += offsetY;
       pos.project(camera);
@@ -254,6 +268,12 @@ container.appendChild(renderer.domElement);
       }
       // position label so its top aligns with the computed point
       el.style.transform = `translate(-50%, 0) translate(${x}px, ${y}px)`;
+      if (letters) {
+        letters.forEach(({ el: letterEl, phase: lp }) => {
+          const offset = Math.sin(timestamp / 400 + lp) * 3;
+          letterEl.style.transform = `translateY(${offset}px)`;
+        });
+      }
     });
     renderer.render(scene, camera);
   }
