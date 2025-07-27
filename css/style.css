@@ -168,3 +168,21 @@ main {
   font-size: 0.55rem;
   color: #fff;
 }
+
+#demo-info {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: rgba(0, 0, 0, 0.8);
+  color: #fff;
+  padding: 1rem;
+  max-width: 300px;
+  text-align: center;
+  z-index: 50;
+}
+
+#demo-info button {
+  margin-top: 0.5rem;
+  padding: 0.25rem 0.5rem;
+}
