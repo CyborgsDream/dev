@@ -148,6 +148,8 @@ main {
   font-family: monospace;
   text-shadow: 0 0 5px rgba(0, 0, 0, 0.5);
   z-index: 40;
+  left: 0;
+  top: 0;
 }
 
 .object-label {
