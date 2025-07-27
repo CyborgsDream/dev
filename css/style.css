@@ -160,6 +160,9 @@ main {
   margin: 0;
   font-weight: bold;
 }
+.object-label span {
+  display: inline-block;
+}
 
 .object-info {
   font-size: 0.55rem;
