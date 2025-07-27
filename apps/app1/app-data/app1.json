@@ -62,7 +62,8 @@
     {"type": "puzzle-game", "emoji": "🧩", "label": "Puzzle"},
     {"type": "docs", "emoji": "📖", "label": "Docs"},
     {"type": "settings", "emoji": "⚙️", "label": "Settings"},
-    {"type": "clock", "emoji": "⏰", "label": "Clock"}
+    {"type": "clock", "emoji": "⏰", "label": "Clock"},
+    {"type": "html-studio", "emoji": "🌐", "label": "HTML Studio"}
   ],
   "windows": {
     "system-info": {
@@ -136,6 +137,12 @@
       "content": "<div id=\"live-clock\" style=\"font-size:32px;text-align:center;\">{TIME}</div>",
       "width": 200,
       "height": 150
+    },
+    "html-studio": {
+      "title": "HTML Studio",
+      "content": "<iframe src=\"html-studio.html\" style=\"width:100%;height:100%;border:none;\"></iframe>",
+      "width": 600,
+      "height": 450
     }
   },
   "settings": {
