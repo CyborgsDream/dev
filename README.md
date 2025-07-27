@@ -1,4 +1,4 @@
-# Running the demos locally
+# Running the apps locally
 
 To avoid browser CORS restrictions when loading the ES module in `script.js`, start a simple HTTP server from the repository root:
 
