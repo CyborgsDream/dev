@@ -388,6 +388,12 @@ container.appendChild(renderer.domElement);
   window.addEventListener('resize', onWindowResize);
   window.addEventListener('orientationchange', checkOrientation);
   window.addEventListener('pointerup', checkOrientation);
+  function updateViewportHeight() {
+    document.documentElement.style.setProperty('--vh', `${window.innerHeight * 0.01}px`);
+  }
+  window.addEventListener('resize', updateViewportHeight);
+  window.addEventListener('orientationchange', updateViewportHeight);
+  updateViewportHeight();
   onWindowResize();
   checkOrientation();
 
