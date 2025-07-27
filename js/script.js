@@ -1,4 +1,4 @@
-// Version: 0.0.14b
+// Version: 0.0.14c
 // Codename: Celestia
 // Basic THREE.js example with multiple objects
 import * as THREE from 'https://unpkg.com/three@0.159.0/build/three.module.js';
@@ -154,6 +154,7 @@ container.appendChild(renderer.domElement);
   };
 
   const textCubes = [];
+  const textLetters = [];
 
 
   function createVoxelText(text) {
@@ -205,11 +206,16 @@ container.appendChild(renderer.domElement);
       });
       letterGroup.position.x = offsetX + letterWidth / 2;
       group.add(letterGroup);
+      textLetters.push(letterGroup);
       offsetX += letterWidth + size;
     });
     const box = new THREE.Box3().setFromObject(group);
     const center = box.getCenter(new THREE.Vector3());
     group.children.forEach(c => c.position.sub(center));
+    textLetters.forEach(letter => {
+      letter.userData.initialZ = letter.position.z;
+      letter.userData.phase = Math.random() * Math.PI * 2;
+    });
     group.scale.set(2 / 3, 2 / 3, 2 / 3);
     group.position.set(0, 4.35, 0.5);
     group.rotation.x = 0; // face the camera directly
@@ -248,11 +254,10 @@ container.appendChild(renderer.domElement);
       cube.rotation.y += rotSpeed.y;
       cube.rotation.z += rotSpeed.z;
     });
-    // apply wind effect to each text cube
-    textCubes.forEach(cube => {
-      const { initialX, initialZ, phase } = cube.userData;
-      cube.position.z = initialZ + Math.sin(timestamp / 500 + phase) * 0.1;
-      cube.position.x = initialX + Math.sin(timestamp / 600 + phase) * 0.15;
+    // apply wave effect to each letter group
+    textLetters.forEach(letter => {
+      const { initialZ, phase } = letter.userData;
+      letter.position.z = initialZ + Math.sin(timestamp / 600 + phase) * 0.05;
     });
     // update object labels with wind effect and downward offset
     labels.forEach(({ mesh, el, offsetY, phase, letters }) => {
