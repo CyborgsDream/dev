@@ -1,5 +1,5 @@
 {
-  "demos": [
+  "apps": [
     {
       "name": "Demo One",
       "file": "demo1.html",

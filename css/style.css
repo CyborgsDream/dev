@@ -169,7 +169,7 @@ main {
   color: #fff;
 }
 
-#demo-info {
+#app-info {
   position: absolute;
   top: 50%;
   left: 50%;
@@ -187,12 +187,12 @@ main {
   transition: opacity 1s;
 }
 
-#demo-info.visible {
+#app-info.visible {
   display: block;
   opacity: 1;
 }
 
-#demo-info .close-icon {
+#app-info .close-icon {
   position: absolute;
   top: 5px;
   right: 5px;
@@ -202,21 +202,21 @@ main {
   transition: transform 0.1s, opacity 0.1s;
 }
 
-#demo-info .close-icon:hover {
+#app-info .close-icon:hover {
   opacity: 1;
 }
 
-#demo-info .close-icon:active {
+#app-info .close-icon:active {
   transform: scale(0.9);
 }
 
-#demo-info button {
+#app-info button {
   margin-top: 0.5rem;
   padding: 0.25rem 0.5rem;
   cursor: pointer;
   transition: transform 0.1s;
 }
 
-#demo-info button:active {
+#app-info button:active {
   transform: scale(0.95);
 }

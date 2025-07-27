@@ -2,7 +2,7 @@
 // Codename: Celestia
 // Basic THREE.js example with multiple objects
 import * as THREE from 'https://unpkg.com/three@0.159.0/build/three.module.js';
-const { demos } = await fetch('data/index.json').then(r => r.json());
+const { apps } = await fetch('data/index.json').then(r => r.json());
 const consoleLogEl = document.getElementById('console-log');
 if (consoleLogEl) {
   const methods = ['log', 'info', 'warn', 'error'];
@@ -135,24 +135,24 @@ container.appendChild(renderer.domElement);
   }
 
   const offsets = [-20, 0, 20];
-  demos.forEach((demo, i) => {
+  apps.forEach((app, i) => {
     const mesh = meshes[i];
     if (!mesh) return;
     const off = offsets[i] || 0;
-    addLabel(mesh, demo.name, '#fff', -1, 'object-label', off);
-    addLabel(mesh, demo.short, '#fff', -1.5, 'object-info', off);
+    addLabel(mesh, app.name, '#fff', -1, 'object-label', off);
+    addLabel(mesh, app.short, '#fff', -1.5, 'object-info', off);
   });
 
-  const infoBox = document.getElementById('demo-info');
+  const infoBox = document.getElementById('app-info');
   const infoTitle = infoBox.querySelector('h2');
   const infoText = infoBox.querySelector('p');
-  const runBtn = document.getElementById('run-demo');
+  const runBtn = document.getElementById('run-app');
   const closeBtn = document.getElementById('close-info');
   let ignoreNextContainerClick = false;
   const raycaster = new THREE.Raycaster();
   const mouse = new THREE.Vector2();
-  function selectDemo(index) {
-    const data = demos[index];
+  function selectApp(index) {
+    const data = apps[index];
     meshes.forEach((m, i) => {
       m.material.transparent = true;
       if (i === index) {
@@ -178,7 +178,7 @@ container.appendChild(renderer.domElement);
     ignoreNextContainerClick = true;
   }
 
-  function hideDemoInfo() {
+  function hideAppInfo() {
     infoBox.classList.remove('visible');
     setTimeout(() => {
       infoBox.style.display = 'none';
@@ -190,18 +190,18 @@ container.appendChild(renderer.domElement);
     });
   }
 
-  closeBtn.addEventListener('pointerdown', hideDemoInfo);
+  closeBtn.addEventListener('pointerdown', hideAppInfo);
   container.addEventListener('pointerdown', e => {
     if (ignoreNextContainerClick) {
       ignoreNextContainerClick = false;
       return;
     }
     if (infoBox.style.display === 'block' && !infoBox.contains(e.target)) {
-      hideDemoInfo();
+      hideAppInfo();
     }
   });
   window.addEventListener('keydown', e => {
-    if (e.key === 'Escape' && infoBox.style.display === 'block') hideDemoInfo();
+    if (e.key === 'Escape' && infoBox.style.display === 'block') hideAppInfo();
   });
 
   function onPick(event) {
@@ -210,12 +210,12 @@ container.appendChild(renderer.domElement);
     mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
     raycaster.setFromCamera(mouse, camera);
     const hit = raycaster.intersectObjects(meshes);
-    if (hit.length) selectDemo(meshes.indexOf(hit[0].object));
+    if (hit.length) selectApp(meshes.indexOf(hit[0].object));
   }
 
   renderer.domElement.addEventListener('pointerdown', onPick);
 
-  // Chunky voxel-style DEMOS heading
+  // Chunky voxel-style APPS heading
   // Each cube will move with a sinusoidal offset along the Z axis
   const LETTERS = {
     D: ['11110', '10001', '10001', '10001', '10001', '10001', '11110'],
@@ -299,7 +299,7 @@ container.appendChild(renderer.domElement);
     return group;
   }
 
-  const textMesh = createVoxelText('DEMOS');
+  const textMesh = createVoxelText('APPS');
   scene.add(textMesh);
   console.info('Voxel text added', textMesh.position);
 
