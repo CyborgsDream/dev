@@ -599,6 +599,7 @@
             bar.appendChild(clock);
         }
 
+        let lastIconTouch = 0;
         function buildIcons(icons) {
             const container = document.getElementById('desktop-icons');
             container.innerHTML = '';
@@ -607,12 +608,16 @@
                 el.className = 'icon';
                 el.innerHTML = `<div class="icon-image">${icon.emoji}</div><div class="icon-label">${icon.label}</div>`;
                 if (icon.type) {
-                    const handler = () => {
+                    const handler = (e) => {
+                        const now = Date.now();
+                        if (now - lastIconTouch < 1000) return;
+                        lastIconTouch = now;
+                        if (e.type === 'touchstart') e.preventDefault();
                         openWindow(icon.type);
                         loadApp(icon.label.toLowerCase());
                     };
                     el.addEventListener('click', handler);
-                    el.addEventListener('touchstart', handler);
+                    el.addEventListener('touchstart', handler, { passive: false });
                 }
                 container.appendChild(el);
             });
@@ -791,23 +796,22 @@
         function makeDraggable(windowId) {
             const window = document.getElementById(windowId);
             const header = window.querySelector('.window-header');
-            
+
             let pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
-            
-            header.onmousedown = dragMouseDown;
-            
-            function dragMouseDown(e) {
-                e = e || window.event;
+
+            header.style.touchAction = 'none';
+            header.onpointerdown = dragPointerDown;
+
+            function dragPointerDown(e) {
                 e.preventDefault();
                 pos3 = e.clientX;
                 pos4 = e.clientY;
-                document.onmouseup = closeDragElement;
-                document.onmousemove = elementDrag;
+                document.onpointerup = closeDragElement;
+                document.onpointermove = elementDrag;
                 window.style.zIndex = ++state.zIndex;
             }
-            
+
             function elementDrag(e) {
-                e = e || window.event;
                 e.preventDefault();
                 pos1 = pos3 - e.clientX;
                 pos2 = pos4 - e.clientY;
@@ -816,10 +820,10 @@
                 window.style.top = (window.offsetTop - pos2) + "px";
                 window.style.left = (window.offsetLeft - pos1) + "px";
             }
-            
+
             function closeDragElement() {
-                document.onmouseup = null;
-                document.onmousemove = null;
+                document.onpointerup = null;
+                document.onpointermove = null;
             }
         }
         
