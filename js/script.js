@@ -215,7 +215,7 @@ container.appendChild(renderer.domElement);
 
   renderer.domElement.addEventListener('pointerdown', onPick);
 
-  // Chunky voxel-style APPS heading
+  // Chunky voxel-style DEMOS heading
   // Each cube will move with a sinusoidal offset along the Z axis
   const LETTERS = {
     D: ['11110', '10001', '10001', '10001', '10001', '10001', '11110'],
@@ -299,7 +299,7 @@ container.appendChild(renderer.domElement);
     return group;
   }
 
-  const textMesh = createVoxelText('APPS');
+  const textMesh = createVoxelText('DEMOS');
   scene.add(textMesh);
   console.info('Voxel text added', textMesh.position);
 
