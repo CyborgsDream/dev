@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Amiga Workbench 2.0</title>
+    <title>WebGUI 0.0.15</title>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=VT323&display=swap">
     <style>
         * {
@@ -655,12 +655,23 @@
         
         // Clock functionality
         function initClock() {
+            let use24 = false;
+            const clockEl = document.getElementById('clock');
+
             function updateClock() {
                 const now = new Date();
-                const fmt = appData && appData.settings && appData.settings.clockFormat;
-                const timeStr = fmt ? now.toLocaleTimeString(fmt) : now.toLocaleTimeString();
-                document.getElementById('clock').textContent = timeStr;
+                const opts = { hour12: !use24 };
+                clockEl.textContent = now.toLocaleTimeString('en-US', opts);
             }
+
+            function toggle() {
+                use24 = !use24;
+                updateClock();
+            }
+
+            clockEl.addEventListener('click', toggle);
+            clockEl.addEventListener('touchstart', toggle);
+
             setInterval(updateClock, 1000);
             updateClock();
         }
@@ -694,10 +705,7 @@
             state.windows.push(id);
             updateTaskBar();
             
-            // Initialize app-specific functionality
-            if (type === 'puzzle-game') {
-                initPuzzleGame();
-            }
+            // App specific initialization can be handled by each module
         }
         
         function getWindowConfig(type) {
@@ -802,170 +810,6 @@
             }
         }
         
-        // Calculator functions
-        let calcValue = '0';
-        
-        function appendCalc(char) {
-            if (char === '←') {
-                calcValue = calcValue.slice(0, -1) || '0';
-            } else if (char === 'C') {
-                calcValue = '0';
-            } else if (char === '=') {
-                try {
-                    calcValue = eval(calcValue).toString();
-                } catch {
-                    calcValue = 'Error';
-                }
-            } else {
-                if (calcValue === '0' || calcValue === 'Error') calcValue = '';
-                calcValue += char;
-            }
-            document.getElementById('calc-display').textContent = calcValue;
-        }
-        
-        function clearCalc() {
-            calcValue = '0';
-            document.getElementById('calc-display').textContent = calcValue;
-        }
-        
-        function calculate() {
-            appendCalc('=');
-        }
-        
-        // Calendar functions
-        let currentDate = new Date();
-        
-        function generateCalendarDays(date) {
-            const year = date.getFullYear();
-            const month = date.getMonth();
-            
-            // First day of month
-            const firstDay = new Date(year, month, 1);
-            // Last day of month
-            const lastDay = new Date(year, month + 1, 0);
-            // Days in month
-            const daysInMonth = lastDay.getDate();
-            // Starting day (0 = Sunday, 1 = Monday, etc)
-            const startDay = firstDay.getDay();
-            
-            let daysHtml = '';
-            const today = new Date();
-            
-            // Fill in empty cells for days before the first day of the month
-            for (let i = 0; i < startDay; i++) {
-                daysHtml += `<div class="calendar-day"></div>`;
-            }
-            
-            // Fill in the days of the month
-            for (let day = 1; day <= daysInMonth; day++) {
-                const isToday = day === today.getDate() && 
-                                month === today.getMonth() && 
-                                year === today.getFullYear();
-                daysHtml += `<div class="calendar-day ${isToday ? 'today' : ''}">${day}</div>`;
-            }
-            
-            return daysHtml;
-        }
-        
-        function changeMonth(direction) {
-            currentDate.setMonth(currentDate.getMonth() + direction);
-            document.getElementById('calendar-month-year').textContent = 
-                currentDate.toLocaleString('default', { month: 'long', year: 'numeric' });
-            
-            const calendarGrid = document.querySelector('.calendar-grid');
-            // First 7 elements are headers
-            for (let i = 7; i < calendarGrid.children.length; i++) {
-                calendarGrid.children[i].remove();
-            }
-            calendarGrid.insertAdjacentHTML('beforeend', generateCalendarDays(currentDate));
-        }
-        
-        // Puzzle game functions
-        function initPuzzleGame() {
-            // Shuffle the puzzle
-            shuffleArray(state.puzzleState);
-            
-            const puzzleBoard = document.getElementById('puzzle-board');
-            puzzleBoard.innerHTML = '';
-            
-            for (let i = 0; i < 16; i++) {
-                const value = state.puzzleState[i];
-                const tile = document.createElement('div');
-                tile.className = `game-tile ${value === 0 ? 'empty' : ''}`;
-                tile.textContent = value === 0 ? '' : value;
-                tile.dataset.index = i;
-                tile.dataset.value = value;
-                
-                if (value !== 0) {
-                    tile.addEventListener('click', () => moveTile(i));
-                }
-                
-                puzzleBoard.appendChild(tile);
-            }
-        }
-        
-        function moveTile(index) {
-            const emptyIndex = state.puzzleState.indexOf(0);
-            const row = Math.floor(index / 4);
-            const col = index % 4;
-            const emptyRow = Math.floor(emptyIndex / 4);
-            const emptyCol = emptyIndex % 4;
-            
-            // Check if the clicked tile is adjacent to the empty space
-            if ((Math.abs(row - emptyRow) === 1 && col === emptyCol) || 
-                (Math.abs(col - emptyCol) === 1 && row === emptyRow)) {
-                
-                // Swap the tiles
-                [state.puzzleState[index], state.puzzleState[emptyIndex]] = 
-                [state.puzzleState[emptyIndex], state.puzzleState[index]];
-                
-                // Update the display
-                initPuzzleGame();
-                
-                // Check if puzzle is solved
-                if (isPuzzleSolved()) {
-                    setTimeout(() => {
-                        alert(appData.puzzleSolved);
-                    }, 100);
-                }
-            }
-        }
-        
-        function isPuzzleSolved() {
-            for (let i = 0; i < 15; i++) {
-                if (state.puzzleState[i] !== i + 1) {
-                    return false;
-                }
-            }
-            return state.puzzleState[15] === 0;
-        }
-        
-        function shuffleArray(array) {
-            for (let i = array.length - 1; i > 0; i--) {
-                const j = Math.floor(Math.random() * (i + 1));
-                [array[i], array[j]] = [array[j], array[i]];
-            }
-            
-            // Ensure the puzzle is solvable
-            let inversions = 0;
-            for (let i = 0; i < array.length; i++) {
-                for (let j = i + 1; j < array.length; j++) {
-                    if (array[i] > array[j] && array[i] !== 0 && array[j] !== 0) {
-                        inversions++;
-                    }
-                }
-            }
-            
-            const emptyRow = 4 - Math.floor(array.indexOf(0) / 4);
-            if ((inversions % 2 === 0) !== (emptyRow % 2 === 1)) {
-                // Make one swap to make it solvable
-                if (array[0] !== 0 && array[1] !== 0) {
-                    [array[0], array[1]] = [array[1], array[0]];
-                } else {
-                    [array[2], array[3]] = [array[3], array[2]];
-                }
-            }
-        }
         
         // Dialog functions
         function closeDialog(id) {

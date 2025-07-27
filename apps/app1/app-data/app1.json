@@ -7,7 +7,7 @@
         {"label": "CLI Terminal", "type": "terminal"},
         {"label": "File Manager", "type": "file-manager"},
         {"label": "Format Disk"},
-        {"label": "Exit Workbench"}
+        {"label": "Exit WebGUI"}
       ]
     },
     {
@@ -41,11 +41,11 @@
   ],
   "status": "Icons are now clickable! Click any icon to open an application.",
   "welcome": {
-    "title": "AmigaOS 2.0",
+    "title": "WebGUI 0.0.15",
     "lines": [
-      "Welcome to Amiga Workbench",
-      "Version 2.0 (1990)",
-      "Icons are now fully functional!"
+      "Welcome to WebGUI - Web browser based windows GUI",
+      "Version 0.0.15",
+      "(c) 2025 CyborgsDream"
     ],
     "button": "OK"
   },
@@ -64,25 +64,25 @@
   "windows": {
     "system-info": {
       "title": "System Information",
-      "content": "<h2>Amiga 3000</h2><p>Motorola 68030 @ 25MHz</p><p>2MB Chip RAM + 8MB Fast RAM</p><p>Kickstart 2.04</p><p>Workbench 2.0</p><p>Display: 640x512 (ECS)</p><p>Floppy: 880KB 3.5\"</p><p>HD: 120MB SCSI</p><div style=\"margin-top: 20px; text-align: center;\"><div style=\"display: inline-block; padding: 10px; background: #0000aa; color: white;\">Power Without the Price</div></div>",
+      "content": "<h2>WebGUI Demo Machine</h2><p>Motorola 68030 @ 25MHz</p><p>2MB Chip RAM + 8MB Fast RAM</p><p>Kickstart 2.04</p><p>WebGUI 0.0.15</p><p>Display: 640x512 (ECS)</p><p>Floppy: 880KB 3.5\"</p><p>HD: 120MB SCSI</p><div style=\"margin-top: 20px; text-align: center;\"><div style=\"display: inline-block; padding: 10px; background: #0000aa; color: white;\">Power Without the Price</div></div>",
       "width": 320,
       "height": 300
     },
     "terminal": {
       "title": "CLI",
-      "content": "<div class=\"terminal\"><div class=\"terminal-line\">AmigaOS CLI 2.04</div><div class=\"terminal-line\">Copyright (c) 1985-1990 Commodore-Amiga, Inc.</div><div class=\"terminal-line\">Workbench started.</div><div class=\"terminal-line\">System date: {DATE}</div><div class=\"terminal-line\">System time: {TIME}</div><div class=\"terminal-line\"><br></div><div class=\"terminal-line\"><span class=\"prompt\">1&gt;</span> <span class=\"cursor\">█</span></div></div>",
+      "content": "<div class=\"terminal\"><div class=\"terminal-line\">WebGUI CLI</div><div class=\"terminal-line\">(c) 2025 CyborgsDream</div><div class=\"terminal-line\">WebGUI started.</div><div class=\"terminal-line\">System date: {DATE}</div><div class=\"terminal-line\">System time: {TIME}</div><div class=\"terminal-line\"><br></div><div class=\"terminal-line\"><span class=\"prompt\">1&gt;</span> <span class=\"cursor\">█</span></div></div>",
       "width": 450,
       "height": 250
     },
     "text-editor": {
       "title": "Text Editor",
-      "content": "<textarea style=\"width: 100%; height: 100%; background: #fff; border: 1px solid #aaa; padding: 5px; font-family: monospace; font-size: 18px;\">Welcome to Amiga Workbench v2.0!\n\nThe icon issue has been fixed!\n• All desktop icons are now fully functional\n• Click any icon to open an application\n• The wallpaper no longer blocks clicks\n\nTry clicking on any icon to open its application.\n\nThe Amiga continues to push the boundaries of personal computing!</textarea>",
+      "content": "<textarea style=\"width: 100%; height: 100%; background: #fff; border: 1px solid #aaa; padding: 5px; font-family: monospace; font-size: 18px;\">Welcome to WebGUI 0.0.15!\n\nThe icon issue has been fixed!\n• All desktop icons are now fully functional\n• Click any icon to open an application\n• The wallpaper no longer blocks clicks\n\nTry clicking on any icon to open its application.\n\nWebGUI continues to push the boundaries of personal computing!</textarea>",
       "width": 500,
       "height": 350
     },
     "graphics": {
-      "title": "Amiga Paint",
-      "content": "<div style=\"text-align: center;\"><h3>Amiga Paint v2.0</h3><div style=\"margin: 10px auto; width: 300px; height: 200px; background: #fff; border: 1px solid #000; position: relative;\"><div style=\"position: absolute; top: 20px; left: 30px; width: 100px; height: 100px; background: #f00;\"></div><div style=\"position: absolute; top: 50px; left: 70px; width: 60px; height: 60px; background: #00f;\"></div><div style=\"position: absolute; top: 70px; left: 40px; width: 40px; height: 40px; background: #ff0;\"></div><div style=\"position: absolute; top: 120px; left: 100px; width: 80px; height: 40px; background: #0f0;\"></div></div><div style=\"display: flex; justify-content: center; gap: 10px; margin-top: 15px;\"><button style=\"padding: 5px 10px; font-size: 18px;\">Pencil</button><button style=\"padding: 5px 10px; font-size: 18px;\">Brush</button><button style=\"padding: 5px 10px; font-size: 18px;\">Fill</button></div></div>",
+      "title": "WebGUI Paint",
+      "content": "<div style=\"text-align: center;\"><h3>WebGUI Paint v2.0</h3><div style=\"margin: 10px auto; width: 300px; height: 200px; background: #fff; border: 1px solid #000; position: relative;\"><div style=\"position: absolute; top: 20px; left: 30px; width: 100px; height: 100px; background: #f00;\"></div><div style=\"position: absolute; top: 50px; left: 70px; width: 60px; height: 60px; background: #00f;\"></div><div style=\"position: absolute; top: 70px; left: 40px; width: 40px; height: 40px; background: #ff0;\"></div><div style=\"position: absolute; top: 120px; left: 100px; width: 80px; height: 40px; background: #0f0;\"></div></div><div style=\"display: flex; justify-content: center; gap: 10px; margin-top: 15px;\"><button style=\"padding: 5px 10px; font-size: 18px;\">Pencil</button><button style=\"padding: 5px 10px; font-size: 18px;\">Brush</button><button style=\"padding: 5px 10px; font-size: 18px;\">Fill</button></div></div>",
       "width": 400,
       "height": 300
     },
@@ -94,7 +94,7 @@
     },
     "games": {
       "title": "Games",
-      "content": "<h3>Amiga Games Collection</h3><div style=\"display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 15px; font-size: 16px;\"><div style=\"background: #aaccff; padding: 5px; text-align: center;\">Defender of the Crown</div><div style=\"background: #aaccff; padding: 5px; text-align: center;\">Marble Madness</div><div style=\"background: #aaccff; padding: 5px; text-align: center;\">The Bard's Tale</div><div style=\"background: #aaccff; padding: 5px; text-align: center;\">Leisure Suit Larry</div><div style=\"background: #aaccff; padding: 5px; text-align: center;\">SimCity</div><div style=\"background: #aaccff; padding: 5px; text-align: center;\">Battle Chess</div><div style=\"background: #aaccff; padding: 5px; text-align: center;\">Turrican</div><div style=\"background: #aaccff; padding: 5px; text-align: center;\">Lemmings</div><div style=\"background: #aaccff; padding: 5px; text-align: center;\">Shadow of the Beast</div></div><p style=\"margin-top: 15px; font-size: 18px;\"><em>Insert game disk to play...</em></p>",
+      "content": "<h3>WebGUI Games Collection</h3><div style=\"display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 15px; font-size: 16px;\"><div style=\"background: #aaccff; padding: 5px; text-align: center;\">Defender of the Crown</div><div style=\"background: #aaccff; padding: 5px; text-align: center;\">Marble Madness</div><div style=\"background: #aaccff; padding: 5px; text-align: center;\">The Bard's Tale</div><div style=\"background: #aaccff; padding: 5px; text-align: center;\">Leisure Suit Larry</div><div style=\"background: #aaccff; padding: 5px; text-align: center;\">SimCity</div><div style=\"background: #aaccff; padding: 5px; text-align: center;\">Battle Chess</div><div style=\"background: #aaccff; padding: 5px; text-align: center;\">Turrican</div><div style=\"background: #aaccff; padding: 5px; text-align: center;\">Lemmings</div><div style=\"background: #aaccff; padding: 5px; text-align: center;\">Shadow of the Beast</div></div><p style=\"margin-top: 15px; font-size: 18px;\"><em>Insert game disk to play...</em></p>",
       "width": 500,
       "height": 300
     },
