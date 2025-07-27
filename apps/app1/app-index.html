@@ -605,8 +605,12 @@
             icons.forEach(icon => {
                 const el = document.createElement('div');
                 el.className = 'icon';
-                if (icon.type) el.setAttribute('onclick', `loadApp('${icon.label.toLowerCase()}')`);
                 el.innerHTML = `<div class="icon-image">${icon.emoji}</div><div class="icon-label">${icon.label}</div>`;
+                if (icon.type) {
+                    const handler = () => loadApp(icon.label.toLowerCase());
+                    el.addEventListener('click', handler);
+                    el.addEventListener('touchstart', handler);
+                }
                 container.appendChild(el);
             });
         }
