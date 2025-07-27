@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Mini HTML Studio</title>
+<script src="https://cdn.jsdelivr.net/npm/monaco-editor@0.41.0/min/vs/loader.js"></script>
+<style>
+:root{--desktop:#1e1e1e;--header:#007acc;--hover:#0091ff;--win-bg:#202020;--win-border:#555}
+*{box-sizing:border-box;margin:0}
+html,body{height:100%;background:var(--desktop);font-family:Segoe UI,Tahoma,sans-serif;color:#ddd;overflow:hidden}
+.win{position:absolute;display:flex;flex-direction:column;background:var(--win-bg);border:2px solid var(--win-border);box-shadow:0 0 10px #000;top:15%;left:20%;width:60%;height:70%}
+.win.max{top:0;left:0;width:100%;height:100%}
+.title{height:30px;background:#151515;color:#fff;display:flex;align-items:center;padding-left:.6rem;cursor:grab}
+.title span{flex:1;font-size:.9rem}.title button{width:30px;border:none;background:#151515;color:#ccc}
+.title button:hover{background:#444}
+.toolbar{display:flex;align-items:center;gap:.5rem;padding:.25rem .7rem;background:#2a2a2a;font-size:.8rem}
+.btn,select{border:none;border-radius:3px;padding:.34rem .75rem;font-size:.78rem;background:#045a9e;color:#fff}
+.btn:hover,select:hover{background:var(--hover)}
+.viewBtn{font-size:1rem;padding:.2rem .6rem;background:#0a5d9f}.viewBtn.active{background:var(--header)}
+#wys{display:none;gap:.3rem;padding:.25rem .6rem;background:#e7e7e7;border-bottom:1px solid #ccc}
+#wys button{border:none;background:none;cursor:pointer;padding:.2rem .55rem;font-size:.85rem}
+#wys button:hover{background:#d0d0d0}
+#workspace{flex:1;display:grid;grid-template-columns:1fr 1fr}
+#editor,#ta{width:100%;height:100%}
+#preview{width:100%;height:100%;border:none;background:#fff}
+@media(max-width:800px){#workspace{grid-template-columns:1fr;grid-template-rows:55% 45%}}
+#console{background:#000;font-family:monospace;font-size:.72rem;max-height:70px;overflow-y:auto;white-space:pre-wrap;padding:.25rem .5rem}
+.log-line{padding:1px 0}.err{color:#f66}.warn{color:#f2b648}.info{color:#8ad}
+.status{height:24px;background:#111;font-size:.73rem;color:#888;display:flex;justify-content:space-between;align-items:center;padding:0 .6rem;font-family:monospace}
+</style>
+</head>
+<body>
+<div class="win" id="window">
+  <div class="title" id="title"><span>Mini HTML Studio</span><button id="maxBtn">🗖</button><button id="closeBtn">✕</button></div>
+  <div class="toolbar">
+    <button id="codeBtn"  class="viewBtn">🖉</button>
+    <button id="splitBtn" class="viewBtn active">⇆</button>
+    <button id="wysBtn"   class="viewBtn">👁</button>
+    <button class="btn" id="saveBtn">Save</button>
+    <select id="loadSel"><option disabled selected>Load…</option></select>
+    <button class="btn" id="dlBtn">Download</button>
+  </div>
+  <div id="wys">
+    <button data-cmd="bold"><b>B</b></button>
+    <button data-cmd="italic"><i>I</i></button>
+    <button data-cmd="formatBlock" data-arg="h1">H1</button>
+    <button data-cmd="createLink">Link</button>
+  </div>
+  <div id="workspace"><div id="editor"></div><iframe id="preview"></iframe></div>
+  <pre id="console"></pre><div class="status"><span id="verInfo">ver:0</span><span id="sizeInfo">size:0</span></div>
+</div>
+<script>
+const $=id=>document.getElementById(id);
+const log=(m,t='info')=>{$('console').appendChild(Object.assign(document.createElement('div'),{className:'log-line '+t,textContent:m}));$('console').scrollTop=$('console').scrollHeight;};
+window.onerror=m=>log('Error: '+m,'err');
+const pretty=html=>html.replace(/></g,">\n<");
+let editor;
+document.getElementById('maxBtn').onclick=()=>document.getElementById('window').classList.toggle('max');
+document.getElementById('closeBtn').onclick=()=>{
+  const frame=window.frameElement;
+  if(frame){
+    const win=frame.closest('.window');
+    if(win&&parent.WinAPI&&parent.WinAPI.closeWindow) parent.WinAPI.closeWindow(win.id);
+  }
+};
+const template=pretty(`<!doctype html><html><head><meta charset="utf-8"><title>Demo</title><style>body{font-family:sans-serif;padding:2rem}</style></head><body><h1>Hello!</h1><p>Edit code or <em>WYSIWYG</em>.</p></body></html>`);
+const LS='studio-snaps',load=()=>JSON.parse(localStorage.getItem(LS)||'[]'),save=a=>localStorage.setItem(LS,JSON.stringify(a));
+const sync=()=>{const c=editor.getValue();$('preview').srcdoc=c;$('sizeInfo').textContent='size:'+c.length+'c';};
+require.config({paths:{vs:'https://cdn.jsdelivr.net/npm/monaco-editor@0.41.0/min/vs'}});
+let fallbackTO=setTimeout(useTA,5000);
+require(['vs/editor/editor.main'],()=>{clearTimeout(fallbackTO);editor=monaco.editor.create($('editor'),{value:template,language:'html',theme:'vs-dark',automaticLayout:true,minimap:{enabled:false}});editor.onDidChangeModelContent(sync);sync();ui();log('Monaco ready');});
+function useTA(){const ta=document.createElement('textarea');ta.id='ta';ta.value=template;ta.style.cssText='width:100%;height:100%;resize:none;background:#111;color:#eee;border:none;padding:8px;font-family:monospace';$('editor').replaceWith(ta);editor={getValue:()=>ta.value,setValue:v=>ta.value=v};ta.addEventListener('input',sync);sync();ui();log('Textarea','warn');}
+function ui(){
+  const setView=id=>{['codeBtn','splitBtn','wysBtn'].forEach(b=>$(b).classList.remove('active'));$(id).classList.add('active');
+    $('editor').parentElement.style.display=id==='wysBtn'?'none':'block';
+    $('preview').parentElement.style.display=id==='codeBtn'?'none':'block';
+    $('wys').style.display=id==='wysBtn'||id==='splitBtn'?'flex':'none';
+    if(id!=='codeBtn')$('preview').contentDocument?.body.focus();
+    if(id==='codeBtn')editor.setValue(pretty(editor.getValue()));};
+  $('codeBtn').onclick =()=>setView('codeBtn');
+  $('splitBtn').onclick=()=>setView('splitBtn');
+  $('wysBtn').onclick  =()=>setView('wysBtn');
+  $('preview').addEventListener('load',()=>{
+    const doc=$('preview').contentDocument;doc.designMode='on';
+    $('wys').onclick=e=>{const cmd=e.target.dataset.cmd;if(!cmd)return;const arg=cmd==='createLink'?prompt('URL','https://'):e.target.dataset.arg||null;doc.execCommand(cmd,false,arg);};
+    doc.addEventListener('input',()=>{editor.setValue(pretty(doc.documentElement.outerHTML));sync();});
+  });
+  const refill=()=>{$('verInfo').textContent='ver:'+load().length;$('loadSel').innerHTML='<option disabled selected>Load…</option>';load().slice().reverse().forEach(v=>{const o=document.createElement('option');o.value=v.id;o.textContent=new Date(v.id).toLocaleString();$('loadSel').appendChild(o);});};
+  $('saveBtn').onclick=()=>{const a=load();a.push({id:Date.now(),code:editor.getValue()});save(a);refill();log('saved');};
+  $('loadSel').onchange=e=>{const s=load().find(v=>v.id==e.target.value);if(s){editor.setValue(pretty(s.code));sync();}e.target.value='';};
+  refill();
+  $('dlBtn').onclick=()=>{const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([editor.getValue()],{type:'text/html'}));a.download='index.html';a.click();URL.revokeObjectURL(a.href);};
+  document.addEventListener('keydown',e=>{if(e.ctrlKey&&e.key==='s'){e.preventDefault();$('saveBtn').click();}if(e.ctrlKey&&e.shiftKey&&e.key.toLowerCase()==='p'){editor.setValue(pretty(editor.getValue()));sync();log('pretty-printed');}});
+}
+</script>
+</body>
+</html>

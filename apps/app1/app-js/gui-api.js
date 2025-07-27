@@ -1,7 +1,8 @@
 (function(){
     function loadApp(name){
         const script=document.createElement('script');
-        script.src=`app-js/${name}.js`;
+        const safe=name.toLowerCase().replace(/\s+/g,'');
+        script.src=`app-js/${safe}.js`;
         document.body.appendChild(script);
     }
     function createWindow(type){
