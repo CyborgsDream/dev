@@ -1,4 +1,4 @@
-// Version: 0.0.14c
+// Version: 0.0.14d
 // Codename: Celestia
 // Basic THREE.js example with multiple objects
 import * as THREE from 'https://unpkg.com/three@0.159.0/build/three.module.js';
@@ -147,6 +147,7 @@ container.appendChild(renderer.domElement);
   const infoTitle = infoBox.querySelector('h2');
   const infoText = infoBox.querySelector('p');
   const runBtn = document.getElementById('run-demo');
+  const closeBtn = document.getElementById('close-info');
   const raycaster = new THREE.Raycaster();
   const mouse = new THREE.Vector2();
   function selectDemo(index) {
@@ -166,6 +167,15 @@ container.appendChild(renderer.domElement);
     runBtn.onclick = () => (window.location.href = data.file);
     infoBox.style.display = 'block';
   }
+
+  closeBtn.addEventListener('click', () => {
+    infoBox.style.display = 'none';
+    meshes.forEach(m => {
+      m.scale.set(1, 1, 1);
+      m.material.opacity = 1;
+      m.material.transparent = false;
+    });
+  });
 
   function onPick(event) {
     const rect = renderer.domElement.getBoundingClientRect();
