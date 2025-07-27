@@ -148,6 +148,7 @@ container.appendChild(renderer.domElement);
   const infoText = infoBox.querySelector('p');
   const runBtn = document.getElementById('run-demo');
   const closeBtn = document.getElementById('close-info');
+  let ignoreNextContainerClick = false;
   const raycaster = new THREE.Raycaster();
   const mouse = new THREE.Vector2();
   function selectDemo(index) {
@@ -166,10 +167,15 @@ container.appendChild(renderer.domElement);
     infoText.textContent = data.long;
     runBtn.onclick = () => (window.location.href = data.file);
     infoBox.style.display = 'block';
+    requestAnimationFrame(() => infoBox.classList.add('visible'));
+    ignoreNextContainerClick = true;
   }
 
   function hideDemoInfo() {
-    infoBox.style.display = 'none';
+    infoBox.classList.remove('visible');
+    setTimeout(() => {
+      infoBox.style.display = 'none';
+    }, 1000);
     meshes.forEach(m => {
       m.scale.set(1, 1, 1);
       m.material.opacity = 1;
@@ -179,6 +185,10 @@ container.appendChild(renderer.domElement);
 
   closeBtn.addEventListener('click', hideDemoInfo);
   container.addEventListener('click', e => {
+    if (ignoreNextContainerClick) {
+      ignoreNextContainerClick = false;
+      return;
+    }
     if (infoBox.style.display === 'block' && !infoBox.contains(e.target)) {
       hideDemoInfo();
     }
