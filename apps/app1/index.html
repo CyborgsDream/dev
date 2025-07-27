@@ -16,7 +16,7 @@
         
         body {
             background: #005;
-            height: 100vh;
+            min-height: calc(var(--vh, 1vh) * 100);
             overflow: hidden;
             display: flex;
             justify-content: center;
@@ -26,7 +26,7 @@
         
         .desktop {
             width: 100vw;
-            height: 100vh;
+            height: calc(var(--vh, 1vh) * 100);
             background: #0055aa;
             position: relative;
             overflow: hidden;
@@ -953,6 +953,14 @@
             initClock();
             initMenus();
         }
+
+        function updateViewportHeight() {
+            document.documentElement.style.setProperty('--vh', `${window.innerHeight * 0.01}px`);
+        }
+
+        window.addEventListener('resize', updateViewportHeight);
+        window.addEventListener('orientationchange', updateViewportHeight);
+        updateViewportHeight();
 
         window.onload = init;
     </script>
