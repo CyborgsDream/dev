@@ -18,7 +18,7 @@ if (consoleLogEl) {
       line.textContent = `[${m}] ${msg}`;
       consoleLogEl.appendChild(line);
       consoleLogEl.scrollTop = consoleLogEl.scrollHeight;
-      setTimeout(() => line.remove(), 12000);
+      setTimeout(() => line.remove(), 3000);
     };
   });
 }
