@@ -2,19 +2,19 @@
   "demos": [
     {
       "name": "Demo One",
-      "file": "demo1.html",
+      "file": "apps/app1/index.html",
       "short": "lorem ipsum doloret sit amet",
       "long": "This is the first demo showcasing features."
     },
     {
       "name": "Demo Two",
-      "file": "demo2.html",
+      "file": "apps/app2/index.html",
       "short": "lorem ipsum doloret sit amet",
       "long": "This is the second demo showcasing features."
     },
     {
       "name": "Demo Three",
-      "file": "demo3.html",
+      "file": "apps/app3/index.html",
       "short": "lorem ipsum doloret sit amet",
       "long": "This is the third demo showcasing features."
     }
