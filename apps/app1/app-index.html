@@ -665,14 +665,15 @@
         }
         
         // Clock functionality
-        function initClock() {
+        function initClock(format) {
             let use24 = false;
             const clockEl = document.getElementById('clock');
+            const locale = format || navigator.language || 'en-US';
 
             function updateClock() {
                 const now = new Date();
                 const opts = { hour12: !use24 };
-                clockEl.textContent = now.toLocaleTimeString('en-US', opts);
+                clockEl.textContent = now.toLocaleTimeString(locale, opts);
             }
 
             function toggle() {
@@ -840,7 +841,7 @@
             buildIcons(appData.icons);
             document.getElementById('status-bar').textContent = appData.status;
             buildWelcome(appData.welcome);
-            initClock();
+            initClock(appData.settings && appData.settings.clockFormat);
             initMenus();
             updateTaskBar();
         }
