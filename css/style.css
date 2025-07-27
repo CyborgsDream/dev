@@ -1,4 +1,4 @@
-/* Version: 0.0.13beta */
+/* Version: 0.0.13ceta */
 /* Codename: Celestia */
 /* Basic responsive CSS */
 * {
@@ -158,5 +158,5 @@ main {
 
 .object-info {
   font-size: 0.55rem;
-  color: #ccc;
+  color: #fff;
 }
