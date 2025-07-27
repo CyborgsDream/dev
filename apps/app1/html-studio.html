@@ -65,7 +65,15 @@ document.getElementById('closeBtn').onclick=()=>{
 };
 const template=pretty(`<!doctype html><html><head><meta charset="utf-8"><title>Demo</title><style>body{font-family:sans-serif;padding:2rem}</style></head><body><h1>Hello!</h1><p>Edit code or <em>WYSIWYG</em>.</p></body></html>`);
 const LS='studio-snaps',load=()=>JSON.parse(localStorage.getItem(LS)||'[]'),save=a=>localStorage.setItem(LS,JSON.stringify(a));
-const sync=()=>{const c=editor.getValue();$('preview').srcdoc=c;$('sizeInfo').textContent='size:'+c.length+'c';};
+function setupPreview(){
+  const doc=$('preview').contentDocument;
+  if(!doc||doc.__init)return;
+  doc.designMode='on';
+  $('wys').onclick=e=>{const cmd=e.target.dataset.cmd;if(!cmd)return;const arg=cmd==='createLink'?prompt('URL','https://'):e.target.dataset.arg||null;doc.execCommand(cmd,false,arg);};
+  doc.addEventListener('input',()=>{editor.setValue(pretty(doc.documentElement.outerHTML));sync(false);});
+  doc.__init=true;
+}
+function sync(update=true){const c=editor.getValue();if(update){$('preview').srcdoc=c;setTimeout(setupPreview);}$('sizeInfo').textContent='size:'+c.length+'c';}
 require.config({paths:{vs:'https://cdn.jsdelivr.net/npm/monaco-editor@0.41.0/min/vs'}});
 let fallbackTO=setTimeout(useTA,5000);
 require(['vs/editor/editor.main'],()=>{clearTimeout(fallbackTO);editor=monaco.editor.create($('editor'),{value:template,language:'html',theme:'vs-dark',automaticLayout:true,minimap:{enabled:false}});editor.onDidChangeModelContent(sync);sync();ui();log('Monaco ready');});
@@ -80,11 +88,7 @@ function ui(){
   $('codeBtn').onclick =()=>setView('codeBtn');
   $('splitBtn').onclick=()=>setView('splitBtn');
   $('wysBtn').onclick  =()=>setView('wysBtn');
-  $('preview').addEventListener('load',()=>{
-    const doc=$('preview').contentDocument;doc.designMode='on';
-    $('wys').onclick=e=>{const cmd=e.target.dataset.cmd;if(!cmd)return;const arg=cmd==='createLink'?prompt('URL','https://'):e.target.dataset.arg||null;doc.execCommand(cmd,false,arg);};
-    doc.addEventListener('input',()=>{editor.setValue(pretty(doc.documentElement.outerHTML));sync();});
-  });
+  setupPreview();
   const refill=()=>{$('verInfo').textContent='ver:'+load().length;$('loadSel').innerHTML='<option disabled selected>Load…</option>';load().slice().reverse().forEach(v=>{const o=document.createElement('option');o.value=v.id;o.textContent=new Date(v.id).toLocaleString();$('loadSel').appendChild(o);});};
   $('saveBtn').onclick=()=>{const a=load();a.push({id:Date.now(),code:editor.getValue()});save(a);refill();log('saved');};
   $('loadSel').onchange=e=>{const s=load().find(v=>v.id==e.target.value);if(s){editor.setValue(pretty(s.code));sync();}e.target.value='';};
