@@ -231,7 +231,8 @@ container.appendChild(renderer.domElement);
       pos.project(camera);
       const x = (pos.x * 0.5 + 0.5) * container.clientWidth;
       const y = (-pos.y * 0.5 + 0.5) * container.clientHeight;
-      el.style.transform = `translate(-50%, -50%) translate(${x}px, ${y}px)`;
+      // position label so its top aligns with the computed point
+      el.style.transform = `translate(-50%, 0) translate(${x}px, ${y}px)`;
     });
     renderer.render(scene, camera);
   }
