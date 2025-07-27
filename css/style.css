@@ -1,4 +1,4 @@
-/* Version: 0.0.13ceta */
+/* Version: 0.0.13delta */
 /* Codename: Celestia */
 /* Basic responsive CSS */
 * {
@@ -68,7 +68,7 @@ main {
   max-height: 100px;
   overflow-y: auto;
   color: #0f0;
-  background: rgba(0, 0, 0, 0.5);
+  background: rgba(0, 0, 0, 1);
   text-shadow: 0 0 5px #0f0;
   font-family: monospace;
   font-size: 0.65rem;
