@@ -526,87 +526,12 @@
         <div class="wallpaper"></div>
         
         <!-- Menu bar -->
-        <div class="menu-bar">
-            <div class="menu-item" id="project-menu">
-                Project
-                <div class="dropdown">
-                    <div class="dropdown-item" onclick="openWindow('system-info')">System Info</div>
-                    <div class="dropdown-item" onclick="openWindow('terminal')">CLI Terminal</div>
-                    <div class="dropdown-item" onclick="openWindow('file-manager')">File Manager</div>
-                    <div class="dropdown-item">Format Disk</div>
-                    <div class="dropdown-item" style="border-top: 1px solid #555;">Exit Workbench</div>
-                </div>
-            </div>
-            <div class="menu-item" id="edit-menu">
-                Edit
-                <div class="dropdown">
-                    <div class="dropdown-item">Undo</div>
-                    <div class="dropdown-item">Redo</div>
-                    <div class="dropdown-item" style="border-top: 1px solid #555;">Cut</div>
-                    <div class="dropdown-item">Copy</div>
-                    <div class="dropdown-item">Paste</div>
-                </div>
-            </div>
-            <div class="menu-item" id="tools-menu">
-                Tools
-                <div class="dropdown">
-                    <div class="dropdown-item" onclick="openWindow('calculator')">Calculator</div>
-                    <div class="dropdown-item" onclick="openWindow('calendar')">Calendar</div>
-                    <div class="dropdown-item" onclick="openWindow('puzzle-game')">Puzzle Game</div>
-                    <div class="dropdown-item">Disk Doctor</div>
-                </div>
-            </div>
-            <div class="menu-item" id="windows-menu">
-                Windows
-                <div class="dropdown">
-                    <div class="dropdown-item">Tile Windows</div>
-                    <div class="dropdown-item">Cascade Windows</div>
-                    <div class="dropdown-item">Arrange Icons</div>
-                    <div class="dropdown-item" style="border-top: 1px solid #555;">Close All</div>
-                </div>
-            </div>
+        <div class="menu-bar" id="menu-bar">
             <div class="clock" id="clock">12:00:00 PM</div>
         </div>
         
         <!-- Desktop icons -->
-        <div class="desktop-icons">
-            <div class="icon" onclick="openWindow('system-info')">
-                <div class="icon-image">🖥️</div>
-                <div class="icon-label">System</div>
-            </div>
-            <div class="icon" onclick="openWindow('terminal')">
-                <div class="icon-image">⌨️</div>
-                <div class="icon-label">Terminal</div>
-            </div>
-            <div class="icon" onclick="openWindow('text-editor')">
-                <div class="icon-image">📝</div>
-                <div class="icon-label">TextEdit</div>
-            </div>
-            <div class="icon" onclick="openWindow('graphics')">
-                <div class="icon-image">🎨</div>
-                <div class="icon-label">Paint</div>
-            </div>
-            <div class="icon" onclick="openWindow('utilities')">
-                <div class="icon-image">🧰</div>
-                <div class="icon-label">Utilities</div>
-            </div>
-            <div class="icon" onclick="openWindow('games')">
-                <div class="icon-image">🎮</div>
-                <div class="icon-label">Games</div>
-            </div>
-            <div class="icon" onclick="openWindow('calculator')">
-                <div class="icon-image">🧮</div>
-                <div class="icon-label">Calculator</div>
-            </div>
-            <div class="icon" onclick="openWindow('calendar')">
-                <div class="icon-image">📅</div>
-                <div class="icon-label">Calendar</div>
-            </div>
-            <div class="icon" onclick="openWindow('puzzle-game')">
-                <div class="icon-image">🧩</div>
-                <div class="icon-label">Puzzle</div>
-            </div>
-        </div>
+        <div class="desktop-icons" id="desktop-icons"></div>
         
         <!-- Disk drive -->
         <div class="disk-drive">
@@ -617,31 +542,17 @@
         </div>
         
         <!-- Status bar -->
-        <div class="status-bar">
-            <span>Icons are now clickable! Click any icon to open an application.</span>
-        </div>
-        
+        <div class="status-bar" id="status-bar"></div>
+
         <!-- Task bar -->
-        <div class="task-bar">
-            <div class="task-btn" onclick="openWindow('system-info')">System</div>
-            <div class="task-btn" onclick="openWindow('terminal')">Terminal</div>
-            <div class="task-btn" onclick="openWindow('calculator')">Calculator</div>
-            <div class="task-btn" onclick="openWindow('puzzle-game')">Puzzle</div>
-        </div>
+        <div class="task-bar" id="task-bar"></div>
         
         <!-- Welcome dialog -->
-        <div class="dialog" id="welcome-dialog">
+        <div class="dialog" id="welcome-dialog" style="display:none;">
             <div class="window-header">
-                <div class="window-title">AmigaOS 2.0</div>
+                <div class="window-title"></div>
             </div>
-            <div class="dialog-content">
-                <p>Welcome to Amiga Workbench</p>
-                <p>Version 2.0 (1990)</p>
-                <p>Icons are now fully functional!</p>
-                <div class="dialog-buttons">
-                    <div class="dialog-btn" onclick="closeDialog('welcome-dialog')">OK</div>
-                </div>
-            </div>
+            <div class="dialog-content"></div>
         </div>
     </div>
 
@@ -656,6 +567,60 @@
         
         // DOM references
         const desktop = document.getElementById('desktop');
+        let appData = null;
+
+        function buildMenus(menus) {
+            const bar = document.getElementById('menu-bar');
+            const clock = document.getElementById('clock');
+            bar.innerHTML = '';
+            menus.forEach(menu => {
+                const item = document.createElement('div');
+                item.className = 'menu-item';
+                item.textContent = menu.label;
+                const dropdown = document.createElement('div');
+                dropdown.className = 'dropdown';
+                menu.items.forEach(entry => {
+                    const div = document.createElement('div');
+                    div.className = 'dropdown-item';
+                    div.textContent = entry.label;
+                    if (entry.type) {
+                        div.setAttribute('onclick', `openWindow('${entry.type}')`);
+                    }
+                    dropdown.appendChild(div);
+                });
+                item.appendChild(dropdown);
+                bar.appendChild(item);
+            });
+            bar.appendChild(clock);
+        }
+
+        function buildIcons(icons) {
+            const container = document.getElementById('desktop-icons');
+            container.innerHTML = '';
+            icons.forEach(icon => {
+                const el = document.createElement('div');
+                el.className = 'icon';
+                if (icon.type) el.setAttribute('onclick', `openWindow('${icon.type}')`);
+                el.innerHTML = `<div class="icon-image">${icon.emoji}</div><div class="icon-label">${icon.label}</div>`;
+                container.appendChild(el);
+            });
+        }
+
+        function buildWelcome(welcome) {
+            const dialog = document.getElementById('welcome-dialog');
+            dialog.querySelector('.window-title').textContent = welcome.title;
+            const content = dialog.querySelector('.dialog-content');
+            content.innerHTML = welcome.lines.map(l => `<p>${l}</p>`).join('');
+            const buttons = document.createElement('div');
+            buttons.className = 'dialog-buttons';
+            const btn = document.createElement('div');
+            btn.className = 'dialog-btn';
+            btn.textContent = welcome.button;
+            btn.onclick = () => closeDialog('welcome-dialog');
+            buttons.appendChild(btn);
+            content.appendChild(buttons);
+            dialog.style.display = 'block';
+        }
         
         // Initialize menus
         function initMenus() {
@@ -687,7 +652,8 @@
         function initClock() {
             function updateClock() {
                 const now = new Date();
-                const timeStr = now.toLocaleTimeString();
+                const fmt = appData && appData.settings && appData.settings.clockFormat;
+                const timeStr = fmt ? now.toLocaleTimeString(fmt) : now.toLocaleTimeString();
                 document.getElementById('clock').textContent = timeStr;
             }
             setInterval(updateClock, 1000);
@@ -729,196 +695,16 @@
         }
         
         function getWindowConfig(type) {
+            if (!appData) return null;
             const now = new Date();
-            const configs = {
-                'system-info': {
-                    title: 'System Information',
-                    content: `
-                        <h2>Amiga 3000</h2>
-                        <p>Motorola 68030 @ 25MHz</p>
-                        <p>2MB Chip RAM + 8MB Fast RAM</p>
-                        <p>Kickstart 2.04</p>
-                        <p>Workbench 2.0</p>
-                        <p>Display: 640x512 (ECS)</p>
-                        <p>Floppy: 880KB 3.5"</p>
-                        <p>HD: 120MB SCSI</p>
-                        <div style="margin-top: 20px; text-align: center;">
-                            <div style="display: inline-block; padding: 10px; background: #0000aa; color: white;">
-                                Power Without the Price
-                            </div>
-                        </div>
-                    `,
-                    width: 320,
-                    height: 300
-                },
-                'terminal': {
-                    title: 'CLI',
-                    content: `
-                        <div class="terminal">
-                            <div class="terminal-line">AmigaOS CLI 2.04</div>
-                            <div class="terminal-line">Copyright (c) 1985-1990 Commodore-Amiga, Inc.</div>
-                            <div class="terminal-line">Workbench started.</div>
-                            <div class="terminal-line">System date: ${now.toLocaleDateString()}</div>
-                            <div class="terminal-line">System time: ${now.toLocaleTimeString()}</div>
-                            <div class="terminal-line"><br></div>
-                            <div class="terminal-line"><span class="prompt">1&gt;</span> <span class="cursor">█</span></div>
-                        </div>
-                    `,
-                    width: 450,
-                    height: 250
-                },
-                'text-editor': {
-                    title: 'Text Editor',
-                    content: `
-                        <textarea style="width: 100%; height: 100%; background: #fff; border: 1px solid #aaa; padding: 5px; font-family: monospace; font-size: 18px;">
-Welcome to Amiga Workbench v2.0!
-
-The icon issue has been fixed!
-• All desktop icons are now fully functional
-• Click any icon to open an application
-• The wallpaper no longer blocks clicks
-
-Try clicking on any icon to open its application.
-
-The Amiga continues to push the boundaries of personal computing!
-                        </textarea>
-                    `,
-                    width: 500,
-                    height: 350
-                },
-                'graphics': {
-                    title: 'Amiga Paint',
-                    content: `
-                        <div style="text-align: center;">
-                            <h3>Amiga Paint v2.0</h3>
-                            <div style="margin: 10px auto; width: 300px; height: 200px; background: #fff; border: 1px solid #000; position: relative;">
-                                <div style="position: absolute; top: 20px; left: 30px; width: 100px; height: 100px; background: #f00;"></div>
-                                <div style="position: absolute; top: 50px; left: 70px; width: 60px; height: 60px; background: #00f;"></div>
-                                <div style="position: absolute; top: 70px; left: 40px; width: 40px; height: 40px; background: #ff0;"></div>
-                                <div style="position: absolute; top: 120px; left: 100px; width: 80px; height: 40px; background: #0f0;"></div>
-                            </div>
-                            <div style="display: flex; justify-content: center; gap: 10px; margin-top: 15px;">
-                                <button style="padding: 5px 10px; font-size: 18px;">Pencil</button>
-                                <button style="padding: 5px 10px; font-size: 18px;">Brush</button>
-                                <button style="padding: 5px 10px; font-size: 18px;">Fill</button>
-                            </div>
-                        </div>
-                    `,
-                    width: 400,
-                    height: 300
-                },
-                'utilities': {
-                    title: 'Utilities',
-                    content: `
-                        <h3>System Utilities</h3>
-                        <ul style="margin-top: 15px; margin-left: 20px; font-size: 18px;">
-                            <li>Disk Formatter</li>
-                            <li>Memory Viewer</li>
-                            <li>System Monitor</li>
-                            <li>Printer Setup</li>
-                            <li>Serial Port Config</li>
-                            <li>Network Setup</li>
-                        </ul>
-                        <div style="margin-top: 20px; padding: 10px; background: #ddd; border: 1px solid #aaa; font-size: 16px;">
-                            <strong>Note:</strong> Some utilities require system disk.
-                        </div>
-                    `,
-                    width: 300,
-                    height: 300
-                },
-                'games': {
-                    title: 'Games',
-                    content: `
-                        <h3>Amiga Games Collection</h3>
-                        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 15px; font-size: 16px;">
-                            <div style="background: #aaccff; padding: 5px; text-align: center;">Defender of the Crown</div>
-                            <div style="background: #aaccff; padding: 5px; text-align: center;">Marble Madness</div>
-                            <div style="background: #aaccff; padding: 5px; text-align: center;">The Bard's Tale</div>
-                            <div style="background: #aaccff; padding: 5px; text-align: center;">Leisure Suit Larry</div>
-                            <div style="background: #aaccff; padding: 5px; text-align: center;">SimCity</div>
-                            <div style="background: #aaccff; padding: 5px; text-align: center;">Battle Chess</div>
-                            <div style="background: #aaccff; padding: 5px; text-align: center;">Turrican</div>
-                            <div style="background: #aaccff; padding: 5px; text-align: center;">Lemmings</div>
-                            <div style="background: #aaccff; padding: 5px; text-align: center;">Shadow of the Beast</div>
-                        </div>
-                        <p style="margin-top: 15px; font-size: 18px;"><em>Insert game disk to play...</em></p>
-                    `,
-                    width: 500,
-                    height: 300
-                },
-                'calculator': {
-                    title: 'Calculator',
-                    content: `
-                        <div class="calculator">
-                            <div class="calc-display" id="calc-display">0</div>
-                            <button class="calc-btn" onclick="clearCalc()">C</button>
-                            <button class="calc-btn" onclick="appendCalc('%')">%</button>
-                            <button class="calc-btn" onclick="appendCalc('←')">←</button>
-                            <button class="calc-btn operator" onclick="appendCalc('/')">/</button>
-                            
-                            <button class="calc-btn" onclick="appendCalc('7')">7</button>
-                            <button class="calc-btn" onclick="appendCalc('8')">8</button>
-                            <button class="calc-btn" onclick="appendCalc('9')">9</button>
-                            <button class="calc-btn operator" onclick="appendCalc('*')">×</button>
-                            
-                            <button class="calc-btn" onclick="appendCalc('4')">4</button>
-                            <button class="calc-btn" onclick="appendCalc('5')">5</button>
-                            <button class="calc-btn" onclick="appendCalc('6')">6</button>
-                            <button class="calc-btn operator" onclick="appendCalc('-')">-</button>
-                            
-                            <button class="calc-btn" onclick="appendCalc('1')">1</button>
-                            <button class="calc-btn" onclick="appendCalc('2')">2</button>
-                            <button class="calc-btn" onclick="appendCalc('3')">3</button>
-                            <button class="calc-btn operator" onclick="appendCalc('+')">+</button>
-                            
-                            <button class="calc-btn" onclick="appendCalc('0')">0</button>
-                            <button class="calc-btn" onclick="appendCalc('.')">.</button>
-                            <button class="calc-btn operator" onclick="calculate()">=</button>
-                        </div>
-                    `,
-                    width: 250,
-                    height: 300
-                },
-                'calendar': {
-                    title: 'Calendar',
-                    content: `
-                        <div class="calendar">
-                            <div class="calendar-header">
-                                <button onclick="changeMonth(-1)" style="font-size: 18px;">←</button>
-                                <h3 id="calendar-month-year">${now.toLocaleString('default', { month: 'long', year: 'numeric' })}</h3>
-                                <button onclick="changeMonth(1)" style="font-size: 18px;">→</button>
-                            </div>
-                            <div class="calendar-grid">
-                                <div class="calendar-day header">Sun</div>
-                                <div class="calendar-day header">Mon</div>
-                                <div class="calendar-day header">Tue</div>
-                                <div class="calendar-day header">Wed</div>
-                                <div class="calendar-day header">Thu</div>
-                                <div class="calendar-day header">Fri</div>
-                                <div class="calendar-day header">Sat</div>
-                                ${generateCalendarDays(now)}
-                            </div>
-                        </div>
-                    `,
-                    width: 350,
-                    height: 300
-                },
-                'puzzle-game': {
-                    title: '15 Puzzle',
-                    content: `
-                        <div class="game-container">
-                            <h3>15 Puzzle</h3>
-                            <p>Slide the tiles to arrange them in order</p>
-                            <div class="game-board" id="puzzle-board"></div>
-                            <button onclick="initPuzzleGame()" style="margin-top: 10px; padding: 5px 15px; font-size: 18px;">New Game</button>
-                        </div>
-                    `,
-                    width: 300,
-                    height: 400
-                }
-            };
-            
-            return configs[type];
+            const cfg = appData.windows[type];
+            if (!cfg) return null;
+            let content = cfg.content
+                .replace(/\{DATE\}/g, now.toLocaleDateString())
+                .replace(/\{TIME\}/g, now.toLocaleTimeString())
+                .replace(/\{MONTH_YEAR\}/g, now.toLocaleString('default', { month: 'long', year: 'numeric' }))
+                .replace(/\{CALENDAR_DAYS\}/g, generateCalendarDays(now));
+            return { title: cfg.title, content, width: cfg.width, height: cfg.height };
         }
         
         function closeWindow(id) {
@@ -1109,7 +895,7 @@ The Amiga continues to push the boundaries of personal computing!
                 // Check if puzzle is solved
                 if (isPuzzleSolved()) {
                     setTimeout(() => {
-                        alert("Congratulations! Puzzle solved!");
+                        alert(appData.puzzleSolved);
                     }, 100);
                 }
             }
@@ -1157,16 +943,18 @@ The Amiga continues to push the boundaries of personal computing!
         }
         
         // Initialize everything
-        function init() {
+        async function init() {
+            const res = await fetch('../../data/app1.json');
+            appData = await res.json();
+            buildMenus(appData.menus);
+            buildIcons(appData.icons);
+            document.getElementById('status-bar').textContent = appData.status;
+            buildWelcome(appData.welcome);
             initClock();
             initMenus();
         }
-        
-        // Open welcome dialog on load
-        window.onload = function() {
-            document.getElementById('welcome-dialog').style.display = 'block';
-            init();
-        };
+
+        window.onload = init;
     </script>
 </body>
 </html>
