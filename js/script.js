@@ -1,4 +1,4 @@
-// Version: 0.0.14
+// Version: 0.0.14a
 // Codename: Celestia
 // Basic THREE.js example with multiple objects
 import * as THREE from 'https://unpkg.com/three@0.159.0/build/three.module.js';
@@ -15,6 +15,7 @@ if (consoleLogEl) {
         .join(' ');
       const line = document.createElement('div');
       line.className = `console-line ${m}`;
+      line.style.background = 'none';
       line.textContent = `[${m}] ${msg}`;
       consoleLogEl.appendChild(line);
       consoleLogEl.scrollTop = consoleLogEl.scrollHeight;
