@@ -1,4 +1,4 @@
-// Version: 0.0.13delta
+// Version: 0.0.14
 // Codename: Celestia
 // Basic THREE.js example with multiple objects
 import * as THREE from 'https://unpkg.com/three@0.159.0/build/three.module.js';
@@ -129,7 +129,12 @@ container.appendChild(renderer.domElement);
     E: ['11111', '10000', '10000', '11110', '10000', '10000', '11111'],
     M: ['10001', '11011', '10101', '10001', '10001', '10001', '10001'],
     O: ['01110', '10001', '10001', '10001', '10001', '10001', '01110'],
-    S: ['01111', '10000', '10000', '01110', '00001', '00001', '11110']
+    S: ['01111', '10000', '10000', '01110', '00001', '00001', '11110'],
+    N: ['10001', '11001', '10101', '10011', '10001', '10001', '10001'],
+    T: ['11111', '00100', '00100', '00100', '00100', '00100', '00100'],
+    W: ['10001', '10001', '10001', '10101', '10101', '10101', '01010'],
+    H: ['10001', '10001', '10001', '11111', '10001', '10001', '10001'],
+    R: ['11110', '10001', '10001', '11110', '10100', '10010', '10001']
   };
 
   const textCubes = [];
@@ -197,6 +202,22 @@ container.appendChild(renderer.domElement);
   const textMesh = createVoxelText('DEMOS');
   scene.add(textMesh);
   console.info('Voxel text added', textMesh.position);
+
+  const label1 = createVoxelText('DEMO ONE');
+  label1.scale.set(0.4, 0.4, 0.4);
+  label1.position.set(mesh1.position.x, 3.2, mesh1.position.z);
+  scene.add(label1);
+
+  const label2 = createVoxelText('DEMO TWO');
+  label2.scale.set(0.4, 0.4, 0.4);
+  label2.position.set(mesh2.position.x, 3.2, mesh2.position.z);
+  scene.add(label2);
+
+  const label3 = createVoxelText('DEMO THREE');
+  label3.scale.set(0.4, 0.4, 0.4);
+  label3.position.set(mesh3.position.x, 3.2, mesh3.position.z);
+  scene.add(label3);
+  console.info('3D labels added', label1.position, label2.position, label3.position);
 
   camera.position.set(0, 7, 5);
   camera.lookAt(0, 2, 0);
