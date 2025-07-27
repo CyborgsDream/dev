@@ -2,6 +2,7 @@
 // Codename: Celestia
 // Basic THREE.js example with multiple objects
 import * as THREE from 'https://unpkg.com/three@0.159.0/build/three.module.js';
+const { demos } = await fetch('data/index.json').then(r => r.json());
 const consoleLogEl = document.getElementById('console-log');
 if (consoleLogEl) {
   const methods = ['log', 'info', 'warn', 'error'];
@@ -100,6 +101,7 @@ container.appendChild(renderer.domElement);
   const mesh1 = createMesh(new THREE.IcosahedronGeometry(1.2), 0xff6600, -4);
   const mesh2 = createMesh(new THREE.TorusGeometry(0.9, 0.3, 16, 30), 0x0096D6, 0);
   const mesh3 = createMesh(new THREE.DodecahedronGeometry(1.2), 0x9932cc, 4);
+  const meshes = [mesh1, mesh2, mesh3];
   console.info('Meshes created', mesh1.position, mesh2.position, mesh3.position);
 
   const labels = [];
@@ -108,7 +110,8 @@ container.appendChild(renderer.domElement);
     text,
     colorHex,
     offsetY = -1,
-    className = 'object-label'
+    className = 'object-label',
+    offsetX = 0
   ) {
     const el = document.createElement(className === 'object-label' ? 'h3' : 'div');
     el.className = className;
@@ -128,15 +131,52 @@ container.appendChild(renderer.domElement);
       el.textContent = text;
     }
     container.appendChild(el);
-    labels.push({ mesh, el, offsetY, phase: Math.random() * Math.PI * 2, letters });
+    labels.push({ mesh, el, offsetY, offsetX, phase: Math.random() * Math.PI * 2, letters });
   }
 
-  addLabel(mesh1, 'Demo One', '#fff');
-  addLabel(mesh1, 'lorem ipsum doloret sit amet', '#fff', -1.5, 'object-info');
-  addLabel(mesh2, 'Demo Two', '#fff');
-  addLabel(mesh2, 'lorem ipsum doloret sit amet', '#fff', -1.5, 'object-info');
-  addLabel(mesh3, 'Demo Three', '#fff');
-  addLabel(mesh3, 'lorem ipsum doloret sit amet', '#fff', -1.5, 'object-info');
+  const offsets = [-20, 0, 20];
+  demos.forEach((demo, i) => {
+    const mesh = meshes[i];
+    if (!mesh) return;
+    const off = offsets[i] || 0;
+    addLabel(mesh, demo.name, '#fff', -1, 'object-label', off);
+    addLabel(mesh, demo.short, '#fff', -1.5, 'object-info', off);
+  });
+
+  const infoBox = document.getElementById('demo-info');
+  const infoTitle = infoBox.querySelector('h2');
+  const infoText = infoBox.querySelector('p');
+  const runBtn = document.getElementById('run-demo');
+  const raycaster = new THREE.Raycaster();
+  const mouse = new THREE.Vector2();
+  function selectDemo(index) {
+    const data = demos[index];
+    meshes.forEach((m, i) => {
+      m.material.transparent = true;
+      if (i === index) {
+        m.scale.set(1.5, 1.5, 1.5);
+        m.material.opacity = 1;
+      } else {
+        m.scale.set(1, 1, 1);
+        m.material.opacity = 0.25;
+      }
+    });
+    infoTitle.textContent = data.name;
+    infoText.textContent = data.long;
+    runBtn.onclick = () => (window.location.href = data.file);
+    infoBox.style.display = 'block';
+  }
+
+  function onPick(event) {
+    const rect = renderer.domElement.getBoundingClientRect();
+    mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+    mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+    raycaster.setFromCamera(mouse, camera);
+    const hit = raycaster.intersectObjects(meshes);
+    if (hit.length) selectDemo(meshes.indexOf(hit[0].object));
+  }
+
+  renderer.domElement.addEventListener('pointerdown', onPick);
 
   // Chunky voxel-style DEMOS heading
   // Each cube will move with a sinusoidal offset along the Z axis
@@ -260,11 +300,11 @@ container.appendChild(renderer.domElement);
       letter.position.z = initialZ + Math.sin(timestamp / 600 + phase) * 0.05;
     });
     // update object labels with wind effect and downward offset
-    labels.forEach(({ mesh, el, offsetY, phase, letters }) => {
+    labels.forEach(({ mesh, el, offsetY, offsetX, phase, letters }) => {
       const pos = mesh.position.clone();
       pos.y += offsetY;
       pos.project(camera);
-      const x = (pos.x * 0.5 + 0.5) * container.clientWidth;
+      const x = (pos.x * 0.5 + 0.5) * container.clientWidth + offsetX;
       let y = (-pos.y * 0.5 + 0.5) * container.clientHeight;
       const wave = Math.sin(timestamp / 1000 + phase) * 5;
       y += 55 + wave;
