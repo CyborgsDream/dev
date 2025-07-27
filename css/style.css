@@ -1,4 +1,4 @@
-/* Version: 0.0.14 */
+/* Version: 0.0.14a */
 /* Codename: Celestia */
 /* Basic responsive CSS */
 * {
@@ -68,7 +68,7 @@ main {
   max-height: 100px;
   overflow-y: auto;
   color: #0f0;
-  background: transparent;
+  background: none;
   text-shadow: 0 0 5px #0f0;
   font-family: monospace;
   font-size: 0.65rem;
@@ -79,7 +79,8 @@ main {
 }
 
 #console-log .console-line {
-  animation: fade-out 1s ease-out 2s forwards;
+  background: none;
+  animation: fade-out 0.5s ease-out 2.5s forwards;
 }
 
 @keyframes fade-out {
