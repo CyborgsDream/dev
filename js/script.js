@@ -139,39 +139,6 @@ container.appendChild(renderer.domElement);
 
   const textCubes = [];
 
-  const textPlanes = [];
-
-  function createTextPlane(text) {
-    const canvas = document.createElement('canvas');
-    const ctx = canvas.getContext('2d');
-    const fontSize = 64;
-    ctx.font = `bold ${fontSize}px Arial`;
-    const metrics = ctx.measureText(text);
-    canvas.width = metrics.width + 20;
-    canvas.height = fontSize + 20;
-    ctx.font = `bold ${fontSize}px Arial`;
-    ctx.textBaseline = 'top';
-    ctx.fillStyle = '#fff';
-    ctx.fillText(text, 10, 10);
-    const texture = new THREE.CanvasTexture(canvas);
-    texture.minFilter = THREE.LinearFilter;
-    const planeGeo = new THREE.PlaneGeometry(
-      canvas.width / 100,
-      canvas.height / 100,
-      20,
-      5
-    );
-    const planeMat = new THREE.MeshStandardMaterial({
-      map: texture,
-      transparent: true,
-      side: THREE.DoubleSide
-    });
-    const plane = new THREE.Mesh(planeGeo, planeMat);
-    plane.userData.originalPositions = planeGeo.attributes.position.array.slice();
-    plane.userData.phase = Math.random() * Math.PI * 2;
-    textPlanes.push(plane);
-    return plane;
-  }
 
   function createVoxelText(text) {
     const size = 0.4;
@@ -237,18 +204,7 @@ container.appendChild(renderer.domElement);
   scene.add(textMesh);
   console.info('Voxel text added', textMesh.position);
 
-  const label1 = createTextPlane('DEMO ONE');
-  label1.position.set(mesh1.position.x, 3.2, mesh1.position.z);
-  scene.add(label1);
-
-  const label2 = createTextPlane('DEMO TWO');
-  label2.position.set(mesh2.position.x, 3.2, mesh2.position.z);
-  scene.add(label2);
-
-  const label3 = createTextPlane('DEMO THREE');
-  label3.position.set(mesh3.position.x, 3.2, mesh3.position.z);
-  scene.add(label3);
-  console.info('3D labels added', label1.position, label2.position, label3.position);
+  // 3D labels removed; keep only DOM-based labels
 
   camera.position.set(0, 7, 5);
   camera.lookAt(0, 2, 0);
@@ -281,19 +237,6 @@ container.appendChild(renderer.domElement);
       const { initialX, initialZ, phase } = cube.userData;
       cube.position.z = initialZ + Math.sin(timestamp / 500 + phase) * 0.1;
       cube.position.x = initialX + Math.sin(timestamp / 600 + phase) * 0.15;
-    });
-    // wave text planes and face the camera
-    textPlanes.forEach(plane => {
-      const posAttr = plane.geometry.attributes.position;
-      const original = plane.userData.originalPositions;
-      for (let i = 0; i < posAttr.count; i++) {
-        const ix = i * 3;
-        const x = original[ix];
-        posAttr.array[ix + 2] =
-          original[ix + 2] + Math.sin(timestamp / 800 + x * 5 + plane.userData.phase) * 0.05;
-      }
-      posAttr.needsUpdate = true;
-      plane.lookAt(camera.position);
     });
     // update object labels with wind effect and downward offset
     labels.forEach(({ mesh, el, offsetY, phase }) => {
