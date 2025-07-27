@@ -59,7 +59,10 @@
     {"type": "games", "emoji": "🎮", "label": "Games"},
     {"type": "calculator", "emoji": "🧮", "label": "Calculator"},
     {"type": "calendar", "emoji": "📅", "label": "Calendar"},
-    {"type": "puzzle-game", "emoji": "🧩", "label": "Puzzle"}
+    {"type": "puzzle-game", "emoji": "🧩", "label": "Puzzle"},
+    {"type": "docs", "emoji": "📖", "label": "Docs"},
+    {"type": "settings", "emoji": "⚙️", "label": "Settings"},
+    {"type": "clock", "emoji": "⏰", "label": "Clock"}
   ],
   "windows": {
     "system-info": {
@@ -115,6 +118,24 @@
       "content": "<div class=\"game-container\"><h3>15 Puzzle</h3><p>Slide the tiles to arrange them in order</p><div class=\"game-board\" id=\"puzzle-board\"></div><button onclick=\"initPuzzleGame()\" style=\"margin-top: 10px; padding: 5px 15px; font-size: 18px;\">New Game</button></div>",
       "width": 300,
       "height": 400
+    },
+    "docs": {
+      "title": "Docs",
+      "content": "<p>Documentation coming soon...</p>",
+      "width": 300,
+      "height": 200
+    },
+    "settings": {
+      "title": "Settings",
+      "content": "<ul style=\"margin-left:20px;font-size:18px;\"><li>Display</li><li>Sound</li><li>Network</li></ul>",
+      "width": 280,
+      "height": 220
+    },
+    "clock": {
+      "title": "Clock",
+      "content": "<div id=\"live-clock\" style=\"font-size:32px;text-align:center;\">{TIME}</div>",
+      "width": 200,
+      "height": 150
     }
   },
   "settings": {

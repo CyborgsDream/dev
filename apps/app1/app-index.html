@@ -717,11 +717,17 @@
             const now = new Date();
             const cfg = appData.windows[type];
             if (!cfg) return null;
+            let calDays = '';
+            if (typeof generateCalendarDays === 'function') {
+                try {
+                    calDays = generateCalendarDays(now);
+                } catch {}
+            }
             let content = cfg.content
                 .replace(/\{DATE\}/g, now.toLocaleDateString())
                 .replace(/\{TIME\}/g, now.toLocaleTimeString())
                 .replace(/\{MONTH_YEAR\}/g, now.toLocaleString('default', { month: 'long', year: 'numeric' }))
-                .replace(/\{CALENDAR_DAYS\}/g, generateCalendarDays(now));
+                .replace(/\{CALENDAR_DAYS\}/g, calDays);
             return { title: cfg.title, content, width: cfg.width, height: cfg.height };
         }
         
