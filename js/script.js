@@ -1,4 +1,4 @@
-// Version: 0.0.14e
+// Version: 0.0.14f
 // Codename: Celestia
 // Basic THREE.js example with multiple objects
 import * as THREE from 'https://unpkg.com/three@0.159.0/build/three.module.js';
@@ -206,7 +206,7 @@ container.appendChild(renderer.domElement);
     if (hit.length) selectDemo(meshes.indexOf(hit[0].object));
   }
 
-  renderer.domElement.addEventListener('pointerdown', onPick);
+  renderer.domElement.addEventListener('click', onPick);
 
   // Chunky voxel-style DEMOS heading
   // Each cube will move with a sinusoidal offset along the Z axis
