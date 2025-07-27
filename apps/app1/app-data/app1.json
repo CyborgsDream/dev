@@ -63,7 +63,8 @@
     {"type": "docs", "emoji": "📖", "label": "Docs"},
     {"type": "settings", "emoji": "⚙️", "label": "Settings"},
     {"type": "clock", "emoji": "⏰", "label": "Clock"},
-    {"type": "html-studio", "emoji": "🌐", "label": "HTML Studio"}
+    {"type": "html-studio", "emoji": "🌐", "label": "HTML Studio"},
+    {"type": "cloud-storage", "emoji": "☁️", "label": "Cloud Storage"}
   ],
   "windows": {
     "system-info": {
@@ -143,6 +144,12 @@
       "content": "<iframe src=\"html-studio.html\" style=\"width:100%;height:100%;border:none;\"></iframe>",
       "width": 600,
       "height": 450
+    },
+    "cloud-storage": {
+      "title": "Cloud Storage",
+      "content": "<iframe src=\"cloud-storage.html\" style=\"width:100%;height:100%;border:none;\"></iframe>",
+      "width": 500,
+      "height": 350
     }
   },
   "settings": {
