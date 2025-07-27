@@ -190,8 +190,8 @@ container.appendChild(renderer.domElement);
     });
   }
 
-  closeBtn.addEventListener('click', hideDemoInfo);
-  container.addEventListener('click', e => {
+  closeBtn.addEventListener('pointerdown', hideDemoInfo);
+  container.addEventListener('pointerdown', e => {
     if (ignoreNextContainerClick) {
       ignoreNextContainerClick = false;
       return;
@@ -213,7 +213,7 @@ container.appendChild(renderer.domElement);
     if (hit.length) selectDemo(meshes.indexOf(hit[0].object));
   }
 
-  renderer.domElement.addEventListener('click', onPick);
+  renderer.domElement.addEventListener('pointerdown', onPick);
 
   // Chunky voxel-style DEMOS heading
   // Each cube will move with a sinusoidal offset along the Z axis
@@ -387,8 +387,7 @@ container.appendChild(renderer.domElement);
 
   window.addEventListener('resize', onWindowResize);
   window.addEventListener('orientationchange', checkOrientation);
-  window.addEventListener('click', checkOrientation);
-  window.addEventListener('touchend', checkOrientation);
+  window.addEventListener('pointerup', checkOrientation);
   onWindowResize();
   checkOrientation();
 
