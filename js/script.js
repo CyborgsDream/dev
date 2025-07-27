@@ -100,13 +100,19 @@ container.appendChild(renderer.domElement);
   console.info('Meshes created', mesh1.position, mesh2.position, mesh3.position);
 
   const labels = [];
-  function addLabel(mesh, text, colorHex, offsetY = -1, className = 'object-label') {
+  function addLabel(
+    mesh,
+    text,
+    colorHex,
+    offsetY = -1,
+    className = 'object-label'
+  ) {
     const el = document.createElement(className === 'object-label' ? 'h3' : 'div');
     el.className = className;
     el.style.color = colorHex;
     el.textContent = text;
     container.appendChild(el);
-    labels.push({ mesh, el, offsetY });
+    labels.push({ mesh, el, offsetY, phase: Math.random() * Math.PI * 2 });
   }
 
   addLabel(mesh1, 'Demo One', '#fff');
@@ -224,13 +230,15 @@ container.appendChild(renderer.domElement);
       cube.position.z = initialZ + Math.sin(timestamp / 500 + phase) * 0.1;
       cube.position.x = initialX + Math.sin(timestamp / 600 + phase) * 0.15;
     });
-    // update object labels
-    labels.forEach(({ mesh, el, offsetY }) => {
+    // update object labels with wind effect and downward offset
+    labels.forEach(({ mesh, el, offsetY, phase }) => {
       const pos = mesh.position.clone();
       pos.y += offsetY;
       pos.project(camera);
       const x = (pos.x * 0.5 + 0.5) * container.clientWidth;
-      const y = (-pos.y * 0.5 + 0.5) * container.clientHeight;
+      let y = (-pos.y * 0.5 + 0.5) * container.clientHeight;
+      const wave = Math.sin(timestamp / 1000 + phase) * 5;
+      y += 55 + wave;
       // position label so its top aligns with the computed point
       el.style.transform = `translate(-50%, 0) translate(${x}px, ${y}px)`;
     });
