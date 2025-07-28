@@ -802,7 +802,7 @@
                 if (win.style.display !== 'none') btn.classList.add('active');
                 btn.textContent = win.querySelector('.window-title').textContent;
                 btn.onclick = () => {
-                    if (win.style.display === 'none') win.style.display = 'block';
+                    if (win.style.display === 'none') win.style.display = 'flex';
                     win.style.zIndex = ++state.zIndex;
                     updateTaskBar();
                 };
