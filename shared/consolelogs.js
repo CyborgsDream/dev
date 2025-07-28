@@ -1,5 +1,6 @@
 let installed = false;
 let containers = [];
+let history = [];
 const methods = ['log', 'info', 'warn', 'error'];
 const original = {};
 
@@ -17,6 +18,13 @@ export function initConsoleLogs({ container, removeAfter = 3000 } = {}) {
   }
 
   containers.push({ el: container, removeAfter });
+  history.forEach(({ type, msg }) => {
+    const line = document.createElement('div');
+    line.className = `console-line ${type}`;
+    line.textContent = `[${type}] ${msg}`;
+    container.appendChild(line);
+  });
+  container.scrollTop = container.scrollHeight;
 
   if (!installed) {
     installed = true;
@@ -33,6 +41,7 @@ export function initConsoleLogs({ container, removeAfter = 3000 } = {}) {
             }
           })
           .join(' ');
+        history.push({ type: m, msg });
         containers.forEach(({ el, removeAfter: rm }) => {
           const line = document.createElement('div');
           line.className = `console-line ${m}`;

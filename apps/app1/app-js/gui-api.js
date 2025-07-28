@@ -13,7 +13,7 @@
         document.body.appendChild(script);
     }
     function createWindow(type){
-        if(window.openWindow) window.openWindow(type);
+        if(window.openWindow) return window.openWindow(type);
     }
     function closeWin(id){ if(window.closeWindow) window.closeWindow(id); }
     function minimizeWin(id){ if(window.minimizeWindow) window.minimizeWindow(id); }
