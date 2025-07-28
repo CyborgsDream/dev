@@ -716,8 +716,9 @@
             makeDraggable(id);
             state.windows.push(id);
             updateTaskBar();
-            
+
             // App specific initialization can be handled by each module
+            return id;
         }
         
         function getWindowConfig(type) {
@@ -844,6 +845,11 @@
             initClock(appData.settings && appData.settings.clockFormat);
             initMenus();
             updateTaskBar();
+            const logId = openWindow('console-log');
+            import('../../shared/consolelogs.js').then(({ initConsoleLogs }) => {
+                const el = document.getElementById(logId)?.querySelector('.window-content');
+                if (el) initConsoleLogs({ container: el, removeAfter: null });
+            });
         }
 
         function updateViewportHeight() {
