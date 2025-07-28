@@ -2,28 +2,11 @@
 // Codename: Celestia
 // Basic THREE.js example with multiple objects
 import * as THREE from 'https://unpkg.com/three@0.159.0/build/three.module.js';
+import { initConsoleLogs } from '../shared/consolelogs.js';
 const { apps } = await fetch('data/index.json').then(r => r.json());
 const consoleLogEl = document.getElementById('console-log');
 if (consoleLogEl) {
-  const methods = ['log', 'info', 'warn', 'error'];
-  const original = {};
-  methods.forEach(m => {
-    original[m] = console[m].bind(console);
-    console[m] = (...args) => {
-      original[m](...args);
-      const msg = args
-        .map(a => (typeof a === 'object' ? JSON.stringify(a) : String(a)))
-        .join(' ');
-      const line = document.createElement('div');
-      line.className = `console-line ${m}`;
-      line.style.background = 'none';
-      line.style.opacity = '0.5';
-      line.textContent = `[${m}] ${msg}`;
-      consoleLogEl.appendChild(line);
-      consoleLogEl.scrollTop = consoleLogEl.scrollHeight;
-      setTimeout(() => line.remove(), 3000);
-    };
-  });
+  initConsoleLogs({ container: consoleLogEl, removeAfter: 3000 });
 }
 console.log('Responsive boilerplate loaded');
 
