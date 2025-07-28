@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>WebGUI 0.0.17i</title>
+    <title>WebGUI 0.0.17j</title>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=VT323&display=swap">
     <style>
         * {
@@ -355,7 +355,28 @@
             background: linear-gradient(to bottom, #0066cc, #004499);
             color: #fff;
         }
-        
+
+        .taskbar-menu {
+            position: absolute;
+            background: #ccc;
+            border: 1px solid #555;
+            color: #000;
+            bottom: 26px;
+            z-index: 15;
+            display: none;
+        }
+
+        .taskbar-menu div {
+            padding: 5px 15px;
+            white-space: nowrap;
+            cursor: pointer;
+        }
+
+        .taskbar-menu div:hover {
+            background: #0066cc;
+            color: #fff;
+        }
+
         .dialog {
             position: absolute;
             top: 50%;
@@ -569,6 +590,7 @@
 
         <!-- Task bar -->
         <div class="task-bar" id="task-bar"></div>
+        <div class="taskbar-menu" id="taskbar-menu" style="display:none;"></div>
         
         <!-- Welcome dialog -->
         <div class="dialog" id="welcome-dialog" style="display:none;">
@@ -738,6 +760,11 @@
             const windowConfig = getWindowConfig(type);
             if (!windowConfig) return;
 
+            let winWidth = windowConfig.width;
+            let winHeight = windowConfig.height;
+            if (window.innerWidth < winWidth) winWidth = window.innerWidth - 20;
+            if (window.innerHeight < winHeight) winHeight = window.innerHeight - 40;
+
             const id = `window-${++state.windowCount}`;
             state.zIndex++;
             const top = 50 + state.windowCount * 20;
@@ -745,11 +772,11 @@
 
             const windowHtml = `
                 <div class="window" id="${id}"
-                     data-init-width="${windowConfig.width}"
-                     data-init-height="${windowConfig.height}"
+                     data-init-width="${winWidth}"
+                     data-init-height="${winHeight}"
                      data-init-top="${top}"
                      data-init-left="${left}"
-                     style="top: ${top}px; left: ${left}px; width: ${windowConfig.width}px; height: ${windowConfig.height}px; z-index: ${state.zIndex}">
+                     style="top: ${top}px; left: ${left}px; width: ${winWidth}px; height: ${winHeight}px; z-index: ${state.zIndex}">
                     <div class="window-header">
                         <div class="window-title">${windowConfig.title}</div>
                         <div class="window-controls">
@@ -843,6 +870,29 @@
                 bar.appendChild(btn);
             });
         }
+
+        function initTaskBarMenu() {
+            const bar = document.getElementById('task-bar');
+            const menu = document.getElementById('taskbar-menu');
+            menu.innerHTML = '';
+            const pin = document.createElement('div');
+            pin.textContent = 'Pin Mini App';
+            pin.onclick = () => {
+                openWindow('mini-app');
+                menu.style.display = 'none';
+            };
+            menu.appendChild(pin);
+
+            bar.addEventListener('contextmenu', e => {
+                e.preventDefault();
+                menu.style.left = e.clientX + 'px';
+                menu.style.display = 'block';
+            });
+
+            document.addEventListener('click', () => {
+                menu.style.display = 'none';
+            });
+        }
         
        function maximizeWindow(id) {
            const window = document.getElementById(id);
@@ -925,6 +975,7 @@
             initClock(appData.settings && appData.settings.clockFormat);
             initMenus();
             updateTaskBar();
+            initTaskBarMenu();
             const logId = openWindow('console-log');
             import('../../shared/consolelogs.js').then(({ initConsoleLogs }) => {
                 const el = document
