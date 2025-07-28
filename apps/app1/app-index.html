@@ -540,9 +540,9 @@
         <!-- Desktop icons -->
         <div class="desktop-icons" id="desktop-icons"></div>
         
-        <!-- Disk drive -->
+        <!-- Storage indicator -->
         <div class="disk-drive">
-            <div>DF0:</div>
+            <div>Storage:</div>
             <div class="drive-slot">
                 <div class="drive-light"></div>
             </div>
@@ -888,6 +888,8 @@
                     .getElementById(logId)
                     ?.querySelector('.console-log-window');
                 if (el) initConsoleLogs({ container: el, removeAfter: null });
+            }).then(() => {
+                console.log('App1 initialized');
             });
         }
 
