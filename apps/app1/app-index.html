@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>WebGUI 0.0.17h</title>
+    <title>WebGUI 0.0.17i</title>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=VT323&display=swap">
     <style>
         * {
@@ -240,6 +240,22 @@
             font-size: 18px;
             line-height: 1.4;
             background: #c0c0c0;
+            position: relative;
+        }
+
+        .loading-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(255, 255, 255, 0.7);
+            color: #000;
+            font-size: 18px;
+            z-index: 5;
         }
         
         .terminal {
@@ -642,6 +658,12 @@
                 link.href = `app-js/${safe}.js`;
                 document.head.appendChild(link);
             });
+            ['html-studio.html', 'cloud-storage.html'].forEach(p => {
+                const l = document.createElement('link');
+                l.rel = 'prefetch';
+                l.href = p;
+                document.head.appendChild(l);
+            });
         }
 
         function buildWelcome(welcome) {
@@ -712,6 +734,7 @@
         
         // Window management - FIXED ICON FUNCTIONALITY
         function openWindow(type) {
+            console.log('Opening window:', type);
             const windowConfig = getWindowConfig(type);
             if (!windowConfig) return;
 
@@ -742,9 +765,18 @@
             `;
             
             desktop.insertAdjacentHTML('beforeend', windowHtml);
+            const winEl = document.getElementById(id);
             makeDraggable(id);
             state.windows.push(id);
             updateTaskBar();
+            const iframe = winEl.querySelector('iframe');
+            if (iframe) {
+                const loader = document.createElement('div');
+                loader.className = 'loading-overlay';
+                loader.textContent = 'Loading...';
+                winEl.querySelector('.window-content').appendChild(loader);
+                iframe.addEventListener('load', () => loader.remove());
+            }
             if (type === 'console-log') {
                 import('../../shared/consolelogs.js').then(({ initConsoleLogs }) => {
                     const el = document
@@ -776,17 +808,19 @@
             return { title: cfg.title, content, width: cfg.width, height: cfg.height };
         }
         
-        function closeWindow(id) {
-            const window = document.getElementById(id);
+       function closeWindow(id) {
+           const window = document.getElementById(id);
             if (window) window.remove();
+            console.log('Window closed:', id);
             state.windows = state.windows.filter(winId => winId !== id);
             updateTaskBar();
         }
 
-        function minimizeWindow(id) {
-            const window = document.getElementById(id);
-            if (window) {
-                window.style.display = 'none';
+       function minimizeWindow(id) {
+           const window = document.getElementById(id);
+           if (window) {
+               window.style.display = 'none';
+                console.log('Window minimized:', id);
                 updateTaskBar();
             }
         }
@@ -810,15 +844,16 @@
             });
         }
         
-        function maximizeWindow(id) {
-            const window = document.getElementById(id);
-            if (window) {
-                if (window.dataset.maximized === 'true') {
+       function maximizeWindow(id) {
+           const window = document.getElementById(id);
+           if (window) {
+               if (window.dataset.maximized === 'true') {
                     window.style.width = window.dataset.initWidth + 'px';
                     window.style.height = window.dataset.initHeight + 'px';
                     window.style.top = window.dataset.initTop + 'px';
                     window.style.left = window.dataset.initLeft + 'px';
                     window.dataset.maximized = 'false';
+                    console.log('Window restored:', id);
                 } else {
                     window.dataset.initWidth = window.offsetWidth;
                     window.dataset.initHeight = window.offsetHeight;
@@ -829,6 +864,7 @@
                     window.style.top = '30px';
                     window.style.left = '10px';
                     window.dataset.maximized = 'true';
+                    console.log('Window maximized:', id);
                 }
                 window.style.zIndex = ++state.zIndex;
                 updateTaskBar();
