@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>WebGUI 0.0.17delta</title>
+    <title>WebGUI 0.0.17h</title>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=VT323&display=swap">
     <style>
         * {
@@ -745,7 +745,14 @@
             makeDraggable(id);
             state.windows.push(id);
             updateTaskBar();
-
+            if (type === 'console-log') {
+                import('../../shared/consolelogs.js').then(({ initConsoleLogs }) => {
+                    const el = document
+                        .getElementById(id)
+                        ?.querySelector('.console-log-window');
+                    if (el) initConsoleLogs({ container: el, removeAfter: null });
+                });
+            }
             // App specific initialization can be handled by each module
             return id;
         }
