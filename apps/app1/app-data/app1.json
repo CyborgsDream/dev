@@ -43,10 +43,10 @@
   ],
   "status": "Ready.",
   "welcome": {
-    "title": "WebGUI 0.0.17gamma",
+    "title": "WebGUI 0.0.17delta",
     "lines": [
       "Welcome to WebGUI - Web browser based windows GUI",
-      "Version 0.0.17gamma",
+      "Version 0.0.17delta",
       "(c) 2025 CyborgsDream"
     ],
     "button": "OK"
@@ -73,7 +73,7 @@
   "windows": {
     "system-info": {
       "title": "System Information",
-      "content": "<h2>WebGUI Demo Machine</h2><p>Motorola 68030 @ 25MHz</p><p>2MB Chip RAM + 8MB Fast RAM</p><p>Kickstart 2.04</p><p>WebGUI 0.0.17gamma</p><p>Display: 640x512 (ECS)</p><p>Floppy: 880KB 3.5\"</p><p>HD: 120MB SCSI</p><div style=\"margin-top: 20px; text-align: center;\"><div style=\"display: inline-block; padding: 10px; background: #0000aa; color: white;\">Power Without the Price</div></div>",
+      "content": "<h2>WebGUI Demo Machine</h2><p>Motorola 68030 @ 25MHz</p><p>2MB Chip RAM + 8MB Fast RAM</p><p>Kickstart 2.04</p><p>WebGUI 0.0.17delta</p><p>Display: 640x512 (ECS)</p><p>Floppy: 880KB 3.5\"</p><p>HD: 120MB SCSI</p><div style=\"margin-top: 20px; text-align: center;\"><div style=\"display: inline-block; padding: 10px; background: #0000aa; color: white;\">Power Without the Price</div></div>",
       "width": 320,
       "height": 300
     },
@@ -85,7 +85,7 @@
     },
     "text-editor": {
       "title": "Text Editor",
-      "content": "<textarea style=\"width: 100%; height: 100%; background: #fff; border: 1px solid #aaa; padding: 5px; font-family: monospace; font-size: 18px;\">Welcome to WebGUI 0.0.17gamma!\n\nThe icon issue has been fixed!\n• All desktop icons are now fully functional\n• Click any icon to open an application\n• The wallpaper no longer blocks clicks\n\nTry clicking on any icon to open its application.\n\nWebGUI continues to push the boundaries of personal computing!</textarea>",
+      "content": "<textarea style=\"width: 100%; height: 100%; background: #fff; border: 1px solid #aaa; padding: 5px; font-family: monospace; font-size: 18px;\">Welcome to WebGUI 0.0.17delta!\n\nThe icon issue has been fixed!\n• All desktop icons are now fully functional\n• Click any icon to open an application\n• The wallpaper no longer blocks clicks\n\nTry clicking on any icon to open its application.\n\nWebGUI continues to push the boundaries of personal computing!</textarea>",
       "width": 500,
       "height": 350
     },
