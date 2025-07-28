@@ -183,6 +183,8 @@
             z-index: 5;
             display: flex;
             flex-direction: column;
+            resize: both;
+            overflow: hidden;
         }
         
         .window-header {
@@ -622,6 +624,26 @@
             });
         }
 
+        function buildIconTypeMap() {
+            window.appTypeMap = {};
+            if (!appData || !appData.icons) return;
+            appData.icons.forEach(ic => {
+                window.appTypeMap[ic.label.toLowerCase()] = ic.type;
+            });
+        }
+
+        function preloadAppScripts() {
+            if (!appData || !appData.icons) return;
+            appData.icons.forEach(ic => {
+                if (!ic.type) return;
+                const safe = ic.label.toLowerCase().replace(/\s+/g,'');
+                const link = document.createElement('link');
+                link.rel = 'prefetch';
+                link.href = `app-js/${safe}.js`;
+                document.head.appendChild(link);
+            });
+        }
+
         function buildWelcome(welcome) {
             const dialog = document.getElementById('welcome-dialog');
             dialog.querySelector('.window-title').textContent = welcome.title;
@@ -692,12 +714,19 @@
         function openWindow(type) {
             const windowConfig = getWindowConfig(type);
             if (!windowConfig) return;
-            
+
             const id = `window-${++state.windowCount}`;
             state.zIndex++;
-            
+            const top = 50 + state.windowCount * 20;
+            const left = 50 + state.windowCount * 20;
+
             const windowHtml = `
-                <div class="window" id="${id}" style="top: ${50 + state.windowCount * 20}px; left: ${50 + state.windowCount * 20}px; width: ${windowConfig.width}px; height: ${windowConfig.height}px; z-index: ${state.zIndex}">
+                <div class="window" id="${id}"
+                     data-init-width="${windowConfig.width}"
+                     data-init-height="${windowConfig.height}"
+                     data-init-top="${top}"
+                     data-init-left="${left}"
+                     style="top: ${top}px; left: ${left}px; width: ${windowConfig.width}px; height: ${windowConfig.height}px; z-index: ${state.zIndex}">
                     <div class="window-header">
                         <div class="window-title">${windowConfig.title}</div>
                         <div class="window-controls">
@@ -777,16 +806,22 @@
         function maximizeWindow(id) {
             const window = document.getElementById(id);
             if (window) {
-                if (window.style.width === '95%' && window.style.height === '85%') {
-                    window.style.width = '';
-                    window.style.height = '';
-                    window.style.top = '';
-                    window.style.left = '';
+                if (window.dataset.maximized === 'true') {
+                    window.style.width = window.dataset.initWidth + 'px';
+                    window.style.height = window.dataset.initHeight + 'px';
+                    window.style.top = window.dataset.initTop + 'px';
+                    window.style.left = window.dataset.initLeft + 'px';
+                    window.dataset.maximized = 'false';
                 } else {
+                    window.dataset.initWidth = window.offsetWidth;
+                    window.dataset.initHeight = window.offsetHeight;
+                    window.dataset.initTop = window.offsetTop;
+                    window.dataset.initLeft = window.offsetLeft;
                     window.style.width = '95%';
                     window.style.height = '85%';
                     window.style.top = '30px';
                     window.style.left = '10px';
+                    window.dataset.maximized = 'true';
                 }
                 window.style.zIndex = ++state.zIndex;
                 updateTaskBar();
@@ -840,6 +875,8 @@
             appData = await res.json();
             buildMenus(appData.menus);
             buildIcons(appData.icons);
+            buildIconTypeMap();
+            preloadAppScripts();
             document.getElementById('status-bar').textContent = appData.status;
             buildWelcome(appData.welcome);
             initClock(appData.settings && appData.settings.clockFormat);

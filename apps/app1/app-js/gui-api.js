@@ -1,8 +1,15 @@
 (function(){
+    const loaded=new Set();
     function loadApp(name){
-        const script=document.createElement('script');
         const safe=name.toLowerCase().replace(/\s+/g,'');
+        if(loaded.has(safe)){
+            const type=window.appTypeMap && window.appTypeMap[name.toLowerCase()];
+            if(type && window.openWindow) window.openWindow(type);
+            return;
+        }
+        const script=document.createElement('script');
         script.src=`app-js/${safe}.js`;
+        script.onload=()=>loaded.add(safe);
         document.body.appendChild(script);
     }
     function createWindow(type){
