@@ -26,7 +26,9 @@
         {"label": "Calculator", "type": "calculator"},
         {"label": "Calendar", "type": "calendar"},
         {"label": "Puzzle Game", "type": "puzzle-game"},
-        {"label": "Disk Doctor"}
+        {"label": "Disk Doctor"},
+        {"label": "Jokes", "type": "jokes"},
+        {"label": "Activity", "type": "activity"}
       ]
     },
     {
@@ -64,7 +66,9 @@
     {"type": "settings", "emoji": "⚙️", "label": "Settings"},
     {"type": "clock", "emoji": "⏰", "label": "Clock"},
     {"type": "html-studio", "emoji": "🌐", "label": "HTML Studio"},
-    {"type": "cloud-storage", "emoji": "☁️", "label": "Cloud Storage"}
+    {"type": "cloud-storage", "emoji": "☁️", "label": "Cloud Storage"},
+    {"type": "jokes", "emoji": "😂", "label": "Jokes"},
+    {"type": "activity", "emoji": "🎲", "label": "Activity"}
   ],
   "windows": {
     "system-info": {
@@ -156,6 +160,18 @@
       "content": "<iframe src=\"cloud-storage.html\" style=\"width:100%;height:100%;border:none;\"></iframe>",
       "width": 500,
       "height": 350
+    },
+    "jokes": {
+      "title": "Random Joke",
+      "content": "<div id=\"joke-area\" style=\"padding:10px;font-size:18px\">Loading...</div><button onclick=\"fetchJoke()\" style=\"margin-top:10px\">New Joke</button>",
+      "width": 400,
+      "height": 200
+    },
+    "activity": {
+      "title": "Random Activity",
+      "content": "<div id=\"activity-area\" style=\"padding:10px;font-size:18px\">Click the button for an activity</div><button onclick=\"fetchActivity()\" style=\"margin-top:10px\">Get Activity</button>",
+      "width": 400,
+      "height": 200
     }
   },
   "settings": {
