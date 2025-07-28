@@ -17,7 +17,9 @@ export function initConsoleLogs({ container, removeAfter = 3000 } = {}) {
     document.body.appendChild(container);
   }
 
-  containers.push({ el: container, removeAfter });
+  if (!containers.some(c => c.el === container)) {
+    containers.push({ el: container, removeAfter });
+  }
   history.forEach(({ type, msg }) => {
     const line = document.createElement('div');
     line.className = `console-line ${type}`;
