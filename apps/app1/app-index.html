@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>WebGUI 0.0.17k</title>
+    <title>WebGUI 0.0.18</title>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=VT323&display=swap">
     <style>
         * {
@@ -754,7 +754,7 @@
             updateClock();
         }
         
-        // Window management - FIXED ICON FUNCTIONALITY
+        // Window management helpers
         function openWindow(type) {
             console.log('Opening window:', type);
             const windowConfig = getWindowConfig(type);
@@ -805,11 +805,16 @@
                 iframe.addEventListener('load', () => loader.remove());
             }
             if (type === 'console-log') {
+                // lazily load console log handler and keep restore callback
                 import('../../shared/consolelogs.js').then(({ initConsoleLogs }) => {
                     const el = document
                         .getElementById(id)
                         ?.querySelector('.console-log-window');
-                    if (el) initConsoleLogs({ container: el, removeAfter: null });
+                    if (el) {
+                        const { restore } = initConsoleLogs({ container: el, removeAfter: null });
+                        // store restore handler on the window element so we can clean up on close
+                        winEl._restoreConsole = restore;
+                    }
                 });
             }
             // App specific initialization can be handled by each module
@@ -837,6 +842,10 @@
         
        function closeWindow(id) {
            const window = document.getElementById(id);
+            // run cleanup for special windows such as console log
+            if (window && window._restoreConsole) {
+                window._restoreConsole();
+            }
             if (window) window.remove();
             console.log('Window closed:', id);
             state.windows = state.windows.filter(winId => winId !== id);
@@ -976,15 +985,8 @@
             initMenus();
             updateTaskBar();
             initTaskBarMenu();
-            const logId = openWindow('console-log');
-            import('../../shared/consolelogs.js').then(({ initConsoleLogs }) => {
-                const el = document
-                    .getElementById(logId)
-                    ?.querySelector('.console-log-window');
-                if (el) initConsoleLogs({ container: el, removeAfter: null });
-            }).then(() => {
-                console.log('App1 initialized');
-            });
+            openWindow('console-log');
+            console.log('App1 initialized');
         }
 
         function updateViewportHeight() {

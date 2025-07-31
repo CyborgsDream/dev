@@ -1,3 +1,4 @@
+// Simple in-browser console log monitor
 let installed = false;
 let containers = [];
 let history = [];
@@ -55,6 +56,7 @@ export function initConsoleLogs({ container, removeAfter = 3000 } = {}) {
   }
 
   function restore() {
+    // revert console methods and clear state
     methods.forEach(m => (console[m] = original[m]));
     installed = false;
     containers = [];
