@@ -6,7 +6,11 @@ import { initConsoleLogs } from '../shared/consolelogs.js';
 const { apps } = await fetch('data/index.json').then(r => r.json());
 const consoleLogEl = document.getElementById('console-log');
 if (consoleLogEl) {
-  initConsoleLogs({ container: consoleLogEl, removeAfter: 3000 });
+  initConsoleLogs({
+    container: consoleLogEl,
+    removeAfter: 3000,
+    filter: ['info', 'warn', 'error']
+  });
 }
 console.log('Responsive boilerplate loaded');
 
