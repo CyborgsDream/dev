@@ -2,10 +2,20 @@
 let installed = false;
 let containers = [];
 let history = [];
+let logFilter = null; // Set of log levels to display
 const methods = ['log', 'info', 'warn', 'error'];
 const original = {};
 
-export function initConsoleLogs({ container, removeAfter = 3000 } = {}) {
+function appendLine(type, msg, el) {
+  const line = document.createElement('div');
+  line.className = `console-line ${type}`;
+  line.textContent = `[${type}] ${msg}`;
+  el.appendChild(line);
+  el.scrollTop = el.scrollHeight;
+  return line;
+}
+
+export function initConsoleLogs({ container, removeAfter = 3000, filter } = {}) {
   if (!container) {
     container = document.createElement('div');
     container.id = 'console-log';
@@ -18,14 +28,15 @@ export function initConsoleLogs({ container, removeAfter = 3000 } = {}) {
     document.body.appendChild(container);
   }
 
+  if (filter && Array.isArray(filter) && filter.length) {
+    logFilter = new Set(filter);
+  }
+
   containers.push({ el: container, removeAfter });
   history.forEach(({ type, msg }) => {
-    const line = document.createElement('div');
-    line.className = `console-line ${type}`;
-    line.textContent = `[${type}] ${msg}`;
-    container.appendChild(line);
+    if (logFilter && !logFilter.has(type)) return;
+    appendLine(type, msg, container);
   });
-  container.scrollTop = container.scrollHeight;
 
   if (!installed) {
     installed = true;
@@ -43,16 +54,29 @@ export function initConsoleLogs({ container, removeAfter = 3000 } = {}) {
           })
           .join(' ');
         history.push({ type: m, msg });
+        if (logFilter && !logFilter.has(m)) return;
         containers.forEach(({ el, removeAfter: rm }) => {
-          const line = document.createElement('div');
-          line.className = `console-line ${m}`;
-          line.textContent = `[${m}] ${msg}`;
-          el.appendChild(line);
-          el.scrollTop = el.scrollHeight;
+          const line = appendLine(m, msg, el);
           if (rm) setTimeout(() => line.remove(), rm);
         });
       };
     });
+  }
+
+  function setFilter(types) {
+    logFilter = types && types.length ? new Set(types) : null;
+    containers.forEach(({ el }) => {
+      el.innerHTML = '';
+      history.forEach(({ type, msg }) => {
+        if (logFilter && !logFilter.has(type)) return;
+        appendLine(type, msg, el);
+      });
+    });
+  }
+
+  function clear() {
+    history = [];
+    containers.forEach(({ el }) => (el.innerHTML = ''));
   }
 
   function restore() {
@@ -60,7 +84,9 @@ export function initConsoleLogs({ container, removeAfter = 3000 } = {}) {
     methods.forEach(m => (console[m] = original[m]));
     installed = false;
     containers = [];
+    history = [];
+    logFilter = null;
   }
 
-  return { container, restore };
+  return { container, restore, setFilter, clear };
 }
