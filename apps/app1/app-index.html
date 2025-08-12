@@ -1,4 +1,12 @@
-
+<!--
+ * @version   v0.0.19
+ * @codename  "ZoomWin"
+ * @author    Prof. Adrian Zephyr
+ * @date      2025-08-12
+ * @log       Add 3D zoom animations for windows
+ * @changelog
+ *   - [2025-08-12] Implemented 3D open/close zoom effects.
+-->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -185,6 +193,15 @@
             flex-direction: column;
             resize: both;
             overflow: hidden;
+            transform-style: preserve-3d;
+            transition: transform 0.3s ease, opacity 0.3s ease;
+            opacity: 1;
+        }
+
+        .window.zoom-init,
+        .window.zoom-out {
+            transform: perspective(800px) translateZ(-400px) scale(0.8);
+            opacity: 0;
         }
         
         .window-header {
@@ -793,6 +810,8 @@
             
             desktop.insertAdjacentHTML('beforeend', windowHtml);
             const winEl = document.getElementById(id);
+            winEl.classList.add('zoom-init');
+            requestAnimationFrame(() => winEl.classList.remove('zoom-init'));
             makeDraggable(id);
             state.windows.push(id);
             updateTaskBar();
@@ -842,14 +861,18 @@
         
        function closeWindow(id) {
            const window = document.getElementById(id);
+            if (!window) return;
             // run cleanup for special windows such as console log
-            if (window && window._restoreConsole) {
+            if (window._restoreConsole) {
                 window._restoreConsole();
             }
-            if (window) window.remove();
-            console.log('Window closed:', id);
-            state.windows = state.windows.filter(winId => winId !== id);
-            updateTaskBar();
+            window.classList.add('zoom-out');
+            window.addEventListener('transitionend', () => {
+                window.remove();
+                console.log('Window closed:', id);
+                state.windows = state.windows.filter(winId => winId !== id);
+                updateTaskBar();
+            }, { once: true });
         }
 
        function minimizeWindow(id) {
