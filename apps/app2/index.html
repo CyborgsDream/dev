@@ -50,6 +50,38 @@ terrain.computeVertexNormals();
 const terrainMesh = new THREE.Mesh(terrain, new THREE.MeshStandardMaterial({ color:0x2a8a4b, flatShading:true, metalness:0, roughness:1 }));
 scene.add(terrainMesh);
 
+const treeRay = new THREE.Raycaster();
+function createTree(x, z) {
+  const trunk = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.15, 0.15, 1, 8),
+    new THREE.MeshStandardMaterial({ color: 0x8b4513 })
+  );
+  trunk.position.y = 0.5;
+
+  const leaves = new THREE.Mesh(
+    new THREE.ConeGeometry(0.6, 1.5, 8),
+    new THREE.MeshStandardMaterial({ color: 0x228b22 })
+  );
+  leaves.position.y = 1.6;
+
+  const group = new THREE.Group();
+  group.add(trunk);
+  group.add(leaves);
+  group.scale.set(20, 20, 20);
+
+  treeRay.set(new THREE.Vector3(x, 100, z), new THREE.Vector3(0, -1, 0));
+  const hit = treeRay.intersectObject(terrainMesh);
+  const y = hit.length ? hit[0].point.y : 0;
+  group.position.set(x, y, z);
+  scene.add(group);
+}
+
+for (let i = 0; i < 40; i++) {
+  const x = Math.random() * controls.bounds * 2 - controls.bounds;
+  const z = Math.random() * controls.bounds * 2 - controls.bounds;
+  createTree(x, z);
+}
+
 function updateControls(dt){
   if (keyState['ArrowLeft'])  controls.yaw += controls.turnSpeed * dt;
   if (keyState['ArrowRight']) controls.yaw -= controls.turnSpeed * dt;
