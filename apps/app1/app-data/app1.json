@@ -87,7 +87,7 @@
     },
     "text-editor": {
       "title": "Text Editor",
-      "content": "<textarea style=\"width: 100%; height: 100%; background: #fff; border: 1px solid #aaa; padding: 5px; font-family: monospace; font-size: 18px;\">Welcome to WebGUI 0.0.18!\n\nThe icon issue has been fixed!\n• All desktop icons are now fully functional\n• Click any icon to open an application\n• The wallpaper no longer blocks clicks\n\nTry clicking on any icon to open its application.\n\nWebGUI continues to push the boundaries of personal computing!</textarea>",
+      "content": "<div class=\"text-editor\" style=\"display:flex;flex-direction:column;height:100%\"><div style=\"text-align:right;margin-bottom:5px;\"><button id=\"text-editor-export\" style=\"font-size:16px;\">Export PDF</button></div><textarea id=\"text-editor-area\" style=\"flex:1;background:#fff;border:1px solid #aaa;padding:5px;font-family:monospace;font-size:18px;\">Welcome to WebGUI 0.0.18!\n\nThe icon issue has been fixed!\n• All desktop icons are now fully functional\n• Click any icon to open an application\n• The wallpaper no longer blocks clicks\n\nTry clicking on any icon to open its application.\n\nWebGUI continues to push the boundaries of personal computing!</textarea></div>",
       "width": 500,
       "height": 350
     },
