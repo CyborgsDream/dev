@@ -72,71 +72,7 @@ container.appendChild(renderer.domElement);
   dirLight.shadow.camera.far = 50;
   scene.add(dirLight);
   console.info('Directional light added');
-
-  // Helper function to create elevated mesh
-  function createMesh(geometry, color, x, z = 1) {
-    const material = new THREE.MeshStandardMaterial({ color });
-    const mesh = new THREE.Mesh(geometry, material);
-    mesh.position.set(x, 2, z); // raised slightly
-    mesh.castShadow = true;
-    mesh.receiveShadow = true;
-    scene.add(mesh);
-    return mesh;
-  }
-
-  const groundRay = new THREE.Raycaster();
-
-  function createBlock(x, z) {
-    const block = new THREE.Mesh(
-      new THREE.BoxGeometry(1, 1, 1),
-      new THREE.MeshStandardMaterial({ color: 0xffa500 })
-    );
-    groundRay.set(new THREE.Vector3(x, 10, z), new THREE.Vector3(0, -1, 0));
-    const hit = groundRay.intersectObject(ground);
-    const y = hit.length ? hit[0].point.y : 0;
-    block.position.set(x, y + 0.5, z);
-    block.castShadow = true;
-    block.receiveShadow = true;
-    scene.add(block);
-    return block;
-  }
-
-  function createRock(x, z) {
-    const rock = new THREE.Mesh(
-      new THREE.DodecahedronGeometry(0.3 + Math.random() * 0.2),
-      new THREE.MeshStandardMaterial({ color: 0x808080, flatShading: true })
-    );
-    groundRay.set(new THREE.Vector3(x, 10, z), new THREE.Vector3(0, -1, 0));
-    const hit = groundRay.intersectObject(ground);
-    const y = hit.length ? hit[0].point.y : 0;
-    rock.position.set(x, y, z);
-    rock.castShadow = true;
-    rock.receiveShadow = true;
-    scene.add(rock);
-    return rock;
-  }
-
-  // Create objects
-  const mesh1 = createMesh(new THREE.IcosahedronGeometry(1.2), 0xff6600, -4);
-  const mesh2 = createMesh(new THREE.TorusGeometry(0.9, 0.3, 16, 30), 0x0096D6, 0);
-  const mesh3 = createMesh(new THREE.DodecahedronGeometry(1.2), 0x9932cc, 4);
-  const meshes = [mesh1, mesh2, mesh3];
-  console.info('Meshes created', mesh1.position, mesh2.position, mesh3.position);
-
-  const range = groundSize / 4;
-  for (let i = 0; i < 40; i++) {
-    const x = Math.random() * range * 2 - range;
-    const z = Math.random() * range * 2 - range;
-    createBlock(x, z);
-  }
-  console.info('Blocks added');
-
-  for (let i = 0; i < 20; i++) {
-    const x = Math.random() * range * 2 - range;
-    const z = Math.random() * range * 2 - range;
-    createRock(x, z);
-  }
-  console.info('Rocks added');
+  const meshes = [];
 
   const labels = [];
   function addLabel(
@@ -355,15 +291,16 @@ container.appendChild(renderer.domElement);
       frames = 0;
       lastTime = timestamp;
     }
-    [mesh1, mesh2, mesh3].forEach(mesh => {
+    meshes.forEach(mesh => {
       mesh.rotation.x += 0.005;
       mesh.rotation.y += 0.01;
     });
     textCubes.forEach(cube => {
-      const { rotSpeed } = cube.userData;
+      const { rotSpeed, initialX, phase } = cube.userData;
       cube.rotation.x += rotSpeed.x;
       cube.rotation.y += rotSpeed.y;
       cube.rotation.z += rotSpeed.z;
+      cube.position.x = initialX + Math.sin(timestamp / 600 + phase) * 0.05;
     });
     // apply wave effect to each letter group
     textLetters.forEach(letter => {

@@ -52,7 +52,7 @@ scene.add(terrainMesh);
 
 const groundRay = new THREE.Raycaster();
 function createBlock(x, z) {
-  const size = 5;
+  const size = 2;
   const block = new THREE.Mesh(
     new THREE.BoxGeometry(size, size, size),
     new THREE.MeshStandardMaterial({ color: 0xffa500 })
@@ -66,7 +66,7 @@ function createBlock(x, z) {
   scene.add(block);
 }
 
-for (let i = 0; i < 40; i++) {
+for (let i = 0; i < 80; i++) {
   const x = Math.random() * controls.bounds * 2 - controls.bounds;
   const z = Math.random() * controls.bounds * 2 - controls.bounds;
   createBlock(x, z);
