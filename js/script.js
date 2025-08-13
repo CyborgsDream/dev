@@ -84,12 +84,47 @@ container.appendChild(renderer.domElement);
     return mesh;
   }
 
+  const treeRay = new THREE.Raycaster();
+  function createTree(x, z) {
+    const trunk = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.1, 0.1, 0.5, 6),
+      new THREE.MeshStandardMaterial({ color: 0x8b4513 })
+    );
+    trunk.position.y = 0.25;
+    trunk.castShadow = true;
+
+    const leaves = new THREE.Mesh(
+      new THREE.ConeGeometry(0.4, 0.8, 6),
+      new THREE.MeshStandardMaterial({ color: 0x228B22 })
+    );
+    leaves.position.y = 0.9;
+    leaves.castShadow = true;
+
+    const group = new THREE.Group();
+    group.add(trunk);
+    group.add(leaves);
+
+    treeRay.set(new THREE.Vector3(x, 10, z), new THREE.Vector3(0, -1, 0));
+    const hit = treeRay.intersectObject(ground);
+    const y = hit.length ? hit[0].point.y : 0;
+    group.position.set(x, y, z);
+    scene.add(group);
+    return group;
+  }
+
   // Create objects
   const mesh1 = createMesh(new THREE.IcosahedronGeometry(1.2), 0xff6600, -4);
   const mesh2 = createMesh(new THREE.TorusGeometry(0.9, 0.3, 16, 30), 0x0096D6, 0);
   const mesh3 = createMesh(new THREE.DodecahedronGeometry(1.2), 0x9932cc, 4);
   const meshes = [mesh1, mesh2, mesh3];
   console.info('Meshes created', mesh1.position, mesh2.position, mesh3.position);
+
+  for (let i = 0; i < 40; i++) {
+    const x = Math.floor(Math.random() * groundSize) - groundSize / 2 + 0.5;
+    const z = Math.floor(Math.random() * groundSize) - groundSize / 2 + 0.5;
+    createTree(x, z);
+  }
+  console.info('Trees added');
 
   const labels = [];
   function addLabel(
