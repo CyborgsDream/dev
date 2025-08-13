@@ -13,10 +13,10 @@
       "long": "This is the second demo showcasing features."
     },
     {
-      "name": "Demo Three",
+      "name": "Black Hole",
       "file": "apps/app3/index.html",
-      "short": "lorem ipsum doloret sit amet",
-      "long": "This is the third demo showcasing features."
+      "short": "Black hole simulation with spinning accretion disk.",
+      "long": "This demo renders a simple black hole using Three.js."
     }
   ]
 }
