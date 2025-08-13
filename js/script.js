@@ -74,6 +74,27 @@ container.appendChild(renderer.domElement);
   console.info('Directional light added');
   const meshes = [];
 
+  function createMesh(geometry, color, x, z = 1) {
+    const material = new THREE.MeshStandardMaterial({ color });
+    const mesh = new THREE.Mesh(geometry, material);
+    mesh.position.set(x, 2, z);
+    mesh.castShadow = true;
+    mesh.receiveShadow = true;
+    scene.add(mesh);
+    meshes.push(mesh);
+    return mesh;
+  }
+
+  createMesh(new THREE.IcosahedronGeometry(1.2), 0xff6600, -4);
+  createMesh(new THREE.TorusGeometry(0.9, 0.3, 16, 30), 0x0096d6, 0);
+  createMesh(new THREE.DodecahedronGeometry(1.2), 0x9932cc, 4);
+  console.info(
+    'Meshes created',
+    meshes[0].position,
+    meshes[1].position,
+    meshes[2].position
+  );
+
   const labels = [];
   function addLabel(
     mesh,
