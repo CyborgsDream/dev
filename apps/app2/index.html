@@ -53,9 +53,10 @@ scene.add(terrainMesh);
 const groundRay = new THREE.Raycaster();
 function createBlock(x, z) {
   const size = 2;
+  const color = new THREE.Color().setHSL(Math.random() * 0.15, 0.9, 0.5 + Math.random() * 0.1);
   const block = new THREE.Mesh(
     new THREE.BoxGeometry(size, size, size),
-    new THREE.MeshStandardMaterial({ color: 0xffa500 })
+    new THREE.MeshStandardMaterial({ color })
   );
   groundRay.set(new THREE.Vector3(x, 100, z), new THREE.Vector3(0, -1, 0));
   const hit = groundRay.intersectObject(terrainMesh);
@@ -66,7 +67,7 @@ function createBlock(x, z) {
   scene.add(block);
 }
 
-for (let i = 0; i < 80; i++) {
+for (let i = 0; i < 2000; i++) {
   const x = Math.random() * controls.bounds * 2 - controls.bounds;
   const z = Math.random() * controls.bounds * 2 - controls.bounds;
   createBlock(x, z);
