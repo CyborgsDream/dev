@@ -84,32 +84,21 @@ container.appendChild(renderer.domElement);
     return mesh;
   }
 
-  const treeRay = new THREE.Raycaster();
-  function createTree(x, z) {
-    const trunk = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.15, 0.15, 1, 8),
-      new THREE.MeshStandardMaterial({ color: 0x8b4513 })
+  const groundRay = new THREE.Raycaster();
+
+  function createBlock(x, z) {
+    const block = new THREE.Mesh(
+      new THREE.BoxGeometry(1, 1, 1),
+      new THREE.MeshStandardMaterial({ color: 0xffa500 })
     );
-    trunk.position.y = 0.5;
-    trunk.castShadow = true;
-
-    const leaves = new THREE.Mesh(
-      new THREE.ConeGeometry(0.6, 1.5, 8),
-      new THREE.MeshStandardMaterial({ color: 0x228b22 })
-    );
-    leaves.position.y = 1.6;
-    leaves.castShadow = true;
-
-    const group = new THREE.Group();
-    group.add(trunk);
-    group.add(leaves);
-
-    treeRay.set(new THREE.Vector3(x, 10, z), new THREE.Vector3(0, -1, 0));
-    const hit = treeRay.intersectObject(ground);
+    groundRay.set(new THREE.Vector3(x, 10, z), new THREE.Vector3(0, -1, 0));
+    const hit = groundRay.intersectObject(ground);
     const y = hit.length ? hit[0].point.y : 0;
-    group.position.set(x, y, z);
-    scene.add(group);
-    return group;
+    block.position.set(x, y + 0.5, z);
+    block.castShadow = true;
+    block.receiveShadow = true;
+    scene.add(block);
+    return block;
   }
 
   function createRock(x, z) {
@@ -117,8 +106,8 @@ container.appendChild(renderer.domElement);
       new THREE.DodecahedronGeometry(0.3 + Math.random() * 0.2),
       new THREE.MeshStandardMaterial({ color: 0x808080, flatShading: true })
     );
-    treeRay.set(new THREE.Vector3(x, 10, z), new THREE.Vector3(0, -1, 0));
-    const hit = treeRay.intersectObject(ground);
+    groundRay.set(new THREE.Vector3(x, 10, z), new THREE.Vector3(0, -1, 0));
+    const hit = groundRay.intersectObject(ground);
     const y = hit.length ? hit[0].point.y : 0;
     rock.position.set(x, y, z);
     rock.castShadow = true;
@@ -138,9 +127,9 @@ container.appendChild(renderer.domElement);
   for (let i = 0; i < 40; i++) {
     const x = Math.random() * range * 2 - range;
     const z = Math.random() * range * 2 - range;
-    createTree(x, z);
+    createBlock(x, z);
   }
-  console.info('Trees added');
+  console.info('Blocks added');
 
   for (let i = 0; i < 20; i++) {
     const x = Math.random() * range * 2 - range;
