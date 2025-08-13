@@ -3,42 +3,93 @@
     {
       "label": "Project",
       "items": [
-        {"label": "System Info", "type": "system-info"},
-        {"label": "CLI Terminal", "type": "terminal"},
-        {"label": "File Manager", "type": "file-manager"},
-        {"label": "Format Disk"},
-        {"label": "Exit WebGUI"}
+        {
+          "label": "System Info",
+          "type": "system-info"
+        },
+        {
+          "label": "CLI Terminal",
+          "type": "terminal"
+        },
+        {
+          "label": "File Manager",
+          "type": "file-manager"
+        },
+        {
+          "label": "Format Disk"
+        },
+        {
+          "label": "Exit WebGUI"
+        }
       ]
     },
     {
       "label": "Edit",
       "items": [
-        {"label": "Undo"},
-        {"label": "Redo"},
-        {"label": "Cut"},
-        {"label": "Copy"},
-        {"label": "Paste"}
+        {
+          "label": "Undo"
+        },
+        {
+          "label": "Redo"
+        },
+        {
+          "label": "Cut"
+        },
+        {
+          "label": "Copy"
+        },
+        {
+          "label": "Paste"
+        }
       ]
     },
     {
       "label": "Tools",
       "items": [
-        {"label": "Calculator", "type": "calculator"},
-        {"label": "Calendar", "type": "calendar"},
-        {"label": "Puzzle Game", "type": "puzzle-game"},
-        {"label": "Console Log", "type": "console-log"},
-        {"label": "Disk Doctor"},
-        {"label": "Jokes", "type": "jokes"},
-        {"label": "Activity", "type": "activity"}
+        {
+          "label": "Calculator",
+          "type": "calculator"
+        },
+        {
+          "label": "Calendar",
+          "type": "calendar"
+        },
+        {
+          "label": "Puzzle Game",
+          "type": "puzzle-game"
+        },
+        {
+          "label": "Console Log",
+          "type": "console-log"
+        },
+        {
+          "label": "Disk Doctor"
+        },
+        {
+          "label": "Jokes",
+          "type": "jokes"
+        },
+        {
+          "label": "Activity",
+          "type": "activity"
+        }
       ]
     },
     {
       "label": "Windows",
       "items": [
-        {"label": "Tile Windows"},
-        {"label": "Cascade Windows"},
-        {"label": "Arrange Icons"},
-        {"label": "Close All"}
+        {
+          "label": "Tile Windows"
+        },
+        {
+          "label": "Cascade Windows"
+        },
+        {
+          "label": "Arrange Icons"
+        },
+        {
+          "label": "Close All"
+        }
       ]
     }
   ],
@@ -54,23 +105,61 @@
   },
   "puzzleSolved": "Congratulations! Puzzle solved!",
   "icons": [
-    {"type": "system-info", "emoji": "🖥️", "label": "System"},
-    {"type": "terminal", "emoji": "⌨️", "label": "Terminal"},
-    {"type": "text-editor", "emoji": "📝", "label": "TextEdit"},
-    {"type": "graphics", "emoji": "🎨", "label": "Paint"},
-    {"type": "utilities", "emoji": "🧰", "label": "Utilities"},
-    {"type": "games", "emoji": "🎮", "label": "Games"},
-    {"type": "calculator", "emoji": "🧮", "label": "Calculator"},
-    {"type": "calendar", "emoji": "📅", "label": "Calendar"},
-    {"type": "puzzle-game", "emoji": "🧩", "label": "Puzzle"},
-    {"type": "docs", "emoji": "📖", "label": "Docs"},
-    {"type": "settings", "emoji": "⚙️", "label": "Settings"},
-    {"type": "clock", "emoji": "⏰", "label": "Clock"},
-    {"type": "console-log", "emoji": "📜", "label": "Console"},
-    {"type": "html-studio", "emoji": "🌐", "label": "HTML Studio"},
-    {"type": "cloud-storage", "emoji": "☁️", "label": "Cloud Storage"},
-    {"type": "jokes", "emoji": "😂", "label": "Jokes"},
-    {"type": "activity", "emoji": "🎲", "label": "Activity"}
+    {
+      "type": "terminal",
+      "emoji": "⌨️",
+      "label": "Terminal"
+    },
+    {
+      "type": "text-editor",
+      "emoji": "📝",
+      "label": "TextEdit"
+    },
+    {
+      "type": "calculator",
+      "emoji": "🧮",
+      "label": "Calculator"
+    },
+    {
+      "type": "calendar",
+      "emoji": "📅",
+      "label": "Calendar"
+    },
+    {
+      "type": "puzzle-game",
+      "emoji": "🧩",
+      "label": "Puzzle"
+    },
+    {
+      "type": "clock",
+      "emoji": "⏰",
+      "label": "Clock"
+    },
+    {
+      "type": "console-log",
+      "emoji": "📜",
+      "label": "Console"
+    },
+    {
+      "type": "html-studio",
+      "emoji": "🌐",
+      "label": "HTML Studio"
+    },
+    {
+      "type": "cloud-storage",
+      "emoji": "☁️",
+      "label": "Cloud Storage"
+    },
+    {
+      "type": "jokes",
+      "emoji": "😂",
+      "label": "Jokes"
+    },
+    {
+      "type": "activity",
+      "emoji": "🎲",
+      "label": "Activity"
+    }
   ],
   "windows": {
     "system-info": {
@@ -91,24 +180,6 @@
       "width": 500,
       "height": 350
     },
-    "graphics": {
-      "title": "WebGUI Paint",
-      "content": "<div style=\"text-align: center;\"><h3>WebGUI Paint v2.0</h3><div style=\"margin: 10px auto; width: 300px; height: 200px; background: #fff; border: 1px solid #000; position: relative;\"><div style=\"position: absolute; top: 20px; left: 30px; width: 100px; height: 100px; background: #f00;\"></div><div style=\"position: absolute; top: 50px; left: 70px; width: 60px; height: 60px; background: #00f;\"></div><div style=\"position: absolute; top: 70px; left: 40px; width: 40px; height: 40px; background: #ff0;\"></div><div style=\"position: absolute; top: 120px; left: 100px; width: 80px; height: 40px; background: #0f0;\"></div></div><div style=\"display: flex; justify-content: center; gap: 10px; margin-top: 15px;\"><button style=\"padding: 5px 10px; font-size: 18px;\">Pencil</button><button style=\"padding: 5px 10px; font-size: 18px;\">Brush</button><button style=\"padding: 5px 10px; font-size: 18px;\">Fill</button></div></div>",
-      "width": 400,
-      "height": 300
-    },
-    "utilities": {
-      "title": "Utilities",
-      "content": "<h3>System Utilities</h3><ul style=\"margin-top: 15px; margin-left: 20px; font-size: 18px;\"><li>Disk Formatter</li><li>Memory Viewer</li><li>System Monitor</li><li>Printer Setup</li><li>Serial Port Config</li><li>Network Setup</li></ul><div style=\"margin-top: 20px; padding: 10px; background: #ddd; border: 1px solid #aaa; font-size: 16px;\"><strong>Note:</strong> Some utilities require system disk.</div>",
-      "width": 300,
-      "height": 300
-    },
-    "games": {
-      "title": "Games",
-      "content": "<h3>WebGUI Games Collection</h3><div style=\"display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 15px; font-size: 16px;\"><div style=\"background: #aaccff; padding: 5px; text-align: center;\">Defender of the Crown</div><div style=\"background: #aaccff; padding: 5px; text-align: center;\">Marble Madness</div><div style=\"background: #aaccff; padding: 5px; text-align: center;\">The Bard's Tale</div><div style=\"background: #aaccff; padding: 5px; text-align: center;\">Leisure Suit Larry</div><div style=\"background: #aaccff; padding: 5px; text-align: center;\">SimCity</div><div style=\"background: #aaccff; padding: 5px; text-align: center;\">Battle Chess</div><div style=\"background: #aaccff; padding: 5px; text-align: center;\">Turrican</div><div style=\"background: #aaccff; padding: 5px; text-align: center;\">Lemmings</div><div style=\"background: #aaccff; padding: 5px; text-align: center;\">Shadow of the Beast</div></div><p style=\"margin-top: 15px; font-size: 18px;\"><em>Insert game disk to play...</em></p>",
-      "width": 500,
-      "height": 300
-    },
     "calculator": {
       "title": "Calculator",
       "content": "<div class=\"calculator\"><div class=\"calc-display\" id=\"calc-display\">0</div><button class=\"calc-btn\" onclick=\"clearCalc()\">C</button><button class=\"calc-btn\" onclick=\"appendCalc('%')\">%</button><button class=\"calc-btn\" onclick=\"appendCalc('←')\">←</button><button class=\"calc-btn operator\" onclick=\"appendCalc('/')\">×</button><button class=\"calc-btn\" onclick=\"appendCalc('7')\">7</button><button class=\"calc-btn\" onclick=\"appendCalc('8')\">8</button><button class=\"calc-btn\" onclick=\"appendCalc('9')\">9</button><button class=\"calc-btn operator\" onclick=\"appendCalc('*')\">×</button><button class=\"calc-btn\" onclick=\"appendCalc('4')\">4</button><button class=\"calc-btn\" onclick=\"appendCalc('5')\">5</button><button class=\"calc-btn\" onclick=\"appendCalc('6')\">6</button><button class=\"calc-btn operator\" onclick=\"appendCalc('-')\">-</button><button class=\"calc-btn\" onclick=\"appendCalc('1')\">1</button><button class=\"calc-btn\" onclick=\"appendCalc('2')\">2</button><button class=\"calc-btn\" onclick=\"appendCalc('3')\">3</button><button class=\"calc-btn operator\" onclick=\"appendCalc('+')\">+</button><button class=\"calc-btn\" onclick=\"appendCalc('0')\">0</button><button class=\"calc-btn\" onclick=\"appendCalc('.')\">.</button><button class=\"calc-btn operator\" onclick=\"calculate()\">=</button></div>",
@@ -126,18 +197,6 @@
       "content": "<div class=\"game-container\"><h3>15 Puzzle</h3><p>Slide the tiles to arrange them in order</p><div class=\"game-board\" id=\"puzzle-board\"></div><button onclick=\"initPuzzleGame()\" style=\"margin-top: 10px; padding: 5px 15px; font-size: 18px;\">New Game</button></div>",
       "width": 300,
       "height": 400
-    },
-    "docs": {
-      "title": "Docs",
-      "content": "<p>Documentation coming soon...</p>",
-      "width": 300,
-      "height": 200
-    },
-    "settings": {
-      "title": "Settings",
-      "content": "<ul style=\"margin-left:20px;font-size:18px;\"><li>Display</li><li>Sound</li><li>Network</li></ul>",
-      "width": 280,
-      "height": 220
     },
     "clock": {
       "title": "Clock",
