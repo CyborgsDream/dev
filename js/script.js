@@ -1,4 +1,4 @@
-// Version: 0.0.18
+// Version: 0.1.0
 // Codename: Celestia
 // Basic THREE.js example with multiple objects
 import * as THREE from 'https://unpkg.com/three@0.159.0/build/three.module.js';
@@ -12,20 +12,34 @@ if (consoleLogEl) {
     filter: ['info', 'warn', 'error']
   });
 }
-console.log('Responsive boilerplate loaded');
+console.log('DEMOS loaded');
 
 // Initialize scene
 const container = document.getElementById('scene-container');
+function setContainerSize() {
+  const aspect = 16 / 9;
+  let width = window.innerWidth;
+  let height = window.innerHeight;
+  if (width / height > aspect) {
+    width = height * aspect;
+  } else {
+    height = width / aspect;
+  }
+  container.style.width = `${width}px`;
+  container.style.height = `${height}px`;
+  return { width, height };
+}
 const fpsCounter = document.getElementById('fps-counter');
 const scene = new THREE.Scene();
+const { width: initW, height: initH } = setContainerSize();
 const camera = new THREE.PerspectiveCamera(
   75,
-  container.clientWidth / container.clientHeight,
+  initW / initH,
   0.1,
   1000
 );
 const renderer = new THREE.WebGLRenderer({ antialias: true });
-renderer.setSize(container.clientWidth, container.clientHeight);
+renderer.setSize(initW, initH);
 renderer.setClearColor(0x000033);
 renderer.shadowMap.enabled = true;
 container.appendChild(renderer.domElement);
@@ -353,8 +367,7 @@ container.appendChild(renderer.domElement);
   }
 
   function onWindowResize() {
-    const width = container.clientWidth;
-    const height = container.clientHeight;
+    const { width, height } = setContainerSize();
     camera.aspect = width / height;
     camera.updateProjectionMatrix();
     renderer.setSize(width, height);
