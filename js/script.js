@@ -101,13 +101,7 @@ container.appendChild(renderer.domElement);
 
   createMesh(new THREE.IcosahedronGeometry(1.2), 0xff6600, -4);
   createMesh(new THREE.TorusGeometry(0.9, 0.3, 16, 30), 0x0096d6, 0);
-  createMesh(new THREE.DodecahedronGeometry(1.2), 0x9932cc, 4);
-  console.info(
-    'Meshes created',
-    meshes[0].position,
-    meshes[1].position,
-    meshes[2].position
-  );
+  console.info('Meshes created', meshes.map(m => m.position));
 
   const labels = [];
   function addLabel(
@@ -139,7 +133,7 @@ container.appendChild(renderer.domElement);
     labels.push({ mesh, el, offsetY, offsetX, phase: Math.random() * Math.PI * 2, letters });
   }
 
-  const offsets = [-20, 0, 20];
+  const offsets = [-20, 20];
   apps.forEach((app, i) => {
     const mesh = meshes[i];
     if (!mesh) return;

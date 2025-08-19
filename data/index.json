@@ -11,12 +11,6 @@
       "file": "apps/app2/index.html",
       "short": "lorem ipsum doloret sit amet",
       "long": "This is the second demo showcasing features."
-    },
-    {
-      "name": "Black Hole",
-      "file": "apps/app3/index.html",
-      "short": "Black hole simulation with spinning accretion disk.",
-      "long": "This demo renders a simple black hole using Three.js."
     }
   ]
 }

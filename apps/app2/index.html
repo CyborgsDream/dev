@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <title>Green Terrain</title>
+  <title>Terrain</title>
   <style>
     html, body { margin: 0; height: 100%; overflow: hidden; }
     canvas { display: block; }
@@ -33,6 +33,29 @@ window.addEventListener('keydown', e => {
 });
 window.addEventListener('keyup', e => {
   if (['ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.key)) { keyState[e.key] = false; e.preventDefault(); }
+});
+
+let touchStart = null;
+window.addEventListener('touchstart', e => {
+  touchStart = e.touches[0];
+  e.preventDefault();
+});
+window.addEventListener('touchmove', e => {
+  if (!touchStart) return;
+  const touch = e.touches[0];
+  const dx = touch.clientX - touchStart.clientX;
+  const dy = touch.clientY - touchStart.clientY;
+  const threshold = 10;
+  keyState['ArrowLeft'] = dx < -threshold;
+  keyState['ArrowRight'] = dx > threshold;
+  keyState['ArrowUp'] = dy < -threshold;
+  keyState['ArrowDown'] = dy > threshold;
+  e.preventDefault();
+});
+window.addEventListener('touchend', e => {
+  touchStart = null;
+  keyState['ArrowLeft'] = keyState['ArrowRight'] = keyState['ArrowUp'] = keyState['ArrowDown'] = false;
+  e.preventDefault();
 });
 
 function hash(ix, iz){ const s = Math.sin(ix*127.1 + iz*311.7) * 43758.5453123; return s - Math.floor(s); }
@@ -74,8 +97,8 @@ for (let i = 0; i < 2000; i++) {
 }
 
 function updateControls(dt){
-  if (keyState['ArrowLeft'])  controls.yaw += controls.turnSpeed * dt;
-  if (keyState['ArrowRight']) controls.yaw -= controls.turnSpeed * dt;
+  if (keyState['ArrowLeft'])  controls.yaw -= controls.turnSpeed * dt;
+  if (keyState['ArrowRight']) controls.yaw += controls.turnSpeed * dt;
   const forward = new THREE.Vector3(Math.sin(controls.yaw), 0, -Math.cos(controls.yaw));
   let move = new THREE.Vector3();
   if (keyState['ArrowUp']) move.add(forward);
