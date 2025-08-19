@@ -1,0 +1,408 @@
+<!DOCTYPE html><html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>RETRO-LIST — LZW12 v1 Prompt Editor</title>
+<style>
+  :root{
+    --bg:#0c111a; --panel:#101826; --ink:#e8edf3; --muted:#95a2b3;
+    --accent:#f6c143; --ok:#35d49e; --warn:#ffb020; --err:#ff6464;
+    --line:#223049;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{
+    margin:0; color:var(--ink); background:radial-gradient(1200px 800px at 20% -10%, #192338 0, #0c111a 60%);
+    font:14px/1.45 ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+  }
+  .wrap{max-width:1200px; margin:auto; padding:clamp(10px,2vw,16px)}
+  h1{margin:.4rem 0 1rem; font-size:clamp(16px,2.6vw,20px); letter-spacing:.2px}
+  .badge{display:inline-block; padding:.14rem .5rem; margin-left:.3rem; border-radius:999px; background:#18243a; color:var(--muted); border:1px solid var(--line); font-size:.78em}
+  .grid{
+    display:grid; gap:clamp(8px,1.6vw,14px);
+    grid-template-columns: 1fr 1fr;
+  }
+  @media (max-width: 980px){ .grid{grid-template-columns: 1fr} }
+  .card{
+    background:linear-gradient(180deg,#121b2b,#0d1524);
+    border:1px solid var(--line); border-radius:12px;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.04), 0 10px 30px rgba(0,0,0,.25);
+    padding:clamp(10px,1.6vw,14px);
+  }
+  .row{display:flex; flex-wrap:wrap; align-items:center; gap:.6rem}
+  .hint{color:var(--muted); font-size:.92em}
+  label{color:var(--muted); font-size:.9em; display:flex; align-items:center; gap:.35rem}
+  input[type="password"], input[type="text"]{
+    width:min(100%, 380px); background:#0b1220; color:var(--ink);
+    border:1px solid var(--line); border-radius:10px; padding:.55rem .7rem;
+  }
+  textarea{
+    width:100%; background:#0b1220; color:var(--ink);
+    border:1px solid var(--line); border-radius:12px;
+    padding:.7rem .8rem; resize:vertical;
+    min-height:clamp(7rem, 24vh, 18rem); /* fluid height */
+  }
+  .btn{
+    appearance:none; cursor:pointer; user-select:none;
+    border-radius:10px; padding:.55rem .9rem; font-weight:700; letter-spacing:.15px;
+    border:1px solid #2b3753; background:linear-gradient(180deg,#2b3753,#1a2439); color:var(--ink);
+  }
+  .btn.primary{border-color:#3f2d0c; background:linear-gradient(180deg,#7b5b12,#3b2a09); color:#ffeab9}
+  .btn.ok{border-color:#204b3d; background:linear-gradient(180deg,#2f8c6f,#1e5e4c)}
+  .btn.ghost{background:transparent; border:1px dashed var(--line); color:var(--muted)}
+  .status{min-height:1.1rem; font-size:.92em}
+  .status.ok{color:var(--ok)} .status.warn{color:var(--warn)} .status.err{color:var(--err)}
+  .hdr{
+    display:grid; gap:.6rem;
+    grid-template-columns: repeat(6, minmax(0,1fr));
+  }
+  @media (max-width: 760px){ .hdr{grid-template-columns: repeat(3, minmax(0,1fr))} }
+  .kv{border:1px solid var(--line); background:#0b1220; border-radius:10px; padding:.45rem .6rem}
+  .kv b{display:block; color:#b6c1cf; font-size:.85em}
+  .mono{white-space:pre-wrap; word-break:break-word}
+  .foot{color:var(--muted); opacity:.85; margin:.6rem 0 0}
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>RETRO-LIST <span class="badge">LZW12</span><span class="badge">v1</span> — Prompt Editor</h1><div class="grid">
+  <!-- INPUT -->
+  <section class="card">
+    <div class="row" style="justify-content:space-between">
+      <div><strong>Input</strong> <span class="hint">Type/paste your prompt to compress & export.</span></div>
+      <button class="btn ghost" id="btnClearIn" title="Clear input">Clear</button>
+    </div>
+    <textarea id="inText" data-autosize placeholder="Type your prompt..."></textarea>
+
+    <div class="row" style="margin-top:.6rem">
+      <label><input type="checkbox" id="useEnc"> Encrypt (AES-GCM-256)</label>
+      <input type="password" id="pwd" placeholder="Password (PBKDF2-SHA256, 100k iters)" disabled>
+    </div>
+
+    <div class="row">
+      <label><input type="checkbox" id="autoOpt" checked> Auto-optimize size (store raw if smaller)</label>
+      <label><input type="checkbox" id="asBasic"> Export as BASIC DATA lines</label>
+      <label><input type="checkbox" id="padData"> Add '=' padding (Base64-URL)</label>
+    </div>
+
+    <div class="row">
+      <button class="btn primary" id="btnCompress">Compress → Export</button>
+    </div>
+    <div id="statusEnc" class="status"></div>
+  </section>
+
+  <!-- OUTPUT -->
+  <section class="card">
+    <div class="row" style="justify-content:space-between">
+      <div><strong>Output</strong> <span class="hint">Base64-URL or BASIC DATA. You can paste here to import.</span></div>
+      <div class="row">
+        <button class="btn ok" id="btnCopy">Copy</button>
+        <button class="btn ghost" id="btnClearOut">Clear</button>
+        <button class=\"btn\" id=\"btnDemoData\" title=\"Load BASIC DATA demo\">Demo DATA<\/button>
+        <button class=\"btn\" id=\"btnDemoB64\" title=\"Load Base64 container demo\">Demo B64<\/button>
+        <button class=\"btn\" id=\"btnDemoRun\" title=\"Load & Decompress demo\">Demo ▶<\/button>
+      </div>
+    </div>
+    <textarea id="outText" data-autosize placeholder="Export appears here…"></textarea>
+    <div id="statusCopy" class="status"></div>
+  </section>
+</div>
+
+<!-- IMPORT / DECOMPRESS -->
+<section class="card" style="margin-top:clamp(8px,1.6vw,14px)">
+  <div class="row" style="justify-content:space-between">
+    <div><strong>Import → Decompress</strong> <span class="hint">Paste on the right above, then click.</span></div>
+    <button class="btn primary" id="btnDecompress">Import → Decompress</button>
+  </div>
+
+  <div class="hdr" style="margin:.7rem 0 .3rem">
+    <div class="kv"><b>magic</b><span id="hMagic">—</span></div>
+    <div class="kv"><b>ver</b><span id="hVer">—</span></div>
+    <div class="kv"><b>flags</b><span id="hFlags">—</span></div>
+    <div class="kv"><b>saltLen</b><span id="hSalt">—</span></div>
+    <div class="kv"><b>ivLen</b><span id="hIv">—</span></div>
+    <div class="kv"><b>origLen</b><span id="hOrig">—</span></div>
+  </div>
+
+  <div class="row" style="gap:1rem; flex-wrap:wrap">
+    <div class="hint">CRC32 (header): <span id="hCRC">—</span></div>
+    <div class="hint">CRC32 (computed): <span id="hCRCcalc">—</span></div>
+    <div class="hint">Integrity: <span id="hOK">—</span></div>
+    <div class="hint">Notes: <span id="hNote">—</span></div>
+  </div>
+
+  <div style="margin-top:.6rem">
+    <strong>Decompressed Output</strong>
+    <textarea id="outPlain" data-autosize class="mono" placeholder="Recovered prompt appears here…"></textarea>
+  </div>
+</section>
+
+<p class="foot">
+  Container: <code>LZ12</code> magic | v1 | little-endian header (16B): <em>version, flags, saltLen, ivLen, origLen, crc32</em> |
+  flags: bit0=<b>encrypted</b>, bit1=<b>stored (raw)</b>. Payload is either LZW 12-bit (LSB-first bit-packed) or raw.
+  AES-GCM uses PBKDF2-SHA256 (100k iters), random 16-byte salt, 12-byte IV. Base64-URL: <code>+→-</code>, <code>/→_</code>.
+</p>
+
+  </div><script>
+/* ========= Helpers ========= */
+const te = new TextEncoder(), td = new TextDecoder();
+const u8 = v => new Uint8Array(v);
+const concatU8 = (...arrs)=>{ let n=0; for(const a of arrs) n+=a.length; const out=new Uint8Array(n); let o=0; for(const a of arrs){ out.set(a,o); o+=a.length; } return out; };
+
+/* Autosize textareas fluidly (no fixed heights) */
+(function autosizeInit(){
+  const fit = ta => { ta.style.height='auto'; ta.style.height = Math.min(ta.scrollHeight, window.innerHeight*0.7) + 'px'; };
+  const targets = () => document.querySelectorAll('textarea[data-autosize]');
+  const hook = ta => { ['input','change'].forEach(ev=>ta.addEventListener(ev,()=>fit(ta))); fit(ta); };
+  window.addEventListener('resize', ()=>targets().forEach(fit));
+  document.addEventListener('DOMContentLoaded', ()=>targets().forEach(hook));
+})();
+
+/* Base64-URL */
+function b64urlEncode(u){
+  let s = '';
+  for (let i = 0; i < u.length; i += 0x8000)
+    s += String.fromCharCode.apply(null, u.subarray(i, i + 0x8000));
+  let b64 = btoa(s).replace(/\+/g,'-').replace(/\//g,'_');
+  return b64.replace(/=+$/,'');
+}
+function b64urlDecode(str){
+  const clean = str.trim().replace(/[^A-Za-z0-9\-_]/g,'');
+  let b64 = clean.replace(/-/g,'+').replace(/_/g,'/');
+  while (b64.length % 4) b64 += '=';
+  const bin = atob(b64);
+  const out = new Uint8Array(bin.length);
+  for (let i=0;i<bin.length;i++) out[i]=bin.charCodeAt(i);
+  return out;
+}
+
+/* CRC32 */
+const CRC_TABLE = (()=>{ let t=new Uint32Array(256);
+  for(let n=0;n<256;n++){ let c=n; for(let k=0;k<8;k++) c = (c&1)?(0xEDB88320^(c>>>1)):(c>>>1); t[n]=c>>>0; }
+  return t;
+})();
+function crc32(u){ let c=0xFFFFFFFF; for(let i=0;i<u.length;i++) c=CRC_TABLE[(c^u[i])&0xFF]^(c>>>8); return (c^0xFFFFFFFF)>>>0; }
+
+/* ========= LZW 12-bit (fixed), bit-packed LSB-first ========= */
+function lzw12_compress(inputU8){
+  const dict = new Map();
+  for(let i=0;i<256;i++) dict.set(String.fromCharCode(i), i);
+  let nextCode = 256, w = '', codes=[];
+  for (let i=0;i<inputU8.length;i++){
+    const c = String.fromCharCode(inputU8[i]);
+    const wc = w + c;
+    if (dict.has(wc)) w = wc;
+    else{
+      codes.push(dict.get(w));
+      if (nextCode < 4096) dict.set(wc, nextCode++);
+      w = c;
+    }
+  }
+  if (w) codes.push(dict.get(w));
+  const out=[], bitbuf= {v:0,c:0};
+  for(const code of codes){
+    bitbuf.v |= (code & 0xFFF) << bitbuf.c;
+    bitbuf.c += 12;
+    while (bitbuf.c >= 8){ out.push(bitbuf.v & 0xFF); bitbuf.v >>>= 8; bitbuf.c -= 8; }
+  }
+  if (bitbuf.c>0) out.push(bitbuf.v & 0xFF);
+  return new Uint8Array(out);
+}
+function lzw12_decompress(packedU8){
+  const codes=[];
+  let bitbuf=0, bitcnt=0, idx=0;
+  while (idx < packedU8.length){
+    while (bitcnt < 12 && idx < packedU8.length){ bitbuf |= packedU8[idx++] << bitcnt; bitcnt += 8; }
+    if (bitcnt < 12) break;
+    const code = bitbuf & 0xFFF; bitbuf >>>= 12; bitcnt -= 12; codes.push(code);
+  }
+  if (!codes.length) return new Uint8Array(0);
+  const dict = Array(4096); for (let i=0;i<256;i++) dict[i] = new Uint8Array([i]);
+  let nextCode=256, prev=dict[codes[0]], parts=[prev];
+  for(let i=1;i<codes.length;i++){
+    const k=codes[i]; let entry;
+    if (dict[k]) entry = dict[k];
+    else if (k===nextCode) entry = concatU8(prev, new Uint8Array([prev[0]]));
+    else throw new Error('Bad LZW stream');
+    parts.push(entry);
+    if (nextCode<4096) dict[nextCode++] = concatU8(prev, new Uint8Array([entry[0]]));
+    prev = entry;
+  }
+  let total=0; for(const p of parts) total+=p.length;
+  const out=new Uint8Array(total); let o=0; for(const p of parts){ out.set(p,o); o+=p.length; }
+  return out;
+}
+
+/* ========= Container ========= */
+const MAGIC = u8([0x4C,0x5A,0x31,0x32]); // 'LZ12'
+const VERSION = 1;
+const FLAG_ENC   = 0x01; // AES-GCM
+const FLAG_STORE = 0x02; // payload is raw (not LZW)
+
+function writeHeader({flags, salt, iv, origLen, crc}){
+  const hdr=new Uint8Array(16);
+  hdr.set(MAGIC,0); hdr[4]=VERSION; hdr[5]=flags&0xFF; hdr[6]=salt.length&0xFF; hdr[7]=iv.length&0xFF;
+  const dv=new DataView(hdr.buffer); dv.setUint32(8,origLen>>>0,true); dv.setUint32(12,crc>>>0,true);
+  return hdr;
+}
+function parseHeader(u){
+  if (u.length<16) throw new Error('Truncated header');
+  const magic=new TextDecoder().decode(u.subarray(0,4));
+  return {
+    magic, ver:u[4], flags:u[5], saltLen:u[6], ivLen:u[7],
+    origLen:new DataView(u.buffer,u.byteOffset,u.byteLength).getUint32(8,true),
+    crc:new DataView(u.buffer,u.byteOffset,u.byteLength).getUint32(12,true)
+  };
+}
+
+/* ========= Crypto ========= */
+async function deriveKey(password, salt){
+  const baseKey = await crypto.subtle.importKey('raw', te.encode(password), 'PBKDF2', false, ['deriveKey']);
+  return crypto.subtle.deriveKey(
+    {name:'PBKDF2', hash:'SHA-256', salt, iterations:100000},
+    baseKey, {name:'AES-GCM', length:256}, false, ['encrypt','decrypt']
+  );
+}
+const randBytes = n => (crypto.getRandomValues(new Uint8Array(n)));
+
+/* ========= BASIC DATA ========= */
+function toBasicDataLines(b64url, pad=false){
+  const s = pad ? (()=>{let x=b64url; while (x.length%4) x+='='; return x;})() : b64url;
+  const CHUNK = 68, lines=[]; let ln=10;
+  lines.push(`${ln} REM RETRO-LIST LZW12 V1`); ln+=10;
+  for(let i=0;i<s.length;i+=CHUNK) lines.push(`${ln} DATA ${s.slice(i,i+CHUNK)}`), ln+=10;
+  lines.push(`${ln} END`); return lines.join('\n');
+}
+function fromBasicData(text){
+  const dataLines=[];
+  for (const raw of text.split(/\r?\n/)){
+    const m=raw.match(/^\s*\d+\s+DATA\s+([A-Za-z0-9\-_=]+)/i);
+    if (m) dataLines.push(m[1]);
+  }
+  if (dataLines.length) return dataLines.join('').replace(/=+$/,'');
+  const toks = text.match(/[A-Za-z0-9\-_]+/g) || [];
+  toks.sort((a,b)=>b.length-a.length);
+  return (toks[0]||'').replace(/=+$/,'');
+}
+
+/* ========= UI wires ========= */
+const $ = id=>document.getElementById(id);
+const inText=$('inText'), outText=$('outText'), outPlain=$('outPlain');
+const useEnc=$('useEnc'), pwd=$('pwd'), autoOpt=$('autoOpt'), asBasic=$('asBasic'), padData=$('padData');
+const sEnc=$('statusEnc'), sCopy=$('statusCopy');
+useEnc.addEventListener('change',()=>{ pwd.disabled = !useEnc.checked; });
+
+$('btnClearIn').onclick = ()=>{ inText.value=''; inText.dispatchEvent(new Event('input')); };
+$('btnClearOut').onclick= ()=>{ outText.value=''; sCopy.textContent=''; outText.dispatchEvent(new Event('input')); };
+
+$('btnCopy').onclick = async ()=>{
+  try{ await navigator.clipboard.writeText(outText.value);
+       sCopy.textContent='Copied to clipboard.'; sCopy.className='status ok';
+  }catch(e){ outText.focus(); outText.select(); sCopy.textContent='Clipboard blocked → text selected. Press Ctrl/Cmd+C.'; sCopy.className='status'; }
+};
+
+/* ========= Compress → Export ========= */
+$('btnCompress').onclick = async ()=>{
+  try{
+    const plain = te.encode(inText.value);
+    const comp  = lzw12_compress(plain);
+
+    let flags=0, salt=u8([]), iv=u8([]), payload=comp, note='LZW';
+    if (autoOpt.checked && comp.length >= plain.length){
+      flags |= FLAG_STORE; payload = plain; note='STORED (raw)';
+    }
+
+    if (useEnc.checked){
+      const pw=pwd.value??''; if (!pw){ sEnc.textContent='Password required for encryption.'; sEnc.className='status err'; return; }
+      salt = randBytes(16); iv = randBytes(12); const key = await deriveKey(pw, salt);
+      payload = new Uint8Array(await crypto.subtle.encrypt({name:'AES-GCM', iv}, key, payload));
+      flags |= FLAG_ENC; note += ' + AES-GCM';
+    }
+
+    const header = writeHeader({flags, salt, iv, origLen: plain.length, crc: crc32(plain)});
+    const container = concatU8(header, salt, iv, payload);
+    let b64u = b64urlEncode(container); if (padData.checked){ while (b64u.length%4) b64u+='='; }
+    outText.value = asBasic.checked ? toBasicDataLines(b64u, padData.checked) : b64u;
+    outText.dispatchEvent(new Event('input'));
+
+    const ratio = (container.length / Math.max(1, plain.length))*100;
+    sEnc.textContent = `OK — ${note}. payload ${payload.length} B, total ${container.length} B (vs ${plain.length} B, ${ratio.toFixed(1)}%).`;
+    sEnc.className='status ok';
+  }catch(err){ sEnc.textContent='Error: '+err.message; sEnc.className='status err'; }
+};
+
+/* ========= Import → Decompress ========= */
+$('btnDecompress').onclick = async ()=>{
+  resetHdr();
+  try{
+    const b64u = fromBasicData(outText.value||'');
+    if (!b64u){ $('hNote').textContent='Nothing to import.'; return; }
+    const bin = b64urlDecode(b64u);
+    const hdr = parseHeader(bin); setHdr(hdr);
+    if (hdr.magic!=='LZ12' || hdr.ver!==1) throw new Error('Unsupported container (magic/version)');
+
+    const off=16, salt=bin.subarray(off, off+hdr.saltLen), iv=bin.subarray(off+hdr.saltLen, off+hdr.saltLen+hdr.ivLen);
+    let payload = bin.subarray(off + hdr.saltLen + hdr.ivLen);
+
+    if (hdr.flags & FLAG_ENC){
+      const pw = prompt('Encrypted payload — enter password:') ?? '';
+      const key = await deriveKey(pw, salt);
+      try{
+        payload = new Uint8Array(await crypto.subtle.decrypt({name:'AES-GCM', iv}, key, payload));
+        $('hNote').textContent='AES-GCM decrypt OK.';
+      }catch(e){ throw new Error('Decryption failed (wrong password or tampered data).'); }
+    }else{ $('hNote').textContent='Unencrypted payload.'; }
+
+    let plainU8;
+    if (hdr.flags & FLAG_STORE){ plainU8 = payload; $('hNote').textContent += ' Stored (no LZW).'; }
+    else { plainU8 = lzw12_decompress(payload); $('hNote').textContent += ' LZW decompressed.'; }
+
+    const crcCalc=crc32(plainU8);
+    $('hCRCcalc').textContent='0x'+crcCalc.toString(16).padStart(8,'0').toUpperCase();
+    $('hOK').textContent = (crcCalc===hdr.crc && plainU8.length===hdr.origLen) ? 'OK (length & CRC match)' : 'Mismatch!';
+    outPlain.value = td.decode(plainU8); outPlain.dispatchEvent(new Event('input'));
+    inText.value = td.decode(plainU8); inText.dispatchEvent(new Event('input'));
+  }catch(err){
+    $('hNote').textContent='Error: '+err.message;
+    outPlain.value=''; outPlain.dispatchEvent(new Event('input'));
+  }
+};
+
+/* Header helpers */
+function resetHdr(){ ['hMagic','hVer','hFlags','hSalt','hIv','hOrig','hCRC','hCRCcalc','hOK','hNote'].forEach(id=>$(id).textContent='—'); }
+function setHdr(h){
+  $('hMagic').textContent=h.magic; $('hVer').textContent=h.ver;
+  $('hFlags').textContent='0x'+(h.flags>>>0).toString(16).toUpperCase();
+  $('hSalt').textContent=h.saltLen; $('hIv').textContent=h.ivLen; $('hOrig').textContent=h.origLen+' B';
+  $('hCRC').textContent='0x'+h.crc.toString(16).padStart(8,'0').toUpperCase();
+}
+
+/* Demo payloads (your earlier sample) */
+const DEMO_DATA = `10 REM RETRO-LIST LZW12 V1
+20 DATA TFoxMgEAAAAhAQAADHRF3FPwBiCQBCBwB2HgBnQAAnQQEGSQBnNAB3KQBmJQB3RQ
+30 DATA BiBgB2kQBglRBniAEGyQBmtQEVBABEYAAiiQBm4AAmbwBnLQBiDwBmYAAnJQBg8R
+40 DATA EG0QBmcQBnpwEmWQAiDgEQ5xEmcwBy4BE3AgB2_QBnBAB3PAAiAQBmtwEk7hESCR
+50 DATA EAEhBEEwBUkwBD7REHQQFEMRFTGQAzgAAycwBy4AAkIwEQJBEAaBEAoBAmOAFEZR
+60 DATA BnMwFHSABmXQEneQBngBAnOAFBUxB2UAEW9QB0MRBmxwBivRF2jQBk0xFRWhBUkA
+70 DATA BS4hByAgBUEgBWhxBRBBESDQBhWREXMQFGxQEWaQBqYBAkhABU3ABDXwF2mQFKph
+80 DATA FHOBEGXAEApxGXzhF3KRFDJhF2nwBihhEGQAAmRQBnJBF8ExHC4A
+90 END`;
+const DEMO_B64 = (function(){ return fromBasicData(DEMO_DATA); })();
+
+$('btnDemoData').onclick = ()=>{
+  outText.value = DEMO_DATA;
+  sCopy.textContent = 'Demo DATA loaded. Click “Import → Decompress” or press Demo ▶.';
+  outText.dispatchEvent(new Event('input'));
+};
+$('btnDemoB64').onclick = ()=>{
+  outText.value = DEMO_B64;
+  sCopy.textContent = 'Demo Base64 container loaded. Click “Import → Decompress” or press Demo ▶.';
+  outText.dispatchEvent(new Event('input'));
+};
+$('btnDemoRun').onclick = ()=>{
+  outText.value = DEMO_DATA;
+  outText.dispatchEvent(new Event('input'));
+  $('btnDecompress').click();
+};
+</script></body>
+</html>

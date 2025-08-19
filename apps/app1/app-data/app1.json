@@ -70,6 +70,10 @@
           "type": "jokes"
         },
         {
+          "label": "RETRO-LIST",
+          "type": "retro-list"
+        },
+        {
           "label": "Activity",
           "type": "activity"
         }
@@ -151,6 +155,11 @@
       "label": "Cloud Storage"
     },
     {
+      "type": "retro-list",
+      "emoji": "📼",
+      "label": "RETRO-LIST"
+    },
+    {
       "type": "jokes",
       "emoji": "😂",
       "label": "Jokes"
@@ -221,6 +230,12 @@
       "content": "<iframe src=\"cloud-storage.html\" style=\"width:100%;height:100%;border:none;\"></iframe>",
       "width": 500,
       "height": 350
+    },
+    "retro-list": {
+      "title": "RETRO-LIST LZW12",
+      "content": "<iframe src=\"retro-list.html\" style=\"width:100%;height:100%;border:none;\"></iframe>",
+      "width": 800,
+      "height": 600
     },
     "jokes": {
       "title": "Random Joke",
