@@ -272,6 +272,7 @@
     }
   },
   "settings": {
-    "clockFormat": "en-US"
+    "clockFormat": "en-US",
+    "persistWindows": true
   }
 }
