@@ -76,6 +76,10 @@
         {
           "label": "Activity",
           "type": "activity"
+        },
+        {
+          "label": "Notes",
+          "type": "notes"
         }
       ]
     },
@@ -114,16 +118,21 @@
       "emoji": "⌨️",
       "label": "Terminal"
     },
-    {
-      "type": "text-editor",
-      "emoji": "📝",
-      "label": "TextEdit"
-    },
-    {
-      "type": "calculator",
-      "emoji": "🧮",
-      "label": "Calculator"
-    },
+      {
+        "type": "text-editor",
+        "emoji": "📝",
+        "label": "TextEdit"
+      },
+      {
+        "type": "notes",
+        "emoji": "🗒️",
+        "label": "Notes"
+      },
+      {
+        "type": "calculator",
+        "emoji": "🧮",
+        "label": "Calculator"
+      },
     {
       "type": "calendar",
       "emoji": "📅",
@@ -184,17 +193,23 @@
       "height": 250
     },
     "text-editor": {
-      "title": "Text Editor",
-      "content": "<div class=\"text-editor\" style=\"display:flex;flex-direction:column;height:100%\"><div style=\"text-align:right;margin-bottom:5px;\"><button id=\"text-editor-export\" style=\"font-size:16px;\">Export PDF</button></div><textarea id=\"text-editor-area\" style=\"flex:1;background:#fff;border:1px solid #aaa;padding:5px;font-family:monospace;font-size:18px;\">Welcome to WebGUI 0.1.0!\n\nThe icon issue has been fixed!\n• All desktop icons are now fully functional\n• Click any icon to open an application\n• The wallpaper no longer blocks clicks\n\nTry clicking on any icon to open its application.\n\nWebGUI continues to push the boundaries of personal computing!</textarea></div>",
-      "width": 500,
-      "height": 350
-    },
+        "title": "Text Editor",
+        "content": "<div class=\"text-editor\" style=\"display:flex;flex-direction:column;height:100%\"><div style=\"text-align:right;margin-bottom:5px;\"><button id=\"text-editor-export\" style=\"font-size:16px;\">Export PDF</button></div><textarea id=\"text-editor-area\" style=\"flex:1;background:#fff;border:1px solid #aaa;padding:5px;font-family:monospace;font-size:18px;\">Welcome to WebGUI 0.1.0!\n\nThe icon issue has been fixed!\n• All desktop icons are now fully functional\n• Click any icon to open an application\n• The wallpaper no longer blocks clicks\n\nTry clicking on any icon to open its application.\n\nWebGUI continues to push the boundaries of personal computing!</textarea></div>",
+        "width": 500,
+        "height": 350
+      },
+    "notes": {
+        "title": "Notes",
+        "content": "<textarea id=\"notes-area\" style=\"width:100%;height:100%;\"></textarea>",
+        "width": 400,
+        "height": 300
+      },
     "calculator": {
-      "title": "Calculator",
-      "content": "<div class=\"calculator\"><div class=\"calc-display\" id=\"calc-display\">0</div><button class=\"calc-btn\" onclick=\"clearCalc()\">C</button><button class=\"calc-btn\" onclick=\"appendCalc('%')\">%</button><button class=\"calc-btn\" onclick=\"appendCalc('←')\">←</button><button class=\"calc-btn operator\" onclick=\"appendCalc('/')\">×</button><button class=\"calc-btn\" onclick=\"appendCalc('7')\">7</button><button class=\"calc-btn\" onclick=\"appendCalc('8')\">8</button><button class=\"calc-btn\" onclick=\"appendCalc('9')\">9</button><button class=\"calc-btn operator\" onclick=\"appendCalc('*')\">×</button><button class=\"calc-btn\" onclick=\"appendCalc('4')\">4</button><button class=\"calc-btn\" onclick=\"appendCalc('5')\">5</button><button class=\"calc-btn\" onclick=\"appendCalc('6')\">6</button><button class=\"calc-btn operator\" onclick=\"appendCalc('-')\">-</button><button class=\"calc-btn\" onclick=\"appendCalc('1')\">1</button><button class=\"calc-btn\" onclick=\"appendCalc('2')\">2</button><button class=\"calc-btn\" onclick=\"appendCalc('3')\">3</button><button class=\"calc-btn operator\" onclick=\"appendCalc('+')\">+</button><button class=\"calc-btn\" onclick=\"appendCalc('0')\">0</button><button class=\"calc-btn\" onclick=\"appendCalc('.')\">.</button><button class=\"calc-btn operator\" onclick=\"calculate()\">=</button></div>",
-      "width": 250,
-      "height": 300
-    },
+        "title": "Calculator",
+        "content": "<div class=\"calculator\"><div class=\"calc-display\" id=\"calc-display\">0</div><button class=\"calc-btn\" onclick=\"clearCalc()\">C</button><button class=\"calc-btn\" onclick=\"appendCalc('%')\">%</button><button class=\"calc-btn\" onclick=\"appendCalc('←')\">←</button><button class=\"calc-btn operator\" onclick=\"appendCalc('/')\">×</button><button class=\"calc-btn\" onclick=\"appendCalc('7')\">7</button><button class=\"calc-btn\" onclick=\"appendCalc('8')\">8</button><button class=\"calc-btn\" onclick=\"appendCalc('9')\">9</button><button class=\"calc-btn operator\" onclick=\"appendCalc('*')\">×</button><button class=\"calc-btn\" onclick=\"appendCalc('4')\">4</button><button class=\"calc-btn\" onclick=\"appendCalc('5')\">5</button><button class=\"calc-btn\" onclick=\"appendCalc('6')\">6</button><button class=\"calc-btn operator\" onclick=\"appendCalc('-')\">-</button><button class=\"calc-btn\" onclick=\"appendCalc('1')\">1</button><button class=\"calc-btn\" onclick=\"appendCalc('2')\">2</button><button class=\"calc-btn\" onclick=\"appendCalc('3')\">3</button><button class=\"calc-btn operator\" onclick=\"appendCalc('+')\">+</button><button class=\"calc-btn\" onclick=\"appendCalc('0')\">0</button><button class=\"calc-btn\" onclick=\"appendCalc('.')\">.</button><button class=\"calc-btn operator\" onclick=\"calculate()\">=</button></div>",
+        "width": 250,
+        "height": 300
+      },
     "calendar": {
       "title": "Calendar",
       "content": "<div class=\"calendar\"><div class=\"calendar-header\"><button onclick=\"changeMonth(-1)\" style=\"font-size: 18px;\">←</button><h3 id=\"calendar-month-year\">{MONTH_YEAR}</h3><button onclick=\"changeMonth(1)\" style=\"font-size: 18px;\">→</button></div><div class=\"calendar-grid\"><div class=\"calendar-day header\">Sun</div><div class=\"calendar-day header\">Mon</div><div class=\"calendar-day header\">Tue</div><div class=\"calendar-day header\">Wed</div><div class=\"calendar-day header\">Thu</div><div class=\"calendar-day header\">Fri</div><div class=\"calendar-day header\">Sat</div>{CALENDAR_DAYS}</div></div>",
