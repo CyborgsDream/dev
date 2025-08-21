@@ -69,20 +69,7 @@ export function initScene(container, fpsCounter) {
   console.info('Directional light added');
 
   meshes = [];
-  function createMesh(geometry, color, x, z = 1) {
-    const material = new THREE.MeshStandardMaterial({ color });
-    const mesh = new THREE.Mesh(geometry, material);
-    mesh.position.set(x, 2, z);
-    mesh.castShadow = true;
-    mesh.receiveShadow = true;
-    scene.add(mesh);
-    meshes.push(mesh);
-    return mesh;
-  }
-
-  createMesh(new THREE.IcosahedronGeometry(1.2), 0xff6600, -4);
-  createMesh(new THREE.TorusGeometry(0.9, 0.3, 16, 30), 0x0096d6, 0);
-  console.info('Meshes created', meshes.map(m => m.position));
+  console.info('Meshes initialized');
 
   // Chunky voxel-style DEMOS heading
   const LETTERS = {
