@@ -37,6 +37,18 @@ if (consoleLogEl) {
 }
 console.log('DEMOS loaded');
 
+const demoList = document.getElementById('demo-list');
+if (demoList) {
+  apps.forEach(app => {
+    const li = document.createElement('li');
+    const a = document.createElement('a');
+    a.href = app.file;
+    a.textContent = app.file;
+    li.appendChild(a);
+    demoList.appendChild(li);
+  });
+}
+
 const container = document.getElementById('scene-container');
 const fpsCounter = document.getElementById('fps-counter');
 
