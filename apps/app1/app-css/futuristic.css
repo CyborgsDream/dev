@@ -1,0 +1,65 @@
+/* Futuristic theme overrides */
+body {
+  background: #111;
+  color: #eee;
+}
+.desktop {
+  background: #111;
+  border: 1px solid #444;
+  box-shadow: none;
+}
+.desktop::after,
+.desktop::before {
+  content: none;
+}
+.menu-bar {
+  height: 20px;
+  font-size: 14px;
+  background: linear-gradient(to bottom, #222, #111);
+  border-bottom: 1px solid #444;
+}
+.menu-item {
+  margin-right: 10px;
+  padding: 0 4px;
+}
+.dropdown {
+  top: 20px;
+  min-width: 150px;
+}
+.dropdown-item {
+  padding: 3px 8px;
+  font-size: 14px;
+}
+.clock {
+  font-size: 14px;
+}
+.desktop-icons {
+  padding: 10px;
+  gap: 20px;
+}
+.icon {
+  width: 48px;
+}
+.icon .icon-image {
+  font-size: 28px;
+}
+.icon-label {
+  font-size: 14px;
+}
+.window-header {
+  height: 20px;
+  font-size: 14px;
+}
+.window-header .window-title {
+  font-size: 14px;
+}
+.task-bar {
+  height: 20px;
+  font-size: 14px;
+}
+.task-icon {
+  width: 40px;
+}
+button, input, textarea {
+  font-size: 14px;
+}

@@ -580,6 +580,7 @@
         
         /* Icons are now clickable! */
     </style>
+    <link id="theme-link" rel="stylesheet">
 </head>
 <body>
     <div class="desktop" id="desktop">
@@ -633,6 +634,16 @@
         let persistWindows = true;
         let windowStates = JSON.parse(localStorage.getItem('windowStates') || '{}');
 
+        function setTheme(theme) {
+            const link = document.getElementById('theme-link');
+            if (theme === 'retro') {
+                link.removeAttribute('href');
+            } else {
+                link.setAttribute('href', `app-css/${theme}.css`);
+            }
+            localStorage.setItem('theme', theme);
+        }
+
         function buildMenus(menus) {
             const bar = document.getElementById('menu-bar');
             const clock = document.getElementById('clock');
@@ -647,7 +658,9 @@
                     const div = document.createElement('div');
                     div.className = 'dropdown-item';
                     div.textContent = entry.label;
-                    if (entry.type) {
+                    if (entry.action === 'set-theme' && entry.theme) {
+                        div.addEventListener('click', () => setTheme(entry.theme));
+                    } else if (entry.type) {
                         div.setAttribute('onclick', `openWindow('${entry.type}')`);
                     }
                     dropdown.appendChild(div);
@@ -1022,6 +1035,7 @@
         async function init() {
             const res = await fetch('app-data/app1.json');
             appData = await res.json();
+            setTheme(localStorage.getItem('theme') || 'retro');
             persistWindows = appData.settings && appData.settings.persistWindows !== false;
             buildMenus(appData.menus);
             buildIcons(appData.icons);

@@ -99,6 +99,13 @@
           "label": "Close All"
         }
       ]
+    },
+    {
+      "label": "Theme",
+      "items": [
+        { "label": "Retro", "action": "set-theme", "theme": "retro" },
+        { "label": "Futuristic", "action": "set-theme", "theme": "futuristic" }
+      ]
     }
   ],
   "status": "Ready.",
