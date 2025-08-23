@@ -1,0 +1,12 @@
+:root{
+  --bg:#fdfdfd;
+  --panel:#ffffff;
+  --ink:#000;
+  --muted:#555;
+  --accent:#007acc;
+  --ok:#0a0;
+  --warn:#c08000;
+  --err:#d00;
+  --line:#ccc;
+}
+body{background:var(--bg);color:var(--ink);} 

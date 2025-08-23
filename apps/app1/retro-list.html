@@ -62,6 +62,20 @@
   .mono{white-space:pre-wrap; word-break:break-word}
   .foot{color:var(--muted); opacity:.85; margin:.6rem 0 0}
 </style>
+<script>
+const theme = localStorage.getItem("theme");
+if(theme === "light"){
+  const link=document.createElement("link");
+  link.rel="stylesheet";
+  link.href="app-css/retro-list-light.css";
+  document.head.appendChild(link);
+}else if(theme === "futuristic"){
+  const link=document.createElement("link");
+  link.rel="stylesheet";
+  link.href="app-css/retro-list-futuristic.css";
+  document.head.appendChild(link);
+}
+</script>
 </head>
 <body>
   <div class="wrap">

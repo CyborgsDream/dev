@@ -14,17 +14,21 @@ function selectTheme() {
     selector.querySelectorAll('button').forEach(btn => {
       btn.addEventListener('click', () => {
         const theme = btn.dataset.theme;
-        const link = document.getElementById('theme-link');
-        link.href = theme === 'light' ? 'css/style-light.css' : 'css/style.css';
-        selector.style.display = 'none';
-        resolve(theme);
+          const link = document.getElementById('theme-link');
+          let href = 'css/style.css';
+          if (theme === 'light') href = 'css/style-light.css';
+          else if (theme === 'futuristic') href = 'css/style-futuristic.css';
+          link.href = href;
+          localStorage.setItem('theme', theme);
+          selector.style.display = 'none';
+          resolve(theme);
       });
     });
   });
 }
 
 const theme = await selectTheme();
-const labelColor = theme === 'light' ? '#000' : '#fff';
+const labelColor = theme === 'light' ? '#000' : theme === 'futuristic' ? '#0ff' : '#fff';
 
 const { apps } = await fetch('data/index.json').then(r => r.json());
 const consoleLogEl = document.getElementById('console-log');
