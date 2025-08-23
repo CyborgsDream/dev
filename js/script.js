@@ -7,6 +7,25 @@ import { initLabels, addLabel } from './labels.js';
 import { initScene, scene, meshes, renderer, camera } from './scene.js';
 import { initInteraction } from './interaction.js';
 
+function selectTheme() {
+  return new Promise(resolve => {
+    const selector = document.getElementById('theme-selection');
+    selector.style.display = 'flex';
+    selector.querySelectorAll('button').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const theme = btn.dataset.theme;
+        const link = document.getElementById('theme-link');
+        link.href = theme === 'light' ? 'css/style-light.css' : 'css/style.css';
+        selector.style.display = 'none';
+        resolve(theme);
+      });
+    });
+  });
+}
+
+const theme = await selectTheme();
+const labelColor = theme === 'light' ? '#000' : '#fff';
+
 const { apps } = await fetch('data/index.json').then(r => r.json());
 const consoleLogEl = document.getElementById('console-log');
 if (consoleLogEl) {
@@ -40,8 +59,8 @@ apps.forEach((app, i) => {
   scene.add(mesh);
   meshes.push(mesh);
   const offsetX = x < 0 ? -20 : 20;
-  addLabel(mesh, app.name, '#fff', -1, 'object-label', offsetX);
-  addLabel(mesh, app.short, '#fff', -1.5, 'object-info', offsetX);
+  addLabel(mesh, app.name, labelColor, -1, 'object-label', offsetX);
+  addLabel(mesh, app.short, labelColor, -1.5, 'object-info', offsetX);
 });
 
 initInteraction({ container, renderer, camera, meshes, apps });

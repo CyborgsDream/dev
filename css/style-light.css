@@ -227,17 +227,45 @@ main {
   left: 0;
   width: 100%;
   height: 100%;
-  background: rgba(0, 0, 0, 0.8);
+  background: rgba(255, 255, 255, 0.8);
   display: none;
   align-items: center;
   justify-content: center;
   flex-direction: column;
   z-index: 100;
-  color: #fff;
+  color: #000;
 }
 
 #theme-selection button {
   margin: 0.5rem;
   padding: 0.5rem 1rem;
   cursor: pointer;
+}
+
+/* Light theme overrides */
+body {
+  color: #000;
+  background: #fff;
+}
+
+#fps-counter,
+#version-number {
+  color: #000;
+  background: rgba(255, 255, 255, 0.5);
+}
+
+#cinematic-heading,
+#bottom-text,
+.object-label,
+.object-info {
+  color: #000;
+}
+
+#scene-container canvas {
+  background: #f0f0f0;
+}
+
+#app-info {
+  background: rgba(255, 255, 255, 0.6);
+  color: #000;
 }
