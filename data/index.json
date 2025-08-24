@@ -12,5 +12,12 @@
       "short": "lorem ipsum doloret sit amet",
       "long": "This is the second demo showcasing features."
     }
+    ,
+    {
+      "name": "Universe",
+      "file": "apps/universe/index.html",
+      "short": "Hyperluminal celestial terrain demo",
+      "long": "Explore galaxies, nebulae, lensing effects and a black hole."
+    }
   ]
 }
