@@ -27,6 +27,15 @@ Change Log:
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>DEMOS</title>
   <link id="theme-link" rel="stylesheet" href="css/style.css">
+  <script>
+    const storedTheme = localStorage.getItem('theme');
+    if (storedTheme) {
+      let href = 'css/style.css';
+      if (storedTheme === 'light') href = 'css/style-light.css';
+      else if (storedTheme === 'futuristic') href = 'css/style-futuristic.css';
+      document.getElementById('theme-link').href = href;
+    }
+  </script>
 </head>
 <body>
   <div id="theme-selection">
