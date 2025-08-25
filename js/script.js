@@ -7,6 +7,14 @@ import { initLabels, addLabel } from './labels.js';
 import { initScene, scene, meshes, renderer, camera } from './scene.js';
 import { initInteraction } from './interaction.js';
 
+function applyTheme(theme) {
+  const link = document.getElementById('theme-link');
+  let href = 'css/style.css';
+  if (theme === 'light') href = 'css/style-light.css';
+  else if (theme === 'futuristic') href = 'css/style-futuristic.css';
+  link.href = href;
+}
+
 function selectTheme() {
   return new Promise(resolve => {
     const selector = document.getElementById('theme-selection');
@@ -14,20 +22,21 @@ function selectTheme() {
     selector.querySelectorAll('button').forEach(btn => {
       btn.addEventListener('click', () => {
         const theme = btn.dataset.theme;
-          const link = document.getElementById('theme-link');
-          let href = 'css/style.css';
-          if (theme === 'light') href = 'css/style-light.css';
-          else if (theme === 'futuristic') href = 'css/style-futuristic.css';
-          link.href = href;
-          localStorage.setItem('theme', theme);
-          selector.style.display = 'none';
-          resolve(theme);
+        applyTheme(theme);
+        localStorage.setItem('theme', theme);
+        selector.style.display = 'none';
+        resolve(theme);
       });
     });
   });
 }
 
-const theme = await selectTheme();
+let theme = localStorage.getItem('theme');
+if (!theme) {
+  theme = await selectTheme();
+} else {
+  applyTheme(theme);
+}
 const labelColor = theme === 'light' ? '#000' : theme === 'futuristic' ? '#0ff' : '#fff';
 
 const { apps } = await fetch('data/index.json').then(r => r.json());
@@ -47,7 +56,7 @@ if (demoList) {
     const li = document.createElement('li');
     const a = document.createElement('a');
     a.href = app.file;
-    a.textContent = app.file;
+    a.textContent = app.name;
     li.appendChild(a);
     demoList.appendChild(li);
   });
