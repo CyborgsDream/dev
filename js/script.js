@@ -68,6 +68,25 @@ const fpsCounter = document.getElementById('fps-counter');
 initLabels(container);
 initScene(container, fpsCounter);
 
+// Simple character placed in front of the camera
+const character = new THREE.Group();
+const body = new THREE.Mesh(
+  new THREE.BoxGeometry(0.5, 1.5, 0.3),
+  new THREE.MeshStandardMaterial({ color: 0x00ff00 })
+);
+body.position.y = 0.75;
+body.castShadow = true;
+const head = new THREE.Mesh(
+  new THREE.SphereGeometry(0.35, 16, 16),
+  new THREE.MeshStandardMaterial({ color: 0xffcc99 })
+);
+head.position.y = 1.6;
+head.castShadow = true;
+character.add(body);
+character.add(head);
+character.position.set(0, 1.5, 2);
+scene.add(character);
+
 const radius = 4;
 apps.forEach((app, i) => {
   const angle = (i / apps.length) * Math.PI * 2;
@@ -89,3 +108,52 @@ apps.forEach((app, i) => {
 });
 
 initInteraction({ container, renderer, camera, meshes, apps });
+
+function bindHold(btn, action) {
+  let interval;
+  btn.addEventListener('pointerdown', e => {
+    e.preventDefault();
+    action();
+    interval = setInterval(action, 100);
+  });
+  ['pointerup', 'pointerleave', 'touchend', 'touchcancel'].forEach(ev =>
+    btn.addEventListener(ev, () => clearInterval(interval))
+  );
+}
+
+function setupTouchControls() {
+  const forwardBtn = document.getElementById('move-forward');
+  const backBtn = document.getElementById('move-back');
+  const leftBtn = document.getElementById('move-left');
+  const rightBtn = document.getElementById('move-right');
+  const zoomInBtn = document.getElementById('zoom-in');
+  const zoomOutBtn = document.getElementById('zoom-out');
+  const moveStep = 0.2;
+  const zoomStep = 2;
+  bindHold(forwardBtn, () => {
+    camera.position.z -= moveStep;
+    camera.lookAt(0, 2, 0);
+  });
+  bindHold(backBtn, () => {
+    camera.position.z += moveStep;
+    camera.lookAt(0, 2, 0);
+  });
+  bindHold(leftBtn, () => {
+    camera.position.x -= moveStep;
+    camera.lookAt(0, 2, 0);
+  });
+  bindHold(rightBtn, () => {
+    camera.position.x += moveStep;
+    camera.lookAt(0, 2, 0);
+  });
+  bindHold(zoomInBtn, () => {
+    camera.fov = Math.max(20, camera.fov - zoomStep);
+    camera.updateProjectionMatrix();
+  });
+  bindHold(zoomOutBtn, () => {
+    camera.fov = Math.min(100, camera.fov + zoomStep);
+    camera.updateProjectionMatrix();
+  });
+}
+
+setupTouchControls();
