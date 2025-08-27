@@ -23,7 +23,7 @@ export function initScene(container, fpsCounter) {
 
   scene = new THREE.Scene();
   const { width: initW, height: initH } = setContainerSize();
-  camera = new THREE.PerspectiveCamera(75, initW / initH, 0.1, 1000);
+  camera = new THREE.PerspectiveCamera(60, initW / initH, 0.1, 1000);
   renderer = new THREE.WebGLRenderer({ antialias: true });
   renderer.setSize(initW, initH);
   renderer.setClearColor(0x000033);
@@ -151,7 +151,7 @@ export function initScene(container, fpsCounter) {
   scene.add(textMesh);
   console.info('Voxel text added', textMesh.position);
 
-  camera.position.set(0, 7, 5);
+  camera.position.set(0, 6, 3);
   camera.lookAt(0, 2, 0);
 
   let lastTime;

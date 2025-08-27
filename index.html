@@ -27,6 +27,34 @@ Change Log:
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>DEMOS</title>
   <link id="theme-link" rel="stylesheet" href="css/style.css">
+  <style>
+    #touch-controls {
+      position: absolute;
+      bottom: 20px;
+      left: 20px;
+      display: flex;
+      gap: 20px;
+      z-index: 10;
+    }
+    #move-pad {
+      display: grid;
+      grid-template-columns: 40px 40px 40px;
+      grid-template-rows: 40px 40px 40px;
+      gap: 5px;
+    }
+    #move-forward { grid-column: 2; grid-row: 1; }
+    #move-left { grid-column: 1; grid-row: 2; }
+    #move-right { grid-column: 3; grid-row: 2; }
+    #move-back { grid-column: 2; grid-row: 3; }
+    #zoom-pad { display: flex; flex-direction: column; gap: 5px; }
+    #touch-controls button {
+      width: 40px;
+      height: 40px;
+      background: rgba(255, 255, 255, 0.5);
+      border: 1px solid #888;
+      border-radius: 4px;
+    }
+  </style>
   <script>
     const storedTheme = localStorage.getItem('theme');
     if (storedTheme) {
@@ -57,6 +85,18 @@ Change Log:
         <button id="run-app">Run App</button>
       </div>
       <div id="bottom-text">(c) 2025 CyborgsDream</div>
+      <div id="touch-controls">
+        <div id="move-pad">
+          <button id="move-forward">&#9650;</button>
+          <button id="move-left">&#9664;</button>
+          <button id="move-right">&#9654;</button>
+          <button id="move-back">&#9660;</button>
+        </div>
+        <div id="zoom-pad">
+          <button id="zoom-in">+</button>
+          <button id="zoom-out">-</button>
+        </div>
+      </div>
     </div>
     <div id="demo-files">
       <h2>Available Demos</h2>
