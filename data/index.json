@@ -6,18 +6,25 @@
       "short": "lorem ipsum doloret sit amet",
       "long": "This is the first demo showcasing features."
     },
-    {
-      "name": "Demo Two",
-      "file": "apps/app2/index.html",
-      "short": "lorem ipsum doloret sit amet",
-      "long": "This is the second demo showcasing features."
-    }
-    ,
-    {
-      "name": "Universe",
-      "file": "apps/universe/index.html",
-      "short": "Hyperluminal celestial terrain demo",
-      "long": "Explore galaxies, nebulae, lensing effects and a black hole."
-    }
+      {
+        "name": "Demo Two",
+        "file": "apps/app2/index.html",
+        "short": "lorem ipsum doloret sit amet",
+        "long": "This is the second demo showcasing features."
+      }
+      ,
+      {
+        "name": "Demo Three",
+        "file": "apps/app3/index.html",
+        "short": "lorem ipsum doloret sit amet",
+        "long": "This is the third demo showcasing features."
+      }
+      ,
+      {
+        "name": "Universe",
+        "file": "apps/universe/index.html",
+        "short": "Hyperluminal celestial terrain demo",
+        "long": "Explore galaxies, nebulae, lensing effects and a black hole."
+      }
   ]
 }
