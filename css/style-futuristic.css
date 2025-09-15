@@ -61,6 +61,31 @@ main {
   overflow-wrap: anywhere;
 }
 
+#demo-files {
+  position: absolute;
+  top: 40px;
+  right: 10px;
+  z-index: 20;
+  color: #0ff;
+  background: rgba(0, 0, 0, 0.6);
+  padding: 0.5rem;
+  border-radius: 4px;
+  font-size: 0.6rem;
+}
+
+#demo-files h2 {
+  font-size: 0.8rem;
+  margin-bottom: 0.5rem;
+}
+
+#demo-files ul {
+  list-style: none;
+}
+
+#demo-files li + li {
+  margin-top: 0.25rem;
+}
+
 #console-log {
   position: absolute;
   bottom: 0;

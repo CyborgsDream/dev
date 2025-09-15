@@ -60,6 +60,31 @@ main {
   overflow-wrap: anywhere;
 }
 
+#demo-files {
+  position: absolute;
+  top: 40px;
+  right: 10px;
+  z-index: 20;
+  color: #fff;
+  background: rgba(0, 0, 0, 0.6);
+  padding: 0.5rem;
+  border-radius: 4px;
+  font-size: 0.8rem;
+}
+
+#demo-files h2 {
+  font-size: 1rem;
+  margin-bottom: 0.5rem;
+}
+
+#demo-files ul {
+  list-style: none;
+}
+
+#demo-files li + li {
+  margin-top: 0.25rem;
+}
+
 #console-log {
   position: absolute;
   bottom: 0;
@@ -268,4 +293,9 @@ body {
 #app-info {
   background: rgba(255, 255, 255, 0.6);
   color: #000;
+}
+
+#demo-files {
+  color: #000;
+  background: rgba(255, 255, 255, 0.6);
 }
