@@ -1,4 +1,4 @@
-// Version: 0.1.0
+// Version: 0.1.1
 // Codename: Celestia
 // Basic THREE.js example with multiple objects
 import * as THREE from 'https://unpkg.com/three@0.159.0/build/three.module.js';
