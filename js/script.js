@@ -84,7 +84,8 @@ head.position.y = 1.6;
 head.castShadow = true;
 character.add(body);
 character.add(head);
-character.position.set(0, 1.5, 2);
+character.scale.setScalar(0.7);
+character.position.set(0, 1.2, 2.8);
 scene.add(character);
 
 const radius = 4;
@@ -93,11 +94,11 @@ apps.forEach((app, i) => {
   const x = Math.cos(angle) * radius;
   const z = Math.sin(angle) * radius;
   const geometry = i % 2 === 0
-    ? new THREE.IcosahedronGeometry(1.2)
-    : new THREE.TorusGeometry(0.9, 0.3, 16, 30);
+    ? new THREE.IcosahedronGeometry(0.85)
+    : new THREE.TorusGeometry(0.65, 0.2, 16, 30);
   const color = i % 2 === 0 ? 0xff6600 : 0x0096d6;
   const mesh = new THREE.Mesh(geometry, new THREE.MeshStandardMaterial({ color }));
-  mesh.position.set(x, 2, z);
+  mesh.position.set(x, 1.7, z);
   mesh.castShadow = true;
   mesh.receiveShadow = true;
   scene.add(mesh);

@@ -9,13 +9,31 @@ export let meshes;
 export function initScene(container, fpsCounter) {
   function setContainerSize() {
     const aspect = 16 / 9;
-    let width = window.innerWidth;
-    let height = window.innerHeight;
-    if (width / height > aspect) {
-      width = height * aspect;
-    } else {
-      height = width / aspect;
+    const parent = container.parentElement;
+    let maxWidth = window.innerWidth;
+    let maxHeight = window.innerHeight;
+
+    if (parent) {
+      const styles = window.getComputedStyle(parent);
+      const paddingX = (parseFloat(styles.paddingLeft) || 0) + (parseFloat(styles.paddingRight) || 0);
+      const paddingY = (parseFloat(styles.paddingTop) || 0) + (parseFloat(styles.paddingBottom) || 0);
+      const parentWidth = parent.clientWidth - paddingX;
+      const parentHeight = parent.clientHeight - paddingY;
+      if (parentWidth > 0) {
+        maxWidth = Math.min(maxWidth, parentWidth);
+      }
+      if (parentHeight > 0) {
+        maxHeight = Math.min(maxHeight, parentHeight);
+      }
     }
+
+    let width = maxWidth;
+    let height = width / aspect;
+    if (height > maxHeight) {
+      height = maxHeight;
+      width = height * aspect;
+    }
+
     container.style.width = `${width}px`;
     container.style.height = `${height}px`;
     return { width, height };
@@ -26,7 +44,7 @@ export function initScene(container, fpsCounter) {
   camera = new THREE.PerspectiveCamera(60, initW / initH, 0.1, 1000);
   renderer = new THREE.WebGLRenderer({ antialias: true });
   renderer.setSize(initW, initH);
-  renderer.setClearColor(0x000033);
+  renderer.setClearColor(0x001533);
   renderer.shadowMap.enabled = true;
   container.appendChild(renderer.domElement);
 
@@ -141,8 +159,8 @@ export function initScene(container, fpsCounter) {
       letter.userData.initialZ = letter.position.z;
       letter.userData.phase = Math.random() * Math.PI * 2;
     });
-    group.scale.set(2 / 3, 2 / 3, 2 / 3);
-    group.position.set(0, 4.35, 0.5);
+    group.scale.set(0.55, 0.55, 0.55);
+    group.position.set(0, 4, 0.5);
     group.rotation.x = 0;
     return group;
   }
@@ -151,7 +169,7 @@ export function initScene(container, fpsCounter) {
   scene.add(textMesh);
   console.info('Voxel text added', textMesh.position);
 
-  camera.position.set(0, 6, 3);
+  camera.position.set(0, 7.5, 5);
   camera.lookAt(0, 2, 0);
 
   let lastTime;
