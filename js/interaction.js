@@ -18,12 +18,13 @@ export function initInteraction({ container, renderer, camera, meshes, apps }) {
     const data = apps[index];
     meshes.forEach((m, i) => {
       m.material.transparent = true;
+      const baseScale = (m.userData && m.userData.baseScale) || 1;
       if (i === index) {
-        m.scale.set(1.5, 1.5, 1.5);
+        m.scale.setScalar(baseScale * 1.35);
         m.material.opacity = 1;
       } else {
-        m.scale.set(1, 1, 1);
-        m.material.opacity = 0.25;
+        m.scale.setScalar(baseScale);
+        m.material.opacity = 0.35;
       }
     });
     infoTitle.textContent = data.name;
@@ -47,7 +48,8 @@ export function initInteraction({ container, renderer, camera, meshes, apps }) {
       infoBox.style.display = 'none';
     }, 1000);
     meshes.forEach(m => {
-      m.scale.set(1, 1, 1);
+      const baseScale = (m.userData && m.userData.baseScale) || 1;
+      m.scale.setScalar(baseScale);
       m.material.opacity = 1;
       m.material.transparent = false;
     });
