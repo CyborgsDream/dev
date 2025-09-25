@@ -42,7 +42,15 @@ sunLight.position.set(260, 220, -500);
 scene.add(sunLight);
 
 const camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 3000);
-const controls = { yaw: 0, speed: 60, turnSpeed: Math.PI, height: 60, bounds: 290 };
+const controls = {
+  yaw: 0,
+  yawVelocity: 0,
+  speed: 60,
+  turnSpeed: Math.PI,
+  turnSmooth: 10,
+  height: 60,
+  bounds: 290
+};
 camera.position.set(0, controls.height, 160);
 camera.lookAt(0, 0, 0);
 
@@ -124,8 +132,10 @@ async function generateBlocks(count) {
 }
 
 function updateControls(dt){
-  if (keyState['ArrowLeft'])  controls.yaw -= controls.turnSpeed * dt;
-  if (keyState['ArrowRight']) controls.yaw += controls.turnSpeed * dt;
+  const yawInput = (keyState['ArrowRight'] ? 1 : 0) - (keyState['ArrowLeft'] ? 1 : 0);
+  const targetYawVelocity = yawInput * controls.turnSpeed;
+  controls.yawVelocity = THREE.MathUtils.damp(controls.yawVelocity, targetYawVelocity, controls.turnSmooth, dt);
+  controls.yaw += controls.yawVelocity * dt;
   const forward = new THREE.Vector3(Math.sin(controls.yaw), 0, -Math.cos(controls.yaw));
   let move = new THREE.Vector3();
   if (keyState['ArrowUp']) move.add(forward);
