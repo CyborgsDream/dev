@@ -12,7 +12,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>WebGUI 1.9.1</title>
+    <title>Orbit OS v 0.1.0</title>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=VT323&display=swap">
     <style>
         * {
@@ -610,19 +610,6 @@
         <div class="task-bar" id="task-bar"></div>
         <div class="taskbar-menu" id="taskbar-menu" style="display:none;"></div>
         
-        <!-- System name dialog -->
-        <div class="dialog" id="system-name-dialog" style="display:none;">
-            <div class="window-header">
-                <div class="window-title">System Name</div>
-            </div>
-            <div class="dialog-content">
-                <input id="system-name-input" type="text" style="width:80%;" placeholder="Enter system name">
-                <div class="dialog-buttons">
-                    <div class="dialog-btn" id="system-name-ok">OK</div>
-                </div>
-            </div>
-        </div>
-
         <!-- Theme selection dialog -->
         <div class="dialog" id="theme-dialog" style="display:none;">
             <div class="window-header">
@@ -1051,23 +1038,6 @@
             }
         }
         
-        
-        // Dialog functions
-        function askSystemName() {
-            return new Promise(resolve => {
-                const dialog = document.getElementById('system-name-dialog');
-                dialog.style.display = 'block';
-                document.getElementById('system-name-ok').onclick = () => {
-                    const name = document.getElementById('system-name-input').value.trim();
-                    if (name) {
-                        localStorage.setItem('systemName', name);
-                    }
-                    closeDialog('system-name-dialog');
-                    resolve(name);
-                };
-            });
-        }
-
         function selectThemeDialog() {
             return new Promise(resolve => {
                 const dialog = document.getElementById('theme-dialog');
@@ -1090,7 +1060,6 @@
         // Initialize everything
         async function init() {
             setTheme('retro');
-            await askSystemName();
             await selectThemeDialog();
             const res = await fetch('app-data/app1.json');
             appData = await res.json();
