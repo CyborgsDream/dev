@@ -838,7 +838,7 @@
     <div class="console-headline">
       <span class="console-title">Signal Log</span>
       <div class="console-actions">
-        <span id="console-status" class="console-status">Expanded</span>
+        <span id="console-status" class="console-status" aria-hidden="true"></span>
         <button id="console-fold-btn" type="button" aria-label="Collapse signal log" aria-expanded="true" aria-controls="console-log">
           <span class="fold-icon" aria-hidden="true">
             <svg viewBox="0 0 16 16" role="presentation" focusable="false">
@@ -883,12 +883,12 @@
   const consoleStatus = document.getElementById('console-status');
 
   initConsoleLogs({ container: consoleLogEl, removeAfter: null });
-  console.log('Console dock expanded for extended diagnostics.');
+  console.log('Console dock opened for extended diagnostics.');
 
   if (consoleFoldBtn && consoleDock) {
     const updateConsoleFold = (folded) => {
       if (consoleStatus) {
-        consoleStatus.textContent = folded ? 'Folded' : 'Expanded';
+        consoleStatus.textContent = '';
       }
       const label = folded ? 'Expand signal log' : 'Collapse signal log';
       consoleFoldBtn.setAttribute('aria-label', label);
@@ -897,7 +897,7 @@
       const isFolded = consoleDock.classList.toggle('folded');
       consoleFoldBtn.setAttribute('aria-expanded', String(!isFolded));
       updateConsoleFold(isFolded);
-      console.log(`Signal log ${isFolded ? 'folded' : 'expanded'}.`);
+      console.log(`Signal log ${isFolded ? 'hidden' : 'visible'}.`);
     });
     updateConsoleFold(consoleDock.classList.contains('folded'));
   }
@@ -1579,7 +1579,7 @@
       const isFolded = controlUi.classList.toggle('folded');
       foldBtn.setAttribute('aria-expanded', String(!isFolded));
       updateFoldState(isFolded);
-      console.log(`Control interface ${isFolded ? 'folded' : 'expanded'}.`);
+      console.log(`Control interface ${isFolded ? 'minimised' : 'restored'}.`);
     });
     updateFoldState(controlUi.classList.contains('folded'));
     console.log('Control interface initialised with animated fold icon.');
