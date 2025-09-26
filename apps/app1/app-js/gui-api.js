@@ -8,7 +8,8 @@
             return;
         }
         const script=document.createElement('script');
-        script.src=`app-js/${safe}.js`;
+        const base=(window.ORBIT_BASE_PATH||'');
+        script.src=`${base}app-js/${safe}.js`;
         script.onload=()=>loaded.add(safe);
         document.body.appendChild(script);
     }
