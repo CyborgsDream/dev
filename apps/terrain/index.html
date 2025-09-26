@@ -1242,6 +1242,20 @@
   terrain.rotateX(-Math.PI/2);
   const pos = terrain.attributes.position;
   const basePositions = Float32Array.from(pos.array);
+  const fadeAttribute = new Float32Array(pos.count);
+  const halfSize = terrainSize / 2;
+  const fadeWidth = terrainSize * 0.22;
+  for (let i = 0; i < pos.count; i++) {
+    const ix = i * 3;
+    const x = basePositions[ix];
+    const z = basePositions[ix + 2];
+    const distX = halfSize - Math.abs(x);
+    const distZ = halfSize - Math.abs(z);
+    const edgeDistance = Math.max(0, Math.min(distX, distZ));
+    const fadeStrength = THREE.MathUtils.clamp(edgeDistance / fadeWidth, 0, 1);
+    fadeAttribute[i] = fadeStrength * fadeStrength;
+  }
+  terrain.setAttribute('edgeFade', new THREE.BufferAttribute(fadeAttribute, 1));
   const cellSize = terrainSize / terrainSegments;
   const chunkSize = cellSize * 10;
   const terrainState = { offsetX: 0, offsetZ: 0 };
@@ -1260,7 +1274,22 @@
     terrain.computeVertexNormals();
   }
   refreshTerrain(terrainState.offsetX, terrainState.offsetZ);
-  const terrainMesh = new THREE.Mesh(terrain, new THREE.MeshStandardMaterial({ color:0x2a8a4b, flatShading:true, metalness:0, roughness:1 }));
+  const terrainMaterial = new THREE.MeshStandardMaterial({
+    color: 0x2a8a4b,
+    flatShading: true,
+    metalness: 0,
+    roughness: 1
+  });
+  terrainMaterial.onBeforeCompile = shader => {
+    shader.uniforms.edgeFadeColor = { value: fogColor.clone() };
+    shader.vertexShader = shader.vertexShader
+      .replace('#include <common>', `#include <common>\nattribute float edgeFade;\nvarying float vEdgeFade;`)
+      .replace('#include <begin_vertex>', `#include <begin_vertex>\nvEdgeFade = edgeFade;`);
+    shader.fragmentShader = shader.fragmentShader
+      .replace('#include <common>', `#include <common>\nvarying float vEdgeFade;\nuniform vec3 edgeFadeColor;`)
+      .replace('#include <dithering_fragment>', `#include <dithering_fragment>\n  gl_FragColor.rgb = mix(edgeFadeColor, gl_FragColor.rgb, vEdgeFade);`);
+  };
+  const terrainMesh = new THREE.Mesh(terrain, terrainMaterial);
   terrainMesh.position.set(terrainState.offsetX, 0, terrainState.offsetZ);
   scene.add(terrainMesh);
   defaultTerrainColor = terrainMesh.material.color.clone();
