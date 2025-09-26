@@ -1,507 +1,1514 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Orbit OS — Mini Deck</title>
-  <style>
-    :root {
-      --bg: #0b1323;
-      --panel: #111b30;
-      --panel-border: rgba(255, 255, 255, 0.08);
-      --text: #f5f7ff;
-      --muted: rgba(245, 247, 255, 0.64);
-      --accent: #66aaff;
-      --accent-soft: rgba(102, 170, 255, 0.16);
-      font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-    }
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MiniOrbit OS</title>
+    <style>
+        *,
+        *::before,
+        *::after {
+            box-sizing: border-box;
+        }
 
-    * {
-      box-sizing: border-box;
-    }
+        body {
+            margin: 0;
+            min-height: 100vh;
+            background: #001b3d;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-family: "Courier New", Courier, monospace;
+            color: #fff;
+        }
 
-    body {
-      margin: 0;
-      min-height: 100vh;
-      background: radial-gradient(circle at 15% 20%, rgba(102, 170, 255, 0.18), transparent 45%),
-        radial-gradient(circle at 85% 10%, rgba(255, 170, 102, 0.14), transparent 50%),
-        linear-gradient(160deg, #050910, var(--bg));
-      color: var(--text);
-      display: flex;
-      flex-direction: column;
-    }
+        .desktop {
+            width: 100vw;
+            height: calc(var(--vh, 1vh) * 100);
+            max-width: 1100px;
+            max-height: 700px;
+            background: #003a8c;
+            position: relative;
+            overflow: hidden;
+            border: 2px solid #00aaff;
+            box-shadow: 0 0 40px rgba(0, 0, 0, 0.6);
+        }
 
-    header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 0.85rem 1.5rem;
-      border-bottom: 1px solid var(--panel-border);
-      background: rgba(11, 19, 35, 0.85);
-      backdrop-filter: blur(12px);
-      position: sticky;
-      top: 0;
-      z-index: 100;
-    }
+        .desktop::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.75);
+            pointer-events: none;
+        }
 
-    header h1 {
-      font-size: 0.95rem;
-      text-transform: uppercase;
-      letter-spacing: 0.16em;
-      margin: 0;
-      color: var(--muted);
-    }
+        .desktop::after {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background: repeating-linear-gradient(
+                0deg,
+                rgba(0, 0, 0, 0.18),
+                rgba(0, 0, 0, 0.18) 1px,
+                transparent 1px,
+                transparent 2px
+            );
+            pointer-events: none;
+        }
 
-    header span {
-      font-variant-numeric: tabular-nums;
-      font-size: 0.85rem;
-      color: var(--muted);
-    }
+        .wallpaper {
+            position: absolute;
+            top: 24px;
+            left: 0;
+            right: 0;
+            bottom: 44px;
+            background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="120" height="120"><rect width="120" height="120" fill="%23003a8c"/><circle cx="20" cy="20" r="4" fill="%2300aaff"/><circle cx="60" cy="50" r="6" fill="%230088ee"/><circle cx="100" cy="80" r="3" fill="%23ffffff" fill-opacity="0.5"/><path d="M10 100 L40 70 L70 110" stroke="%2300ccff" stroke-width="2" fill="none"/></svg>');
+            opacity: 0.25;
+            pointer-events: none;
+            z-index: 1;
+        }
 
-    main {
-      flex: 1;
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-      gap: clamp(16px, 3vw, 28px);
-      padding: clamp(18px, 4vw, 38px);
-      align-content: flex-start;
-    }
+        .menu-bar {
+            height: 24px;
+            background: linear-gradient(to bottom, #0066cc, #004499);
+            border-bottom: 1px solid #00c3ff;
+            display: flex;
+            align-items: center;
+            padding: 0 12px;
+            gap: 14px;
+            font-size: 16px;
+            position: relative;
+            z-index: 5;
+        }
 
-    .icon {
-      border-radius: 16px;
-      border: 1px solid var(--panel-border);
-      background: rgba(11, 19, 35, 0.75);
-      padding: 18px;
-      min-height: 128px;
-      display: flex;
-      flex-direction: column;
-      justify-content: space-between;
-      gap: 12px;
-      cursor: pointer;
-      transition: border-color 0.18s ease, transform 0.18s ease, background 0.18s ease;
-    }
+        .menu-item {
+            cursor: pointer;
+            padding: 2px 6px;
+            border-radius: 3px;
+            position: relative;
+            user-select: none;
+        }
 
-    .icon:hover,
-    .icon:focus-visible {
-      border-color: rgba(102, 170, 255, 0.4);
-      transform: translateY(-3px);
-      outline: none;
-      background: rgba(11, 19, 35, 0.92);
-    }
+        .menu-item:hover {
+            background: rgba(255, 255, 255, 0.25);
+        }
 
-    .icon:focus-visible {
-      box-shadow: 0 0 0 3px rgba(102, 170, 255, 0.3);
-    }
+        .dropdown {
+            position: absolute;
+            top: 22px;
+            left: 0;
+            min-width: 160px;
+            background: #d0d0d0;
+            border: 2px solid;
+            border-top-color: #fff;
+            border-left-color: #fff;
+            border-right-color: #555;
+            border-bottom-color: #555;
+            box-shadow: 4px 4px 0 rgba(0, 0, 0, 0.4);
+            display: none;
+            z-index: 40;
+        }
 
-    .icon-figure {
-      width: 46px;
-      height: 46px;
-      border-radius: 14px;
-      background: rgba(102, 170, 255, 0.12);
-      color: var(--accent);
-      display: grid;
-      place-items: center;
-      font-size: 1.35rem;
-    }
+        .dropdown-item {
+            padding: 6px 10px;
+            color: #000;
+            font-size: 15px;
+            border-bottom: 1px solid #aaa;
+            cursor: pointer;
+        }
 
-    .icon h2 {
-      font-size: 0.95rem;
-      margin: 0;
-      font-weight: 600;
-      color: var(--text);
-    }
+        .dropdown-item:last-child {
+            border-bottom: none;
+        }
 
-    .icon p {
-      margin: 0;
-      font-size: 0.8rem;
-      color: var(--muted);
-      line-height: 1.4;
-    }
+        .dropdown-item:hover {
+            background: #005bbb;
+            color: #fff;
+        }
 
-    .tag {
-      font-size: 0.7rem;
-      letter-spacing: 0.14em;
-      text-transform: uppercase;
-      color: rgba(245, 247, 255, 0.5);
-    }
+        .clock {
+            margin-left: auto;
+            font-size: 16px;
+            text-shadow: 1px 1px 0 #001f44;
+            cursor: pointer;
+        }
 
-    .window {
-      position: absolute;
-      min-width: 280px;
-      max-width: min(460px, 90vw);
-      background: rgba(11, 19, 35, 0.94);
-      border: 1px solid var(--panel-border);
-      border-radius: 18px;
-      box-shadow: 0 24px 60px rgba(0, 0, 0, 0.45);
-      display: flex;
-      flex-direction: column;
-      animation: fade-in 180ms ease;
-    }
+        .desktop-icons {
+            position: relative;
+            z-index: 3;
+            display: flex;
+            flex-wrap: wrap;
+            align-content: flex-start;
+            gap: 32px;
+            padding: 28px;
+            max-width: 360px;
+        }
 
-    @keyframes fade-in {
-      from {
-        transform: translateY(12px) scale(0.95);
-        opacity: 0;
-      }
-      to {
-        transform: translateY(0) scale(1);
-        opacity: 1;
-      }
-    }
+        .icon {
+            width: 72px;
+            text-align: center;
+            cursor: pointer;
+            user-select: none;
+            transition: transform 0.18s ease;
+        }
 
-    .window-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 14px 18px;
-      border-bottom: 1px solid var(--panel-border);
-      cursor: grab;
-      gap: 12px;
-    }
+        .icon:hover {
+            transform: translateY(-4px);
+        }
 
-    .window-header:active {
-      cursor: grabbing;
-    }
+        .icon-image {
+            width: 56px;
+            height: 56px;
+            margin: 0 auto;
+            border: 2px solid rgba(255, 255, 255, 0.5);
+            border-radius: 8px;
+            background: linear-gradient(135deg, rgba(0, 180, 255, 0.8), rgba(0, 120, 255, 0.9));
+            display: grid;
+            place-items: center;
+            font-size: 30px;
+            box-shadow: 3px 3px 0 rgba(0, 0, 0, 0.5);
+        }
 
-    .window-title {
-      margin: 0;
-      font-size: 0.85rem;
-      letter-spacing: 0.12em;
-      text-transform: uppercase;
-    }
+        .icon-label {
+            margin-top: 8px;
+            padding: 2px 4px;
+            font-size: 14px;
+            background: rgba(0, 0, 0, 0.35);
+            border-radius: 4px;
+        }
 
-    .window-close {
-      width: 28px;
-      height: 28px;
-      border-radius: 50%;
-      border: none;
-      background: var(--accent-soft);
-      color: var(--accent);
-      font-size: 1rem;
-      cursor: pointer;
-      display: grid;
-      place-items: center;
-      transition: background 0.18s ease, color 0.18s ease;
-    }
+        .window {
+            position: absolute;
+            display: flex;
+            flex-direction: column;
+            min-width: 280px;
+            min-height: 200px;
+            background: linear-gradient(to bottom, #c8c8c8, #9c9c9c);
+            border: 2px solid;
+            border-top-color: #fff;
+            border-left-color: #fff;
+            border-right-color: #444;
+            border-bottom-color: #444;
+            box-shadow: 6px 6px 0 rgba(0, 0, 0, 0.5);
+            z-index: 10;
+            transform-style: preserve-3d;
+            animation: zoom-in 220ms ease;
+        }
 
-    .window-close:hover {
-      background: var(--accent);
-      color: var(--bg);
-    }
+        @keyframes zoom-in {
+            from {
+                opacity: 0;
+                transform: perspective(800px) translateZ(-220px) scale(0.8);
+            }
+            to {
+                opacity: 1;
+                transform: none;
+            }
+        }
 
-    .window-body {
-      padding: 18px;
-      display: grid;
-      gap: 16px;
-      font-size: 0.9rem;
-      color: var(--muted);
-      line-height: 1.6;
-    }
+        .window-header {
+            height: 26px;
+            background: linear-gradient(to right, #001a66, #0033aa);
+            display: flex;
+            align-items: center;
+            padding: 0 8px;
+            gap: 10px;
+            color: #fff;
+            cursor: grab;
+            user-select: none;
+        }
 
-    .window-body h2 {
-      margin: 0;
-      font-size: 1rem;
-      color: var(--text);
-    }
+        .window-title {
+            flex: 1;
+            font-weight: bold;
+            text-shadow: 1px 1px 0 #001037;
+        }
 
-    .window-body p,
-    .window-body li {
-      color: var(--muted);
-    }
+        .window-controls {
+            display: flex;
+            gap: 6px;
+        }
 
-    .window-body ul {
-      margin: 0;
-      padding-left: 18px;
-      display: grid;
-      gap: 6px;
-    }
+        .window-btn {
+            width: 18px;
+            height: 18px;
+            background: linear-gradient(to bottom, #f0f0f0, #b8b8b8);
+            border: 1px solid;
+            border-top-color: #fff;
+            border-left-color: #fff;
+            border-right-color: #333;
+            border-bottom-color: #333;
+            display: grid;
+            place-items: center;
+            color: #111;
+            font-size: 14px;
+            cursor: pointer;
+        }
 
-    textarea {
-      width: 100%;
-      min-height: 160px;
-      border-radius: 12px;
-      border: 1px solid rgba(102, 170, 255, 0.22);
-      background: rgba(102, 170, 255, 0.06);
-      padding: 14px;
-      font-family: inherit;
-      font-size: 0.9rem;
-      color: var(--text);
-      resize: vertical;
-    }
+        .window-btn:active {
+            border-top-color: #333;
+            border-left-color: #333;
+            border-right-color: #fff;
+            border-bottom-color: #fff;
+        }
 
-    textarea:focus {
-      outline: 2px solid rgba(102, 170, 255, 0.45);
-    }
+        .window-content {
+            flex: 1;
+            background: #d6d6d6;
+            padding: 16px;
+            overflow: auto;
+            color: #000;
+            font-size: 16px;
+        }
 
-    .clock-face {
-      font-size: 2.2rem;
-      text-align: center;
-      font-variant-numeric: tabular-nums;
-      color: var(--text);
-    }
+        .disk-drive {
+            position: absolute;
+            bottom: 54px;
+            right: 18px;
+            width: 130px;
+            height: 86px;
+            background: linear-gradient(to bottom, #e0e0e0, #b3b3b3);
+            border: 2px solid;
+            border-top-color: #fff;
+            border-left-color: #fff;
+            border-right-color: #666;
+            border-bottom-color: #666;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 8px 10px;
+            gap: 8px;
+            z-index: 3;
+            box-shadow: 4px 4px 0 rgba(0, 0, 0, 0.5);
+        }
 
-    .clock-subline {
-      text-align: center;
-      letter-spacing: 0.24em;
-      font-size: 0.7rem;
-      text-transform: uppercase;
-      color: rgba(245, 247, 255, 0.55);
-    }
+        .drive-slot {
+            width: 90px;
+            height: 20px;
+            background: #1c1c1c;
+            position: relative;
+        }
 
-    .palette {
-      display: grid;
-      gap: 12px;
-    }
+        .drive-light {
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            right: 5px;
+            top: 5px;
+            border-radius: 50%;
+            background: #ff3636;
+            animation: drive-blink 1.6s infinite;
+        }
 
-    .swatch {
-      border-radius: 10px;
-      padding: 12px 14px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      font-weight: 600;
-      color: #0b1323;
-    }
+        @keyframes drive-blink {
+            0%, 100% {
+                opacity: 0.35;
+            }
+            50% {
+                opacity: 1;
+            }
+        }
 
-    .swatch:nth-child(1) { background: #f5efe4; }
-    .swatch:nth-child(2) { background: #e4d4b8; }
-    .swatch:nth-child(3) { background: #c7a874; color: #f5f7ff; }
-    .swatch:nth-child(4) { background: #8a6a36; color: #f5f7ff; }
+        .task-bar {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 30px;
+            padding: 0 10px;
+            background: linear-gradient(to bottom, #0060c0, #003c86);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            z-index: 6;
+        }
 
-    @media (max-width: 720px) {
-      main {
-        grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-      }
+        .task-btn {
+            padding: 4px 12px;
+            background: linear-gradient(to bottom, #d0d0d0, #9a9a9a);
+            border: 2px solid;
+            border-top-color: #fff;
+            border-left-color: #fff;
+            border-right-color: #444;
+            border-bottom-color: #444;
+            font-size: 14px;
+            cursor: pointer;
+        }
 
-      .window {
-        left: 50% !important;
-        transform: translateX(-50%);
-        width: min(92vw, 420px);
-      }
-    }
+        .task-btn.active {
+            background: linear-gradient(to bottom, #005bbb, #004092);
+            color: #fff;
+        }
 
-    @media (prefers-reduced-motion: reduce) {
-      .icon,
-      .window {
-        transition: none;
-        animation: none;
-      }
-    }
-  </style>
+        .status-bar {
+            position: absolute;
+            left: 0;
+            right: 0;
+            bottom: 30px;
+            height: 24px;
+            padding: 0 12px;
+            display: flex;
+            align-items: center;
+            background: rgba(0, 0, 0, 0.35);
+            font-size: 14px;
+            z-index: 5;
+        }
+
+        .dialog {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: linear-gradient(to bottom, #c0c0c0, #8c8c8c);
+            border: 2px solid;
+            border-top-color: #fff;
+            border-left-color: #fff;
+            border-right-color: #444;
+            border-bottom-color: #444;
+            min-width: 320px;
+            display: none;
+            z-index: 50;
+            box-shadow: 6px 6px 0 rgba(0, 0, 0, 0.5);
+        }
+
+        .dialog .window-header {
+            cursor: default;
+        }
+
+        .dialog-content {
+            padding: 20px;
+            text-align: center;
+            color: #000;
+            background: #dcdcdc;
+        }
+
+        .dialog-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 14px;
+            margin-top: 16px;
+        }
+
+        .dialog-btn {
+            padding: 6px 18px;
+            background: linear-gradient(to bottom, #f0f0f0, #bababa);
+            border: 2px solid;
+            border-top-color: #fff;
+            border-left-color: #fff;
+            border-right-color: #444;
+            border-bottom-color: #444;
+            cursor: pointer;
+            font-size: 15px;
+        }
+
+        .terminal-output {
+            font-size: 15px;
+            color: #0f0;
+            background: #000;
+            padding: 12px;
+            height: 200px;
+            overflow-y: auto;
+            margin-bottom: 10px;
+        }
+
+        .terminal-input {
+            display: flex;
+            gap: 8px;
+        }
+
+        .terminal-input input {
+            flex: 1;
+            font-size: 15px;
+            padding: 6px 8px;
+            border: 1px solid #555;
+            font-family: inherit;
+        }
+
+        .terminal-input button {
+            padding: 6px 12px;
+            font-size: 15px;
+            cursor: pointer;
+            border: 1px solid #555;
+            background: #0f0;
+            color: #000;
+            font-weight: bold;
+        }
+
+        .editor-toolbar,
+        .notes-toolbar {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+
+        .editor-toolbar button,
+        .notes-toolbar button,
+        .joke-actions button,
+        .activity-actions button,
+        .puzzle-actions button {
+            padding: 6px 12px;
+            font-size: 15px;
+            border: 1px solid #555;
+            background: linear-gradient(to bottom, #f5f5f5, #cfcfcf);
+            cursor: pointer;
+        }
+
+        textarea,
+        .text-editor-area {
+            width: 100%;
+            height: 100%;
+            min-height: 200px;
+            border: 1px solid #777;
+            padding: 10px;
+            font-family: inherit;
+            font-size: 15px;
+            resize: none;
+        }
+
+        .calc-display {
+            width: 100%;
+            height: 50px;
+            border: 2px solid #444;
+            margin-bottom: 10px;
+            background: #111;
+            color: #0f0;
+            font-size: 28px;
+            display: flex;
+            justify-content: flex-end;
+            align-items: center;
+            padding: 0 12px;
+        }
+
+        .calc-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 8px;
+        }
+
+        .calc-btn {
+            padding: 12px 0;
+            font-size: 18px;
+            cursor: pointer;
+            border: 1px solid #444;
+            background: linear-gradient(to bottom, #fafafa, #c8c8c8);
+        }
+
+        .calc-btn.operator {
+            background: linear-gradient(to bottom, #007ad6, #0059a6);
+            color: #fff;
+        }
+
+        .calendar {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .calendar-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .calendar-header button {
+            border: 1px solid #333;
+            padding: 4px 10px;
+            cursor: pointer;
+            background: #005bbb;
+            color: #fff;
+        }
+
+        .calendar-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 4px;
+        }
+
+        .calendar-day {
+            text-align: center;
+            padding: 6px 0;
+            border: 1px solid #999;
+            background: rgba(255, 255, 255, 0.7);
+            min-height: 32px;
+        }
+
+        .calendar-day.header {
+            background: #005bbb;
+            color: #fff;
+            font-weight: bold;
+        }
+
+        .calendar-day.today {
+            background: #ffbf47;
+        }
+
+        .game-container {
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .game-board {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 6px;
+        }
+
+        .game-tile {
+            width: 58px;
+            height: 58px;
+            display: grid;
+            place-items: center;
+            font-size: 22px;
+            border: 2px solid #003a8c;
+            background: linear-gradient(135deg, #ffd966, #ff8a33);
+            color: #000;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .game-tile.empty {
+            background: rgba(0, 0, 0, 0.2);
+            border-style: dashed;
+        }
+
+        .clock-display {
+            font-size: 36px;
+            text-align: center;
+            margin-bottom: 10px;
+        }
+
+        .clock-controls {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .joke-text,
+        .activity-text {
+            min-height: 100px;
+            padding: 12px;
+            border: 1px solid #777;
+            background: rgba(255, 255, 255, 0.7);
+        }
+
+        @media (max-width: 900px) {
+            .desktop {
+                max-width: 100vw;
+                max-height: 100vh;
+            }
+
+            .desktop-icons {
+                padding: 18px;
+                gap: 24px;
+            }
+        }
+    </style>
 </head>
 <body>
-  <header>
-    <h1>Orbit OS Mini</h1>
-    <span id="deck-clock" aria-live="polite">00:00</span>
-  </header>
-  <main aria-label="Orbit desktop">
-    <article class="icon" data-app="mission" tabindex="0">
-      <div class="icon-figure" aria-hidden="true">🛰️</div>
-      <div>
-        <h2>Mission Brief</h2>
-        <p>Deep analysis of the legacy Orbit OS stack.</p>
-      </div>
-      <span class="tag">intel</span>
-    </article>
-    <article class="icon" data-app="notes" tabindex="0">
-      <div class="icon-figure" aria-hidden="true">🗒️</div>
-      <div>
-        <h2>Field Notes</h2>
-        <p>Jot orbit observations. Persists locally.</p>
-      </div>
-      <span class="tag">memory</span>
-    </article>
-    <article class="icon" data-app="clock" tabindex="0">
-      <div class="icon-figure" aria-hidden="true">⏱️</div>
-      <div>
-        <h2>Chronometer</h2>
-        <p>Synchronized mission time feed.</p>
-      </div>
-      <span class="tag">time</span>
-    </article>
-    <article class="icon" data-app="palette" tabindex="0">
-      <div class="icon-figure" aria-hidden="true">🎨</div>
-      <div>
-        <h2>Palette Map</h2>
-        <p>Orbit tones with four sand-inspired shades.</p>
-      </div>
-      <span class="tag">visual</span>
-    </article>
-  </main>
-  <template id="window-template">
-    <section class="window" role="dialog" aria-modal="false">
-      <div class="window-header">
-        <span class="window-title"></span>
-        <button type="button" class="window-close" aria-label="Close window">×</button>
-      </div>
-      <div class="window-body"></div>
-    </section>
-  </template>
-  <script>
-    const desktop = document.querySelector('main');
-    const template = document.getElementById('window-template');
-    let focusIndex = 6;
-
-    const apps = {
-      mission: {
-        title: 'Mission Brief',
-        render() {
-          const wrapper = document.createElement('div');
-          wrapper.innerHTML = `
-            <h2>Orbit OS (app1) — capability audit</h2>
-            <p>The original desktop blends CRT nostalgia with data-driven tooling. Highlights from the stack include:</p>
-            <ul>
-              <li><strong>Immersive chrome:</strong> <code>app-index.html</code> layers scanlines, curvature, and neon gradients across the desktop shell.</li>
-              <li><strong>Declarative workspace:</strong> <code>app-data/app1.json</code> drives menus, window defaults, and bundled utilities such as the terminal, notes, and Docu Monster Studio Pro.</li>
-              <li><strong>Modular apps:</strong> each tool is lazy-loaded through <code>app-js/gui-api.js</code>, activating bespoke controllers (calculator, calendar, puzzle, jokes, activity feed, and more).</li>
-              <li><strong>Rich iframe integrations:</strong> dedicated canvases expose authoring studios (<code>html-studio.html</code>, <code>documonster.html</code>, <code>cloud-storage.html</code>, <code>retro-list.html</code>) inside resizable Orbit windows.</li>
-              <li><strong>Accessibility hooks:</strong> theme toggles (retro vs. futuristic) and persistence flags ensure Orbit remembers sessions and adapts its visual language.</li>
-            </ul>
-            <p>This pared-down deck focuses on situational awareness, while the legacy build remains ideal for full creative production.</p>
-          `;
-          return wrapper;
-        }
-      },
-      notes: {
-        title: 'Field Notes',
-        render() {
-          const STORAGE_KEY = 'orbit-mini-notes';
-          const wrapper = document.createElement('div');
-          wrapper.innerHTML = `
-            <h2>Field Notes</h2>
-            <p>Write observations and they will sync locally to this device.</p>
-            <textarea placeholder="Mission notes..." aria-label="Mission notes area"></textarea>
-          `;
-          const textarea = wrapper.querySelector('textarea');
-          textarea.value = localStorage.getItem(STORAGE_KEY) || '';
-          textarea.addEventListener('input', () => {
-            localStorage.setItem(STORAGE_KEY, textarea.value);
-          });
-          wrapper.addEventListener('removed', () => {
-            localStorage.setItem(STORAGE_KEY, textarea.value);
-          });
-          return wrapper;
-        }
-      },
-      clock: {
-        title: 'Chronometer',
-        render() {
-          const wrapper = document.createElement('div');
-          wrapper.innerHTML = `
-            <div class="clock-face" data-clock>00:00:00</div>
-            <div class="clock-subline" data-clock-date>0000-00-00</div>
-          `;
-          const clockEl = wrapper.querySelector('[data-clock]');
-          const dateEl = wrapper.querySelector('[data-clock-date]');
-          const update = () => {
-            const now = new Date();
-            clockEl.textContent = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-            dateEl.textContent = now.toLocaleDateString(undefined, { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' });
-          };
-          update();
-          const timer = setInterval(update, 1000);
-          wrapper.addEventListener('removed', () => clearInterval(timer));
-          return wrapper;
-        }
-      },
-      palette: {
-        title: 'Palette Map',
-        render() {
-          const wrapper = document.createElement('div');
-          wrapper.innerHTML = `
-            <p>Five primaries anchor the interface. Sand tones add a grounded analogue bridge between the cool blues and energetic orange.</p>
-            <div class="palette">
-              <div class="swatch">Sand 10<span>#F5EFE4</span></div>
-              <div class="swatch">Sand 30<span>#E4D4B8</span></div>
-              <div class="swatch">Sand 60<span>#C7A874</span></div>
-              <div class="swatch">Sand 90<span>#8A6A36</span></div>
+    <div class="desktop" id="desktop">
+        <div class="wallpaper"></div>
+        <div class="menu-bar" id="menu-bar">
+            <div class="clock" id="clock">--:--:--</div>
+        </div>
+        <div class="desktop-icons" id="desktop-icons"></div>
+        <div class="disk-drive">
+            <div>Storage</div>
+            <div class="drive-slot">
+                <div class="drive-light"></div>
             </div>
-          `;
-          return wrapper;
-        }
-      }
-    };
+            <small>MiniOrbit</small>
+        </div>
+        <div class="status-bar" id="status-bar">Booting MiniOrbit OS...</div>
+        <div class="task-bar" id="task-bar"></div>
+        <div class="dialog" id="welcome-dialog">
+            <div class="window-header">
+                <div class="window-title">MiniOrbit OS</div>
+            </div>
+            <div class="dialog-content"></div>
+        </div>
+    </div>
+    <script>
+        (() => {
+            const state = {
+                windows: [],
+                zIndex: 10,
+                windowCount: 0,
+                cleanup: {}
+            };
 
-    function openWindow(appKey) {
-      const app = apps[appKey];
-      if (!app) return;
-      const node = template.content.firstElementChild.cloneNode(true);
-      const body = node.querySelector('.window-body');
-      node.querySelector('.window-title').textContent = app.title;
-      const view = app.render();
-      body.appendChild(view);
-      desktop.appendChild(node);
-      const left = Math.max(18, Math.min(window.innerWidth - 340, 72 + Math.random() * 120));
-      const top = Math.max(18, Math.min(window.innerHeight - 320, 72 + Math.random() * 120));
-      node.style.left = `${left}px`;
-      node.style.top = `${top}px`;
-      focusWindow(node);
-      enableDrag(node);
-      node.addEventListener('pointerdown', () => focusWindow(node));
-      node.querySelector('.window-close').addEventListener('click', () => closeWindow(node));
-    }
+            const desktop = document.getElementById('desktop');
+            const menuBar = document.getElementById('menu-bar');
+            const clockEl = document.getElementById('clock');
+            const iconsContainer = document.getElementById('desktop-icons');
+            const statusBar = document.getElementById('status-bar');
+            const taskBar = document.getElementById('task-bar');
+            const welcomeDialog = document.getElementById('welcome-dialog');
 
-    function focusWindow(node) {
-      focusIndex += 1;
-      node.style.zIndex = focusIndex;
-    }
+            const jokeBank = [
+                'Why do programmers prefer dark mode? Because light attracts bugs!',
+                'How many bugs does it take to change a lightbulb? That\'s a hardware problem.',
+                'I told my computer I needed a break, and it said "No problem, I\'ll go to sleep."',
+                'The best thing about a Boolean is even if you\'re wrong, you\'re only off by a bit.',
+                'Why do Java developers wear glasses? Because they don\'t see sharp.'
+            ];
 
-    function closeWindow(node) {
-      node.dispatchEvent(new Event('removed', { bubbles: true }));
-      node.remove();
-    }
+            const activityBank = [
+                'Write a haiku about your current project.',
+                'Sketch the UI of your dream app in a notebook.',
+                'Take a quick stretch and roll your shoulders.',
+                'List three things you learned this week.',
+                'Refactor a function you wrote a month ago.'
+            ];
 
-    function enableDrag(node) {
-      const header = node.querySelector('.window-header');
-      let offsetX = 0;
-      let offsetY = 0;
-      function pointerDown(event) {
-        if (event.button !== 0) return;
-        const rect = node.getBoundingClientRect();
-        offsetX = event.clientX - rect.left;
-        offsetY = event.clientY - rect.top;
-        node.setPointerCapture(event.pointerId);
-        node.style.transition = 'none';
-        focusWindow(node);
-        header.addEventListener('pointermove', pointerMove);
-        header.addEventListener('pointerup', pointerUp, { once: true });
-      }
-      function pointerMove(event) {
-        const x = event.clientX - offsetX;
-        const y = event.clientY - offsetY;
-        node.style.left = `${x}px`;
-        node.style.top = `${y}px`;
-      }
-      function pointerUp(event) {
-        header.removeEventListener('pointermove', pointerMove);
-        node.releasePointerCapture(event.pointerId);
-      }
-      header.addEventListener('pointerdown', pointerDown);
-    }
+            const appData = {
+                status: 'Ready.',
+                welcome: {
+                    title: 'MiniOrbit OS',
+                    lines: [
+                        'Welcome to the compact edition of Orbit OS.',
+                        'All apps live in this single HTML file.',
+                        'Enjoy the retro workspace!'
+                    ],
+                    button: 'Let\'s Go'
+                },
+                menus: [
+                    {
+                        label: 'Project',
+                        items: [
+                            { label: 'System Info', type: 'system-info' },
+                            { label: 'Terminal', type: 'terminal' },
+                            { label: 'Notes', type: 'notes' },
+                            { label: 'Reset Layout', action: resetLayout }
+                        ]
+                    },
+                    {
+                        label: 'Tools',
+                        items: [
+                            { label: 'Text Editor', type: 'text-editor' },
+                            { label: 'Calculator', type: 'calculator' },
+                            { label: 'Calendar', type: 'calendar' },
+                            { label: 'Puzzle Game', type: 'puzzle-game' },
+                            { label: 'Clock', type: 'clock' },
+                            { label: 'Random Joke', type: 'jokes' },
+                            { label: 'Random Activity', type: 'activity' }
+                        ]
+                    }
+                ],
+                icons: [
+                    { type: 'terminal', emoji: '⌨️', label: 'Terminal' },
+                    { type: 'text-editor', emoji: '📝', label: 'TextEdit' },
+                    { type: 'notes', emoji: '🗒️', label: 'Notes' },
+                    { type: 'calculator', emoji: '🧮', label: 'Calculator' },
+                    { type: 'calendar', emoji: '📅', label: 'Calendar' },
+                    { type: 'puzzle-game', emoji: '🧩', label: 'Puzzle' },
+                    { type: 'clock', emoji: '⏰', label: 'Clock' },
+                    { type: 'jokes', emoji: '😂', label: 'Jokes' },
+                    { type: 'activity', emoji: '🎲', label: 'Activity' }
+                ],
+                windows: {
+                    'system-info': {
+                        title: 'System Information',
+                        width: 320,
+                        height: 280,
+                        init(content) {
+                            const now = new Date();
+                            const info = [
+                                ['MiniOrbit Version', 'v1.0'],
+                                ['User Agent', navigator.userAgent],
+                                ['Language', navigator.language],
+                                ['Screen', `${window.screen.width}×${window.screen.height}`],
+                                ['Viewport', `${window.innerWidth}×${window.innerHeight}`],
+                                ['Time', now.toLocaleTimeString()],
+                                ['Date', now.toLocaleDateString()]
+                            ];
+                            const list = info.map(([label, value]) => `<p><strong>${label}:</strong> ${value}</p>`).join('');
+                            content.innerHTML = `<h2 style="margin-top:0">MiniOrbit Hardware Profile</h2>${list}`;
+                        }
+                    },
+                    'terminal': {
+                        title: 'CLI',
+                        width: 460,
+                        height: 320,
+                        init(content, winId) {
+                            const output = document.createElement('div');
+                            output.className = 'terminal-output';
+                            const form = document.createElement('form');
+                            form.className = 'terminal-input';
+                            const input = document.createElement('input');
+                            input.type = 'text';
+                            input.placeholder = 'Type "help" for commands';
+                            const submit = document.createElement('button');
+                            submit.type = 'submit';
+                            submit.textContent = 'Run';
+                            form.append(input, submit);
+                            content.append(output, form);
 
-    desktop.addEventListener('click', (event) => {
-      const card = event.target.closest('.icon');
-      if (!card) return;
-      openWindow(card.dataset.app);
-    });
+                            const history = [];
+                            let historyIndex = 0;
+                            function log(text) {
+                                const line = document.createElement('div');
+                                line.textContent = text;
+                                output.appendChild(line);
+                                output.scrollTop = output.scrollHeight;
+                            }
 
-    desktop.addEventListener('keydown', (event) => {
-      if (event.key === 'Enter' || event.key === ' ') {
-        const card = event.target.closest('.icon');
-        if (!card) return;
-        event.preventDefault();
-        openWindow(card.dataset.app);
-      }
-    });
+                            const commands = {
+                                help() {
+                                    log('Available commands: help, clear, date, time, about, status');
+                                },
+                                clear() {
+                                    output.innerHTML = '';
+                                },
+                                date() {
+                                    log(new Date().toLocaleDateString());
+                                },
+                                time() {
+                                    log(new Date().toLocaleTimeString());
+                                },
+                                about() {
+                                    log('MiniOrbit OS — a single-file retro desktop demo.');
+                                },
+                                status() {
+                                    log(statusBar.textContent);
+                                }
+                            };
 
-    function tickClock() {
-      const clock = document.getElementById('deck-clock');
-      const now = new Date();
-      clock.textContent = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-    }
+                            log('MiniOrbit terminal ready. Type "help" to list commands.');
 
-    tickClock();
-    setInterval(tickClock, 1000);
-  </script>
+                            form.addEventListener('submit', event => {
+                                event.preventDefault();
+                                const cmd = input.value.trim();
+                                if (!cmd) return;
+                                log(`> ${cmd}`);
+                                history.push(cmd);
+                                historyIndex = history.length;
+                                input.value = '';
+                                const base = cmd.split(' ')[0].toLowerCase();
+                                if (commands[base]) {
+                                    commands[base]();
+                                } else {
+                                    log('Command not found. Try "help".');
+                                }
+                            });
+
+                            input.addEventListener('keydown', event => {
+                                if (!history.length) return;
+                                if (event.key === 'ArrowUp') {
+                                    event.preventDefault();
+                                    historyIndex = Math.max(historyIndex - 1, 0);
+                                    input.value = history[historyIndex] || '';
+                                } else if (event.key === 'ArrowDown') {
+                                    event.preventDefault();
+                                    historyIndex = Math.min(historyIndex + 1, history.length);
+                                    input.value = history[historyIndex] || '';
+                                }
+                            });
+                        }
+                    },
+                    'text-editor': {
+                        title: 'Text Editor',
+                        width: 520,
+                        height: 360,
+                        init(content) {
+                            const toolbar = document.createElement('div');
+                            toolbar.className = 'editor-toolbar';
+                            const saveBtn = document.createElement('button');
+                            saveBtn.textContent = 'Download TXT';
+                            const clearBtn = document.createElement('button');
+                            clearBtn.textContent = 'Clear';
+                            const textArea = document.createElement('textarea');
+                            textArea.className = 'text-editor-area';
+                            textArea.value = 'Welcome to MiniOrbit OS!\n\nTake notes, experiment and build.';
+                            toolbar.append(saveBtn, clearBtn);
+                            content.append(toolbar, textArea);
+
+                            saveBtn.addEventListener('click', () => {
+                                const blob = new Blob([textArea.value], { type: 'text/plain' });
+                                const url = URL.createObjectURL(blob);
+                                const link = document.createElement('a');
+                                link.href = url;
+                                link.download = 'miniorbit-note.txt';
+                                document.body.appendChild(link);
+                                link.click();
+                                document.body.removeChild(link);
+                                URL.revokeObjectURL(url);
+                                setStatus('Text exported as file.');
+                            });
+
+                            clearBtn.addEventListener('click', () => {
+                                textArea.value = '';
+                                setStatus('Editor cleared.');
+                            });
+                        }
+                    },
+                    'notes': {
+                        title: 'Notes',
+                        width: 420,
+                        height: 320,
+                        init(content, windowId) {
+                            const toolbar = document.createElement('div');
+                            toolbar.className = 'notes-toolbar';
+                            const info = document.createElement('span');
+                            info.textContent = 'Autosaves to browser storage';
+                            info.style.flex = '1';
+                            const clearBtn = document.createElement('button');
+                            clearBtn.textContent = 'Clear';
+                            toolbar.append(info, clearBtn);
+
+                            const textArea = document.createElement('textarea');
+                            const storageKey = 'miniorbit-notes';
+                            textArea.value = localStorage.getItem(storageKey) || '';
+
+                            content.append(toolbar, textArea);
+
+                            const save = () => {
+                                localStorage.setItem(storageKey, textArea.value);
+                                setStatus('Notes saved.');
+                            };
+
+                            textArea.addEventListener('input', () => {
+                                save();
+                            });
+
+                            clearBtn.addEventListener('click', () => {
+                                textArea.value = '';
+                                save();
+                            });
+
+                            state.cleanup[windowId] = () => {
+                                localStorage.setItem(storageKey, textArea.value);
+                            };
+                        }
+                    },
+                    'calculator': {
+                        title: 'Calculator',
+                        width: 260,
+                        height: 340,
+                        init(content) {
+                            const display = document.createElement('div');
+                            display.className = 'calc-display';
+                            display.textContent = '0';
+                            const grid = document.createElement('div');
+                            grid.className = 'calc-grid';
+                            const buttons = [
+                                'C', '±', '%', '/',
+                                '7', '8', '9', '*',
+                                '4', '5', '6', '-',
+                                '1', '2', '3', '+',
+                                '0', '.', '=',
+                            ];
+
+                            let current = '0';
+                            let stored = null;
+                            let operation = null;
+                            let resetOnNext = false;
+
+                            function updateDisplay(value) {
+                                display.textContent = value;
+                            }
+
+                            function calculate() {
+                                const a = parseFloat(stored ?? '0');
+                                const b = parseFloat(current);
+                                switch (operation) {
+                                    case '+':
+                                        return a + b;
+                                    case '-':
+                                        return a - b;
+                                    case '*':
+                                        return a * b;
+                                    case '/':
+                                        return b === 0 ? '∞' : a / b;
+                                    case '%':
+                                        return a % b;
+                                    default:
+                                        return b;
+                                }
+                            }
+
+                            buttons.forEach(symbol => {
+                                const btn = document.createElement('button');
+                                btn.className = 'calc-btn';
+                                if ('/*-+=%'.includes(symbol)) btn.classList.add('operator');
+                                btn.textContent = symbol;
+                                grid.appendChild(btn);
+
+                                btn.addEventListener('click', () => {
+                                    if (!isNaN(Number(symbol)) || symbol === '.') {
+                                        if (resetOnNext) {
+                                            current = symbol === '.' ? '0.' : symbol;
+                                            resetOnNext = false;
+                                        } else {
+                                            if (symbol === '.' && current.includes('.')) return;
+                                            current = current === '0' && symbol !== '.' ? symbol : current + symbol;
+                                        }
+                                        updateDisplay(current);
+                                        return;
+                                    }
+
+                                    if (symbol === 'C') {
+                                        current = '0';
+                                        stored = null;
+                                        operation = null;
+                                        resetOnNext = false;
+                                        updateDisplay(current);
+                                        return;
+                                    }
+
+                                    if (symbol === '±') {
+                                        current = String(parseFloat(current) * -1 || 0);
+                                        updateDisplay(current);
+                                        return;
+                                    }
+
+                                    if (symbol === '=') {
+                                        if (operation) {
+                                            const result = calculate();
+                                            updateDisplay(String(result));
+                                            current = String(result);
+                                            stored = null;
+                                            operation = null;
+                                            resetOnNext = true;
+                                        }
+                                        return;
+                                    }
+
+                                    if (symbol === '%') {
+                                        current = String(parseFloat(current) / 100);
+                                        updateDisplay(current);
+                                        return;
+                                    }
+
+                                    if (['+', '-', '*', '/'].includes(symbol)) {
+                                        if (operation && !resetOnNext) {
+                                            const result = calculate();
+                                            current = String(result);
+                                            updateDisplay(current);
+                                        }
+                                        stored = current;
+                                        operation = symbol;
+                                        resetOnNext = true;
+                                        return;
+                                    }
+                                });
+                            });
+
+                            content.append(display, grid);
+                        }
+                    },
+                    'calendar': {
+                        title: 'Calendar',
+                        width: 340,
+                        height: 360,
+                        init(content, windowId) {
+                            let referenceDate = new Date();
+                            const calendar = document.createElement('div');
+                            calendar.className = 'calendar';
+                            const header = document.createElement('div');
+                            header.className = 'calendar-header';
+                            const prev = document.createElement('button');
+                            prev.textContent = '◀';
+                            const title = document.createElement('h3');
+                            title.style.margin = '0';
+                            const next = document.createElement('button');
+                            next.textContent = '▶';
+                            header.append(prev, title, next);
+                            const grid = document.createElement('div');
+                            grid.className = 'calendar-grid';
+                            calendar.append(header, grid);
+                            content.append(calendar);
+
+                            const weekdays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
+                            function render() {
+                                grid.innerHTML = '';
+                                const displayDate = new Date(referenceDate.getFullYear(), referenceDate.getMonth(), 1);
+                                title.textContent = displayDate.toLocaleString('default', { month: 'long', year: 'numeric' });
+                                weekdays.forEach(day => {
+                                    const cell = document.createElement('div');
+                                    cell.className = 'calendar-day header';
+                                    cell.textContent = day;
+                                    grid.appendChild(cell);
+                                });
+
+                                const startDay = displayDate.getDay();
+                                const daysInMonth = new Date(displayDate.getFullYear(), displayDate.getMonth() + 1, 0).getDate();
+                                for (let i = 0; i < startDay; i++) {
+                                    const filler = document.createElement('div');
+                                    filler.className = 'calendar-day';
+                                    filler.innerHTML = '&nbsp;';
+                                    filler.style.visibility = 'hidden';
+                                    grid.appendChild(filler);
+                                }
+
+                                const today = new Date();
+                                for (let day = 1; day <= daysInMonth; day++) {
+                                    const cell = document.createElement('div');
+                                    cell.className = 'calendar-day';
+                                    cell.textContent = String(day);
+                                    if (
+                                        day === today.getDate() &&
+                                        displayDate.getMonth() === today.getMonth() &&
+                                        displayDate.getFullYear() === today.getFullYear()
+                                    ) {
+                                        cell.classList.add('today');
+                                    }
+                                    grid.appendChild(cell);
+                                }
+                            }
+
+                            prev.addEventListener('click', () => {
+                                referenceDate = new Date(referenceDate.getFullYear(), referenceDate.getMonth() - 1, 1);
+                                render();
+                            });
+
+                            next.addEventListener('click', () => {
+                                referenceDate = new Date(referenceDate.getFullYear(), referenceDate.getMonth() + 1, 1);
+                                render();
+                            });
+
+                            render();
+                        }
+                    },
+                    'puzzle-game': {
+                        title: '15 Puzzle',
+                        width: 320,
+                        height: 420,
+                        init(content) {
+                            const container = document.createElement('div');
+                            container.className = 'game-container';
+                            const heading = document.createElement('h3');
+                            heading.textContent = 'Arrange the tiles';
+                            const board = document.createElement('div');
+                            board.className = 'game-board';
+                            const actions = document.createElement('div');
+                            actions.className = 'puzzle-actions';
+                            const shuffleBtn = document.createElement('button');
+                            shuffleBtn.textContent = 'New Game';
+                            actions.append(shuffleBtn);
+                            container.append(heading, board, actions);
+                            content.append(container);
+
+                            let tiles = [];
+
+                            function isSolvable(arr) {
+                                let inversions = 0;
+                                for (let i = 0; i < arr.length; i++) {
+                                    for (let j = i + 1; j < arr.length; j++) {
+                                        if (arr[i] && arr[j] && arr[i] > arr[j]) inversions++;
+                                    }
+                                }
+                                const emptyRowFromBottom = 3 - Math.floor(arr.indexOf(0) / 4);
+                                return (inversions + emptyRowFromBottom) % 2 === 0;
+                            }
+
+                            function shuffle() {
+                                do {
+                                    tiles = Array.from({ length: 16 }, (_, i) => i);
+                                    for (let i = tiles.length - 1; i > 0; i--) {
+                                        const j = Math.floor(Math.random() * (i + 1));
+                                        [tiles[i], tiles[j]] = [tiles[j], tiles[i]];
+                                    }
+                                } while (!isSolvable(tiles));
+                                render();
+                            }
+
+                            function render() {
+                                board.innerHTML = '';
+                                tiles.forEach((value, index) => {
+                                    const tile = document.createElement('div');
+                                    tile.className = 'game-tile';
+                                    tile.dataset.index = index;
+                                    if (value === 0) {
+                                        tile.classList.add('empty');
+                                        tile.textContent = '';
+                                    } else {
+                                        tile.textContent = String(value);
+                                    }
+                                    tile.addEventListener('click', () => move(index));
+                                    board.appendChild(tile);
+                                });
+                            }
+
+                            function move(index) {
+                                const emptyIndex = tiles.indexOf(0);
+                                const validMoves = [
+                                    emptyIndex - 1,
+                                    emptyIndex + 1,
+                                    emptyIndex - 4,
+                                    emptyIndex + 4
+                                ];
+
+                                if (!validMoves.includes(index)) return;
+                                const row = Math.floor(index / 4);
+                                const emptyRow = Math.floor(emptyIndex / 4);
+                                if (row === emptyRow || index === emptyIndex - 4 || index === emptyIndex + 4) {
+                                    [tiles[index], tiles[emptyIndex]] = [tiles[emptyIndex], tiles[index]];
+                                    render();
+                                    checkWin();
+                                }
+                            }
+
+                            function checkWin() {
+                                const solved = tiles.slice(0, 15).every((value, i) => value === i + 1);
+                                if (solved && tiles[15] === 0) {
+                                    setStatus('Puzzle solved! Great job.');
+                                }
+                            }
+
+                            shuffleBtn.addEventListener('click', shuffle);
+                            shuffle();
+                        }
+                    },
+                    'clock': {
+                        title: 'Clock',
+                        width: 260,
+                        height: 220,
+                        init(content, windowId) {
+                            let use24h = false;
+                            const display = document.createElement('div');
+                            display.className = 'clock-display';
+                            const controls = document.createElement('div');
+                            controls.className = 'clock-controls';
+                            const toggle = document.createElement('button');
+                            toggle.textContent = 'Toggle 24h';
+                            controls.append(toggle);
+                            content.append(display, controls);
+
+                            const update = () => {
+                                const now = new Date();
+                                const options = { hour12: !use24h, hour: '2-digit', minute: '2-digit', second: '2-digit' };
+                                display.textContent = now.toLocaleTimeString(undefined, options);
+                            };
+                            const interval = setInterval(update, 1000);
+                            update();
+
+                            toggle.addEventListener('click', () => {
+                                use24h = !use24h;
+                                update();
+                            });
+
+                            state.cleanup[windowId] = () => clearInterval(interval);
+                        }
+                    },
+                    'jokes': {
+                        title: 'Random Joke',
+                        width: 360,
+                        height: 260,
+                        init(content) {
+                            const text = document.createElement('div');
+                            text.className = 'joke-text';
+                            const actions = document.createElement('div');
+                            actions.className = 'joke-actions';
+                            const button = document.createElement('button');
+                            button.textContent = 'New Joke';
+                            actions.append(button);
+                            content.append(text, actions);
+
+                            function showJoke() {
+                                const joke = jokeBank[Math.floor(Math.random() * jokeBank.length)];
+                                text.textContent = joke;
+                                setStatus('Delivered a fresh joke.');
+                            }
+
+                            button.addEventListener('click', showJoke);
+                            showJoke();
+                        }
+                    },
+                    'activity': {
+                        title: 'Random Activity',
+                        width: 360,
+                        height: 240,
+                        init(content) {
+                            const text = document.createElement('div');
+                            text.className = 'activity-text';
+                            const actions = document.createElement('div');
+                            actions.className = 'activity-actions';
+                            const button = document.createElement('button');
+                            button.textContent = 'Suggest One';
+                            actions.append(button);
+                            content.append(text, actions);
+
+                            function showActivity() {
+                                const idea = activityBank[Math.floor(Math.random() * activityBank.length)];
+                                text.textContent = idea;
+                                setStatus('New activity suggestion ready.');
+                            }
+
+                            button.addEventListener('click', showActivity);
+                            showActivity();
+                        }
+                    }
+                }
+            };
+
+            function setStatus(text) {
+                statusBar.textContent = text;
+            }
+
+            function resetLayout() {
+                const open = [...state.windows];
+                open.forEach(closeWindow);
+                setStatus('Layout reset to defaults.');
+            }
+
+            function buildMenus() {
+                const existingClock = clockEl;
+                menuBar.innerHTML = '';
+                appData.menus.forEach(menu => {
+                    const item = document.createElement('div');
+                    item.className = 'menu-item';
+                    item.textContent = menu.label;
+                    const dropdown = document.createElement('div');
+                    dropdown.className = 'dropdown';
+                    menu.items.forEach(entry => {
+                        const div = document.createElement('div');
+                        div.className = 'dropdown-item';
+                        div.textContent = entry.label;
+                        div.addEventListener('click', event => {
+                            event.stopPropagation();
+                            dropdown.style.display = 'none';
+                            if (entry.type) {
+                                openWindow(entry.type);
+                            } else if (typeof entry.action === 'function') {
+                                entry.action();
+                            }
+                        });
+                        dropdown.appendChild(div);
+                    });
+                    item.appendChild(dropdown);
+                    item.addEventListener('click', event => {
+                        event.stopPropagation();
+                        document.querySelectorAll('.dropdown').forEach(d => {
+                            if (d !== dropdown) d.style.display = 'none';
+                        });
+                        dropdown.style.display = dropdown.style.display === 'block' ? 'none' : 'block';
+                    });
+                    menuBar.appendChild(item);
+                });
+                menuBar.appendChild(existingClock);
+
+                document.addEventListener('click', () => {
+                    document.querySelectorAll('.dropdown').forEach(d => d.style.display = 'none');
+                });
+            }
+
+            function buildIcons() {
+                iconsContainer.innerHTML = '';
+                appData.icons.forEach(icon => {
+                    const el = document.createElement('div');
+                    el.className = 'icon';
+                    el.innerHTML = `<div class="icon-image">${icon.emoji}</div><div class="icon-label">${icon.label}</div>`;
+                    el.addEventListener('click', () => openWindow(icon.type));
+                    iconsContainer.appendChild(el);
+                });
+            }
+
+            function bringToFront(windowEl) {
+                windowEl.style.zIndex = ++state.zIndex;
+                state.windows = state.windows.filter(id => id !== windowEl.id);
+                state.windows.push(windowEl.id);
+                updateTaskBar();
+            }
+
+            function openWindow(type) {
+                const config = appData.windows[type];
+                if (!config) return;
+                const id = `window-${++state.windowCount}`;
+                const win = document.createElement('div');
+                win.className = 'window';
+                win.id = id;
+                win.dataset.windowType = type;
+                win.style.width = `${config.width}px`;
+                win.style.height = `${config.height}px`;
+                const offset = 40 + (state.windowCount * 18) % 120;
+                win.style.top = `${offset}px`;
+                win.style.left = `${offset}px`;
+
+                const header = document.createElement('div');
+                header.className = 'window-header';
+                const title = document.createElement('div');
+                title.className = 'window-title';
+                title.textContent = config.title;
+                const controls = document.createElement('div');
+                controls.className = 'window-controls';
+                const minBtn = document.createElement('div');
+                minBtn.className = 'window-btn';
+                minBtn.textContent = '_';
+                const maxBtn = document.createElement('div');
+                maxBtn.className = 'window-btn';
+                maxBtn.textContent = '□';
+                const closeBtn = document.createElement('div');
+                closeBtn.className = 'window-btn';
+                closeBtn.textContent = '×';
+                controls.append(minBtn, maxBtn, closeBtn);
+                header.append(title, controls);
+                const content = document.createElement('div');
+                content.className = 'window-content';
+                win.append(header, content);
+                desktop.appendChild(win);
+
+                state.windows.push(id);
+                bringToFront(win);
+                makeDraggable(win, header);
+
+                closeBtn.addEventListener('click', () => closeWindow(id));
+                minBtn.addEventListener('click', () => minimizeWindow(id));
+                maxBtn.addEventListener('click', () => maximizeWindow(id));
+
+                if (typeof config.init === 'function') {
+                    config.init(content, id);
+                }
+
+                updateTaskBar();
+                setStatus(`${config.title} opened.`);
+            }
+
+            function closeWindow(id) {
+                const win = document.getElementById(id);
+                if (!win) return;
+                if (typeof state.cleanup[id] === 'function') {
+                    try {
+                        state.cleanup[id]();
+                    } finally {
+                        delete state.cleanup[id];
+                    }
+                }
+                win.remove();
+                state.windows = state.windows.filter(winId => winId !== id);
+                updateTaskBar();
+            }
+
+            function minimizeWindow(id) {
+                const win = document.getElementById(id);
+                if (!win) return;
+                win.dataset.display = win.style.display;
+                win.style.display = 'none';
+                updateTaskBar();
+            }
+
+            function maximizeWindow(id) {
+                const win = document.getElementById(id);
+                if (!win) return;
+                if (win.dataset.maximized === 'true') {
+                    win.style.width = win.dataset.restoreWidth;
+                    win.style.height = win.dataset.restoreHeight;
+                    win.style.top = win.dataset.restoreTop;
+                    win.style.left = win.dataset.restoreLeft;
+                    win.dataset.maximized = 'false';
+                } else {
+                    win.dataset.restoreWidth = win.style.width;
+                    win.dataset.restoreHeight = win.style.height;
+                    win.dataset.restoreTop = win.style.top;
+                    win.dataset.restoreLeft = win.style.left;
+                    win.style.top = '32px';
+                    win.style.left = '12px';
+                    win.style.width = 'calc(100% - 40px)';
+                    win.style.height = 'calc(100% - 96px)';
+                    win.dataset.maximized = 'true';
+                }
+                bringToFront(win);
+            }
+
+            function makeDraggable(win, handle) {
+                let startX = 0;
+                let startY = 0;
+                let originX = 0;
+                let originY = 0;
+
+                const pointerDown = event => {
+                    if (win.dataset.maximized === 'true') return;
+                    if (event.target.closest('.window-controls')) return;
+                    event.preventDefault();
+                    bringToFront(win);
+                    startX = event.clientX;
+                    startY = event.clientY;
+                    originX = parseInt(win.style.left || '0', 10);
+                    originY = parseInt(win.style.top || '0', 10);
+                    document.addEventListener('pointermove', pointerMove);
+                    document.addEventListener('pointerup', pointerUp);
+                };
+
+                const pointerMove = event => {
+                    const dx = event.clientX - startX;
+                    const dy = event.clientY - startY;
+                    win.style.left = `${originX + dx}px`;
+                    win.style.top = `${originY + dy}px`;
+                };
+
+                const pointerUp = () => {
+                    document.removeEventListener('pointermove', pointerMove);
+                    document.removeEventListener('pointerup', pointerUp);
+                };
+
+                handle.addEventListener('pointerdown', pointerDown);
+            }
+
+            function updateTaskBar() {
+                taskBar.innerHTML = '';
+                state.windows.forEach(id => {
+                    const win = document.getElementById(id);
+                    if (!win) return;
+                    const btn = document.createElement('div');
+                    btn.className = 'task-btn';
+                    if (win.style.display !== 'none') btn.classList.add('active');
+                    btn.textContent = win.querySelector('.window-title').textContent;
+                    btn.addEventListener('click', () => {
+                        if (win.style.display === 'none') {
+                            win.style.display = 'flex';
+                        }
+                        bringToFront(win);
+                    });
+                    taskBar.appendChild(btn);
+                });
+            }
+
+            function showWelcome() {
+                const { title, lines, button } = appData.welcome;
+                welcomeDialog.querySelector('.window-title').textContent = title;
+                const content = welcomeDialog.querySelector('.dialog-content');
+                content.innerHTML = `${lines.map(line => `<p>${line}</p>`).join('')}<div class="dialog-buttons"><div class="dialog-btn" id="welcome-ok">${button}</div></div>`;
+                welcomeDialog.style.display = 'block';
+                const ok = document.getElementById('welcome-ok');
+                ok.addEventListener('click', () => {
+                    welcomeDialog.style.display = 'none';
+                    openWindow('terminal');
+                }, { once: true });
+            }
+
+            function initClock() {
+                let use24 = false;
+                clockEl.addEventListener('click', () => {
+                    use24 = !use24;
+                    update();
+                });
+                const update = () => {
+                    const now = new Date();
+                    clockEl.textContent = now.toLocaleTimeString(undefined, { hour12: !use24 });
+                };
+                setInterval(update, 1000);
+                update();
+            }
+
+            function updateViewportHeight() {
+                document.documentElement.style.setProperty('--vh', `${window.innerHeight * 0.01}px`);
+            }
+
+            function init() {
+                buildMenus();
+                buildIcons();
+                initClock();
+                updateViewportHeight();
+                window.addEventListener('resize', updateViewportHeight);
+                setStatus(appData.status);
+                showWelcome();
+            }
+
+            init();
+        })();
+    </script>
 </body>
 </html>
