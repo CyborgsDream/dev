@@ -1103,6 +1103,63 @@
   sunLight.position.set(260, 220, -500);
   scene.add(sunLight);
 
+  function createSkyTexture(){
+    const skyCanvas = document.createElement('canvas');
+    skyCanvas.width = 96;
+    skyCanvas.height = 48;
+    const ctx = skyCanvas.getContext('2d');
+
+    const palette = ['#23395d', '#2f4b7a', '#3f5f9d', '#6d8fce', '#9cc8ff'];
+
+    ctx.fillStyle = palette[0];
+    ctx.fillRect(0, 0, skyCanvas.width, skyCanvas.height);
+
+    const bands = [
+      { color: palette[1], height: 12 },
+      { color: palette[2], height: 10 },
+      { color: palette[3], height: 10 },
+      { color: palette[4], height: 8 }
+    ];
+
+    let y = skyCanvas.height;
+    for (const band of bands) {
+      y -= band.height;
+      ctx.fillStyle = band.color;
+      ctx.fillRect(0, y, skyCanvas.width, band.height);
+    }
+
+    const cloudBlocks = [
+      { x: 6, y: 8, w: 18, h: 8, color: '#bad8ff' },
+      { x: 32, y: 12, w: 22, h: 10, color: '#cfe4ff' },
+      { x: 60, y: 6, w: 18, h: 8, color: '#b0d0ff' },
+      { x: 14, y: 20, w: 20, h: 9, color: '#d9ecff' },
+      { x: 48, y: 24, w: 24, h: 10, color: '#c4dcff' },
+      { x: 72, y: 18, w: 18, h: 8, color: '#d2e7ff' }
+    ];
+
+    cloudBlocks.forEach(block => {
+      ctx.fillStyle = block.color;
+      ctx.fillRect(block.x, block.y, block.w, block.h);
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.4)';
+      ctx.fillRect(block.x, block.y, Math.floor(block.w * 0.5), Math.ceil(block.h * 0.5));
+    });
+
+    const texture = new THREE.CanvasTexture(skyCanvas);
+    texture.generateMipmaps = false;
+    texture.magFilter = THREE.NearestFilter;
+    texture.minFilter = THREE.NearestFilter;
+    texture.wrapS = THREE.ClampToEdgeWrapping;
+    texture.wrapT = THREE.ClampToEdgeWrapping;
+    return texture;
+  }
+
+  const skyTexture = createSkyTexture();
+  const skyMaterial = new THREE.MeshBasicMaterial({ map: skyTexture, depthWrite: false, depthTest: false });
+  const skyGeometry = new THREE.PlaneGeometry(2200, 900, 1, 1);
+  const skyMesh = new THREE.Mesh(skyGeometry, skyMaterial);
+  skyMesh.position.set(0, 160, -900);
+  scene.add(skyMesh);
+
   const camera = new THREE.PerspectiveCamera(50, 16 / 9, 0.1, 3000);
   const controls = {
     yaw: 0,
@@ -1125,6 +1182,7 @@
   const horizontalForward = new THREE.Vector3();
   const moveVector = new THREE.Vector3();
   const lookVector = new THREE.Vector3();
+  const skyTarget = new THREE.Vector3();
   window.addEventListener('keydown', e => {
     if (['ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.key)) { keyState[e.key] = true; e.preventDefault(); }
   });
@@ -1420,6 +1478,14 @@
     camera.lookAt(lookTargetScratch);
   }
 
+  function updateSky(){
+    const skyDistance = 1600;
+    skyTarget.copy(camera.position).addScaledVector(lookVector, skyDistance);
+    skyTarget.y = camera.position.y + 120;
+    skyMesh.position.lerp(skyTarget, 0.1);
+    skyMesh.lookAt(camera.position.x, camera.position.y + 40, camera.position.z);
+  }
+
   function updateTerrainFollow() {
     const snappedX = snapToChunk(camera.position.x);
     const snappedZ = snapToChunk(camera.position.z);
@@ -1486,6 +1552,7 @@
     updateTerrainFollow();
     updateHud();
     updateBlocks(dt, now / 1000);
+    updateSky();
     renderer.render(scene, camera);
     fpsMonitor.end();
     requestAnimationFrame(animate);
