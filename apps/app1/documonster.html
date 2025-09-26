@@ -411,7 +411,7 @@
   const rulerLeftCm = document.querySelector('#rulerLeft .cm');
   const rulerLeftIn = document.querySelector('#rulerLeft .inch');
 
-  let docModel = normalizeDocument(loadFromStorage() || defaultDocument());
+  let docModel = null;
   let pages = [];
   let obs = null;
   let cur = 0;
@@ -446,6 +446,8 @@
       { value:'banner', label:'Banner Caption' }
     ]
   };
+
+  docModel = normalizeDocument(loadFromStorage() || defaultDocument());
 
   function mmToPx(mm){ return mm * pxPerMm; }
   function pxToMm(px){ return px / pxPerMm; }
@@ -955,7 +957,8 @@
         frame.style.margin = '0 0 3mm 4mm';
       } else {
         frame.style.float = 'none';
-      frame.style.margin = '3mm auto';
+        frame.style.margin = '3mm auto';
+      }
     }
   }
 
@@ -967,7 +970,6 @@
       node.classList.add('style-'+safeStyle);
     }
     return safeStyle;
-  }
   }
 
   function renderDocument(){
