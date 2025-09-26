@@ -20,28 +20,390 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>The Universe</title>
   <style>
-    :root { --w: 1280; --h: 720; }
-    html, body { height: 100%; }
-    body {
-      margin: 0; background: #000; color: #fff;
-      display: grid; place-items: center; overflow: hidden;
-      font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+    :root {
+      --panel-bg: rgba(7, 14, 28, 0.72);
+      --panel-bg-folded: rgba(7, 14, 28, 0.45);
+      --panel-border: rgba(120, 188, 255, 0.32);
+      --panel-border-light: rgba(180, 220, 255, 0.18);
+      --accent: #78c2ff;
+      --accent-strong: #9ce6ff;
+      --text-white: #ffffff;
+      --text-soft: rgba(210, 230, 255, 0.78);
+      --graph-grid: rgba(140, 200, 255, 0.25);
+      --graph-fill: rgba(120, 194, 255, 0.18);
+      --graph-line: #7ed1ff;
     }
-    #container { position: relative; line-height: 0; }
-    #fps { position: absolute; top: 0; left: 0; z-index: 20; }
-    #overlay-error { position: absolute; inset: 0; display: none; z-index: 30; background: rgba(0,0,0,0.85); color: #fff; padding: 16px; font-size: 14px; line-height: 1.4; overflow: auto; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.12); }
+    *, *::before, *::after { box-sizing: border-box; }
+    html, body {
+      height: 100%;
+      width: 100%;
+    }
+    body {
+      margin: 0;
+      background: radial-gradient(ellipse at 65% 35%, rgba(20, 60, 112, 0.35), rgba(4, 10, 18, 0.92) 55%, #000 100%);
+      color: var(--text-white);
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      overflow: hidden;
+      min-height: 100vh;
+      min-height: 100svh;
+    }
+    #container {
+      position: fixed;
+      inset: 0;
+      overflow: hidden;
+      line-height: 0;
+    }
+    #container canvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+      touch-action: none;
+    }
+    #placeholder {
+      position: absolute;
+      inset: 0;
+      z-index: 5;
+      display: grid;
+      place-items: center;
+      background: radial-gradient(ellipse at 60% 40%, #10202a 0%, #05070b 55%, #000 100%);
+      color: #9cc7ff;
+      font: 600 14px/1.2 system-ui, sans-serif;
+      box-shadow: inset 0 0 120px rgba(0,0,0,0.8);
+    }
+    #overlay-error {
+      position: absolute;
+      inset: 0;
+      display: none;
+      z-index: 30;
+      background: rgba(0,0,0,0.85);
+      color: #fff;
+      padding: 16px;
+      font-size: 14px;
+      line-height: 1.4;
+      overflow: auto;
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,0.12);
+    }
     #overlay-error pre { white-space: pre-wrap; }
-    #note { position:absolute; bottom:6px; left:8px; opacity:.9; font-size:12px; letter-spacing:.2px; z-index: 10; }
-    #placeholder { position: absolute; inset: 0; z-index: 5; display: grid; place-items: center; background: radial-gradient(ellipse at 60% 40%, #10202a 0%, #05070b 60%, #000 100%); color:#9cc7ff; font: 600 14px/1.2 system-ui, sans-serif; box-shadow: inset 0 0 120px rgba(0,0,0,0.8); }
-    .hud { position:absolute; top:6px; right:8px; z-index:15; font:12px/1.2 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; opacity:.9; text-align:right;}
-    kbd { background:#111; border:1px solid #333; border-bottom-color:#222; border-radius:4px; padding:.5px 4px; font-weight:600; }
-    .stick{position:absolute;width:120px;height:120px;margin:-60px 0 0 -60px;border:1px solid rgba(255,255,255,.25);border-radius:50%;display:none;z-index:15;pointer-events:none}
-    .stick .nub{position:absolute;left:50%;top:50%;width:36px;height:36px;margin:-18px 0 0 -18px;border-radius:50%;background:rgba(255,255,255,.2);box-shadow:0 0 12px rgba(255,255,255,.35) inset}
+    #note {
+      position: fixed;
+      bottom: calc(10px + env(safe-area-inset-bottom));
+      left: calc(14px + env(safe-area-inset-left));
+      opacity: .85;
+      font-size: 12px;
+      letter-spacing: .2px;
+      z-index: 10;
+      text-transform: uppercase;
+      pointer-events: none;
+    }
+    #fps {
+      position: fixed;
+      top: calc(16px + env(safe-area-inset-top));
+      left: calc(16px + env(safe-area-inset-left));
+      z-index: 40;
+      pointer-events: none;
+    }
+    #control-ui {
+      position: fixed;
+      top: calc(16px + env(safe-area-inset-top));
+      right: calc(16px + env(safe-area-inset-right));
+      background: var(--panel-bg);
+      border: 1px solid var(--panel-border);
+      box-shadow: inset 0 0 0 1px var(--panel-border-light), 0 18px 36px rgba(0,0,0,0.55);
+      padding: 16px 18px 20px;
+      display: grid;
+      row-gap: 12px;
+      width: min(240px, 82vw);
+      z-index: 38;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-white);
+      backdrop-filter: blur(16px);
+      transition: background 0.35s ease, border-color 0.35s ease, box-shadow 0.35s ease;
+    }
+    #control-ui.folded {
+      background: var(--panel-bg-folded);
+      border-color: rgba(126, 180, 255, 0.22);
+      box-shadow: inset 0 0 0 1px rgba(180, 220, 255, 0.12), 0 12px 24px rgba(0,0,0,0.45);
+    }
+    #control-ui.resolution-updated {
+      box-shadow: inset 0 0 0 1px rgba(180, 220, 255, 0.28), 0 22px 48px rgba(70, 150, 255, 0.45);
+    }
+    #control-ui .ui-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+    #control-ui h2 {
+      margin: 0;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.66rem;
+      letter-spacing: 0.18em;
+      color: var(--accent);
+    }
+    #control-ui h2 span:last-child {
+      color: var(--text-white);
+      letter-spacing: 0.24em;
+    }
+    #ui-fold-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      border: 1px solid rgba(142, 198, 255, 0.42);
+      background: rgba(10, 20, 38, 0.55);
+      color: var(--text-white);
+      font-size: 0.52rem;
+      letter-spacing: 0.18em;
+      padding: 5px 10px;
+      cursor: pointer;
+      text-transform: uppercase;
+      transition: background 0.2s ease, border-color 0.2s ease, transform 0.2s ease, opacity 0.2s ease;
+    }
+    #ui-fold-btn:hover {
+      background: rgba(120, 194, 255, 0.28);
+      border-color: rgba(126, 200, 255, 0.7);
+      transform: translateY(-1px);
+    }
+    #ui-fold-btn:active {
+      transform: translateY(1px);
+    }
+    #ui-fold-btn .fold-icon {
+      width: 16px;
+      height: 16px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      transition: transform 0.35s ease;
+    }
+    #ui-fold-btn .fold-icon svg {
+      width: 100%;
+      height: 100%;
+      fill: currentColor;
+      transform-origin: center;
+      transition: transform 0.35s ease;
+    }
+    #control-ui.folded #ui-fold-btn .fold-icon svg {
+      transform: rotate(-90deg);
+    }
+    .fold-body {
+      display: grid;
+      row-gap: 12px;
+      max-height: 400px;
+      overflow: hidden;
+      transition: max-height 0.35s ease, opacity 0.25s ease;
+    }
+    #control-ui.folded .fold-body {
+      max-height: 0;
+      opacity: 0;
+      pointer-events: none;
+    }
+    .ui-icon {
+      width: 22px;
+      height: 22px;
+      display: grid;
+      place-items: center;
+      perspective: 400px;
+    }
+    .ui-icon svg {
+      width: 100%;
+      height: 100%;
+      fill: currentColor;
+      filter: drop-shadow(0 0 6px rgba(120, 194, 255, 0.45));
+    }
+    #resolution-display {
+      font-size: 0.74rem;
+      font-weight: 700;
+      color: var(--text-white);
+      text-shadow: 0 0 12px rgba(120, 194, 255, 0.4);
+    }
+    label[for="resolution-select"] {
+      font-size: 0.62rem;
+      color: var(--text-soft);
+    }
+    .select-wrap {
+      position: relative;
+    }
+    .select-wrap::after {
+      content: '';
+      position: absolute;
+      top: 50%;
+      right: 12px;
+      width: 8px;
+      height: 8px;
+      border-right: 2px solid var(--accent-strong);
+      border-bottom: 2px solid var(--accent-strong);
+      transform: translateY(-50%) rotate(45deg);
+      pointer-events: none;
+    }
+    #resolution-select {
+      width: 100%;
+      padding: 6px 28px 6px 10px;
+      border-radius: 0;
+      border: 1px solid rgba(120, 194, 255, 0.3);
+      background: rgba(6, 14, 28, 0.7);
+      color: var(--text-white);
+      font-size: 0.66rem;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      appearance: none;
+      outline: none;
+      box-shadow: inset 0 0 0 1px rgba(180, 220, 255, 0.22);
+    }
+    #resolution-select:focus {
+      border-color: rgba(126, 200, 255, 0.85);
+      box-shadow: 0 0 0 1px rgba(126, 200, 255, 0.5), 0 0 0 4px rgba(126, 200, 255, 0.2);
+    }
+    #fps-monitor {
+      pointer-events: none;
+      min-width: 180px;
+      padding: 14px 16px;
+      background: rgba(6, 12, 26, 0.62);
+      border: 1px solid rgba(120, 194, 255, 0.32);
+      box-shadow: inset 0 0 0 1px rgba(180, 220, 255, 0.18), 0 12px 26px rgba(0,0,0,0.45);
+      display: grid;
+      row-gap: 8px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+    #fps-monitor .panel-title {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.64rem;
+      color: var(--accent);
+    }
+    #fps-monitor .panel-title .label {
+      color: var(--text-white);
+      letter-spacing: 0.18em;
+    }
+    #fps-monitor .fps-readout {
+      display: flex;
+      align-items: baseline;
+      gap: 6px;
+      font-family: 'Lucida Console', 'Courier New', monospace;
+      color: var(--text-white);
+    }
+    #fps-monitor .fps-label {
+      font-size: 0.58rem;
+      color: var(--accent);
+    }
+    #fps-monitor .fps-value {
+      font-size: 1.4rem;
+      font-weight: 700;
+      min-width: 3.6em;
+      text-shadow: 0 0 14px rgba(126, 200, 255, 0.35);
+    }
+    #fps-monitor .fps-graph {
+      width: 100%;
+      height: 48px;
+      border: 1px solid rgba(120, 194, 255, 0.32);
+      background: rgba(3, 8, 18, 0.9);
+      box-shadow: inset 0 0 0 1px rgba(180, 220, 255, 0.12);
+    }
+    .hud {
+      position: fixed;
+      top: calc(70px + env(safe-area-inset-top));
+      right: calc(18px + env(safe-area-inset-right));
+      z-index: 15;
+      font: 12px/1.2 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      opacity: .88;
+      text-align: right;
+      letter-spacing: 0.08em;
+    }
+    .stick{
+      position:absolute;
+      width:120px;
+      height:120px;
+      margin:-60px 0 0 -60px;
+      border:1px solid rgba(255,255,255,.25);
+      border-radius:50%;
+      display:none;
+      z-index:15;
+      pointer-events:none;
+      backdrop-filter: blur(4px);
+      background: rgba(10, 20, 38, 0.2);
+    }
+    .stick .nub{
+      position:absolute;
+      left:50%;
+      top:50%;
+      width:36px;
+      height:36px;
+      margin:-18px 0 0 -18px;
+      border-radius:50%;
+      background:rgba(255,255,255,.18);
+      box-shadow:0 0 12px rgba(126,200,255,0.4) inset;
+    }
+    kbd {
+      background:#0b1528;
+      border:1px solid rgba(126,200,255,0.35);
+      border-bottom-color:rgba(80,150,220,0.35);
+      border-radius:4px;
+      padding:.5px 4px;
+      font-weight:600;
+      color:#d6ecff;
+    }
+    @media (max-width: 600px) {
+      #control-ui {
+        width: min(280px, 92vw);
+        row-gap: 10px;
+        font-size: 0.95em;
+      }
+      #fps-monitor {
+        min-width: 0;
+        width: min(220px, 80vw);
+      }
+      .hud {
+        top: calc(110px + env(safe-area-inset-top));
+        right: calc(12px + env(safe-area-inset-right));
+        text-align: left;
+      }
+    }
   </style>
 </head>
 <body>
   <div id="container" data-app-version="v1.9.1">
     <div id="fps"></div>
+    <div id="control-ui">
+      <div class="ui-header">
+        <h2>
+          <span class="ui-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" role="presentation">
+              <circle cx="12" cy="12" r="10" opacity="0.35"></circle>
+              <path d="M12 4.5l2.9 5 5.6.8-4.1 4 1 5.7L12 17.8 6.6 20l1-5.7-4.1-4 5.6-.8z" fill="currentColor" opacity="0.85"></path>
+              <circle cx="12" cy="12" r="2.4" fill="var(--accent)"></circle>
+            </svg>
+          </span>
+          <span>Observatory</span>
+          <span>Control</span>
+        </h2>
+        <button id="ui-fold-btn" type="button" aria-label="Collapse control panel" aria-expanded="true" aria-controls="ui-foldable">
+          <span class="fold-icon" aria-hidden="true">
+            <svg viewBox="0 0 16 16" role="presentation" focusable="false">
+              <path d="M4.2 2.8a1 1 0 0 1 1.6 0l4 5a1 1 0 0 1 0 1.2l-4 5a1 1 0 0 1-1.6-1.2L7.7 8 4.2 4a1 1 0 0 1 0-1.2z"></path>
+            </svg>
+          </span>
+        </button>
+      </div>
+      <div id="ui-foldable" class="fold-body">
+        <div id="resolution-display">—</div>
+        <label for="resolution-select">Resolution</label>
+        <div class="select-wrap">
+          <select id="resolution-select" aria-label="Resolution selector">
+            <option value="256x144">144p — 256 × 144</option>
+            <option value="426x240">240p — 426 × 240</option>
+            <option value="640x360">360p — 640 × 360</option>
+            <option value="854x480">480p — 854 × 480</option>
+            <option value="1280x720" selected>720p — 1280 × 720</option>
+            <option value="1920x1080">1080p — 1920 × 1080</option>
+            <option value="2560x1440">1440p — 2560 × 1440</option>
+            <option value="3840x2160">2160p — 3840 × 2160</option>
+          </select>
+        </div>
+      </div>
+    </div>
     <div class="hud">
       <div><kbd>G</kbd> GRB • <kbd>N</kbd> Nebula • <kbd>A</kbd> AutoCam • <kbd>↑↓←→</kbd> Manual • <kbd>R</kbd> Reset</div>
     </div>
@@ -97,10 +459,209 @@
     showPanel(){}
   }
 
-  // ===== Scaling =====
-  function applyScaleTo(el, W=1280, H=720){ if(!el) return; const scale=Math.min(window.innerWidth/W, window.innerHeight/H); el.style.width=(W*scale)+'px'; el.style.height=(H*scale)+'px'; }
-  function applyScaleAll(){ const c=document.querySelector('#container>canvas'); applyScaleTo(c); applyScaleTo(document.getElementById('placeholder')); }
-  window.addEventListener('resize', applyScaleAll); applyScaleAll();
+  const RESOLUTION_PRESETS = [
+    { label: '144p', width: 256, height: 144 },
+    { label: '240p', width: 426, height: 240 },
+    { label: '360p', width: 640, height: 360 },
+    { label: '480p', width: 854, height: 480 },
+    { label: '720p', width: 1280, height: 720 },
+    { label: '1080p', width: 1920, height: 1080 },
+    { label: '1440p', width: 2560, height: 1440 },
+    { label: '2160p', width: 3840, height: 2160 }
+  ];
+  const RESOLUTION_BASE_HEIGHT = 720;
+
+  function parseResolutionValue(value){
+    if (!value || typeof value !== 'string') return RESOLUTION_PRESETS[4];
+    const parts = value.split('x');
+    if (parts.length !== 2) return RESOLUTION_PRESETS[4];
+    const w = Number(parts[0]);
+    const h = Number(parts[1]);
+    const preset = RESOLUTION_PRESETS.find(p => p.width === w && p.height === h);
+    return preset || RESOLUTION_PRESETS[4];
+  }
+
+  function computeScaledDimensions(preset, viewportWidth, viewportHeight){
+    const scale = preset.height / RESOLUTION_BASE_HEIGHT;
+    const width = Math.max(1, Math.round(Math.max(1, viewportWidth) * scale));
+    const height = Math.max(1, Math.round(Math.max(1, viewportHeight) * scale));
+    return { width, height, scale };
+  }
+
+  function formatResolutionText(preset, dims){
+    return `${preset.label} — ${dims.width} × ${dims.height}`;
+  }
+
+  class FpsMonitor {
+    constructor(container) {
+      this.dom = document.createElement('div');
+      this.dom.id = 'fps-monitor';
+
+      const iconMarkup = `
+        <span class="ui-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" role="presentation">
+            <circle cx="12" cy="12" r="10" opacity="0.35"></circle>
+            <path d="M5 13.2l3.4-2.6L11 14l2.9-5.6L19 15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"></path>
+          </svg>
+        </span>`;
+
+      this.titleEl = document.createElement('div');
+      this.titleEl.className = 'panel-title';
+      this.titleEl.innerHTML = `${iconMarkup}<span class="label">Performance</span>`;
+      this.dom.appendChild(this.titleEl);
+
+      this.styles = getComputedStyle(document.documentElement);
+
+      this.readoutEl = document.createElement('div');
+      this.readoutEl.className = 'fps-readout';
+
+      this.labelEl = document.createElement('div');
+      this.labelEl.className = 'fps-label';
+      this.labelEl.textContent = 'fps';
+
+      this.valueEl = document.createElement('div');
+      this.valueEl.className = 'fps-value';
+      this.valueEl.textContent = '000';
+
+      this.readoutEl.appendChild(this.labelEl);
+      this.readoutEl.appendChild(this.valueEl);
+
+      this.graphCanvas = document.createElement('canvas');
+      this.graphCanvas.width = 160;
+      this.graphCanvas.height = 60;
+      this.graphCanvas.className = 'fps-graph';
+      this.graphCanvas.setAttribute('aria-hidden', 'true');
+      this.graphCtx = this.graphCanvas.getContext('2d');
+
+      this.maxSamples = this.graphCanvas.width;
+      this.samples = new Array(this.maxSamples).fill(0);
+      this.referenceFps = 120;
+      this.sampleWindow = 250;
+      this.frameCount = 0;
+      this.lastSample = performance.now();
+      this.smoothed = 0;
+
+      this.dom.appendChild(this.readoutEl);
+      this.dom.appendChild(this.graphCanvas);
+      this.drawGraph();
+      if (container) container.appendChild(this.dom);
+    }
+
+    begin() {}
+
+    end() {
+      const now = performance.now();
+      this.frameCount += 1;
+      if (now - this.lastSample >= this.sampleWindow) {
+        const elapsed = now - this.lastSample;
+        const fps = (this.frameCount * 1000) / elapsed;
+        this.frameCount = 0;
+        this.lastSample = now;
+        this.update(fps);
+      }
+    }
+
+    update(rawFps) {
+      const fps = Math.max(0, rawFps);
+      this.smoothed = this.smoothed === 0 ? fps : (this.smoothed * 0.7 + fps * 0.3);
+      const rounded = Math.max(0, Math.round(this.smoothed));
+      this.valueEl.textContent = `${rounded.toString().padStart(3, '0')}`;
+      this.samples.push(fps);
+      if (this.samples.length > this.maxSamples) {
+        this.samples.shift();
+      }
+      this.drawGraph();
+    }
+
+    drawGraph() {
+      const ctx = this.graphCtx;
+      const width = this.graphCanvas.width;
+      const height = this.graphCanvas.height;
+      ctx.clearRect(0, 0, width, height);
+
+      const background = this.styles.getPropertyValue('--panel-bg-folded').trim() || 'rgba(7,14,28,0.45)';
+      const gridColor = this.styles.getPropertyValue('--graph-grid').trim() || 'rgba(140, 200, 255, 0.25)';
+      const fillColor = this.styles.getPropertyValue('--graph-fill').trim() || 'rgba(120, 194, 255, 0.18)';
+      const lineColor = this.styles.getPropertyValue('--graph-line').trim() || '#7ed1ff';
+
+      ctx.fillStyle = background;
+      ctx.fillRect(0, 0, width, height);
+
+      ctx.strokeStyle = gridColor;
+      ctx.lineWidth = 1;
+      const gridLines = 4;
+      for (let i = 1; i < gridLines; i++) {
+        const y = Math.round((height / gridLines) * i) + 0.5;
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.lineTo(width, y);
+        ctx.stroke();
+      }
+
+      const highestSample = this.samples.reduce((max, value) => Math.max(max, value), 0);
+      const scaleMax = Math.max(this.referenceFps, highestSample, 30);
+      const verticalPadding = 2;
+      const usableHeight = height - verticalPadding * 2;
+
+      ctx.beginPath();
+      ctx.moveTo(0, height - verticalPadding);
+      for (let i = 0; i < this.samples.length; i++) {
+        const value = this.samples[i];
+        const x = (i / (this.samples.length - 1 || 1)) * width;
+        const normalized = Math.min(1, value / scaleMax);
+        const y = height - verticalPadding - normalized * usableHeight;
+        ctx.lineTo(x, y);
+      }
+      ctx.lineTo(width, height - verticalPadding);
+      ctx.closePath();
+      ctx.fillStyle = fillColor;
+      ctx.fill();
+
+      ctx.beginPath();
+      for (let i = 0; i < this.samples.length; i++) {
+        const value = this.samples[i];
+        const x = (i / (this.samples.length - 1 || 1)) * width;
+        const normalized = Math.min(1, value / scaleMax);
+        const y = height - verticalPadding - normalized * usableHeight;
+        if (i === 0) {
+          ctx.moveTo(x, y);
+        } else {
+          ctx.lineTo(x, y);
+        }
+      }
+      ctx.strokeStyle = lineColor;
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+    }
+  }
+
+  const controlUiEl = document.getElementById('control-ui');
+  const foldBtn = document.getElementById('ui-fold-btn');
+  if (foldBtn && controlUiEl) {
+    const updateFoldState = (folded) => {
+      const label = folded ? 'Expand control panel' : 'Collapse control panel';
+      foldBtn.setAttribute('aria-label', label);
+    };
+    foldBtn.addEventListener('click', () => {
+      const isFolded = controlUiEl.classList.toggle('folded');
+      foldBtn.setAttribute('aria-expanded', String(!isFolded));
+      updateFoldState(isFolded);
+      console.log(`Control panel ${isFolded ? 'collapsed' : 'expanded'}.`);
+    });
+    updateFoldState(controlUiEl.classList.contains('folded'));
+    foldBtn.setAttribute('aria-expanded', String(!controlUiEl.classList.contains('folded')));
+  }
+
+  let resolutionFlashTimeout = null;
+  function flashResolutionPanel(){
+    const control = document.getElementById('control-ui');
+    if (!control) return;
+    control.classList.add('resolution-updated');
+    if (resolutionFlashTimeout) clearTimeout(resolutionFlashTimeout);
+    resolutionFlashTimeout = setTimeout(() => {
+      control.classList.remove('resolution-updated');
+    }, 480);
+  }
 
   // ===== Boot =====
   (async function boot(){
@@ -573,19 +1134,79 @@
   // ===== Main Three.js app =====
   function initThreeScene(){
     if (typeof THREE === 'undefined') throw new Error('Three.js not present after loader.');
-    const WIDTH=1280, HEIGHT=720, ASPECT=WIDTH/HEIGHT; const q = chooseQuality();
-    const container = document.getElementById('container'); const fpsHolder = document.getElementById('fps'); const note = document.getElementById('note'); const placeholder = document.getElementById('placeholder');
-    note.textContent = `${APP_VERSION} • ${APP_CODENAME}`;
+    const q = chooseQuality();
+    const container = document.getElementById('container');
+    const fpsHolder = document.getElementById('fps');
+    const note = document.getElementById('note');
+    const placeholder = document.getElementById('placeholder');
+    const resolutionSelect = document.getElementById('resolution-select');
+    const resolutionDisplay = document.getElementById('resolution-display');
 
     const renderer = new THREE.WebGLRenderer({ antialias: true });
-    renderer.setSize(WIDTH, HEIGHT, false); renderer.setPixelRatio(q.dpr);
-    container.appendChild(renderer.domElement); applyScaleAll(); placeholder.style.display='none';
+    renderer.setPixelRatio(q.dpr);
+    container.appendChild(renderer.domElement);
+    placeholder.style.display = 'none';
 
-    const StatsCtor = (typeof window !== 'undefined' && window.Stats) ? window.Stats : MiniStats; const stats = new StatsCtor(); if (stats.showPanel) stats.showPanel(0); fpsHolder.appendChild(stats.dom);
+    const StatsCtor = (typeof window !== 'undefined' && window.Stats) ? window.Stats : MiniStats;
+    const stats = new StatsCtor();
+    if (stats.showPanel) stats.showPanel(0);
+    if (stats.dom) stats.dom.style.display = 'none';
+    const fpsMonitor = new FpsMonitor(fpsHolder);
 
     const scene = new THREE.Scene();
-    const camera = new THREE.PerspectiveCamera(60, ASPECT, 0.1, 4000); camera.position.set(0, 72, 180);
+    const camera = new THREE.PerspectiveCamera(60, 1, 0.1, 4000);
+    camera.position.set(0, 72, 180);
     window._camera = camera;
+
+    const defaultResValue = q.isMobile ? '854x480' : '1280x720';
+    if (resolutionSelect && resolutionSelect.querySelector(`option[value="${defaultResValue}"]`)) {
+      resolutionSelect.value = defaultResValue;
+    }
+    let currentResolution = parseResolutionValue(resolutionSelect ? resolutionSelect.value : defaultResValue);
+
+    function syncResolution({ announce = false } = {}){
+      const dims = computeScaledDimensions(currentResolution, window.innerWidth, window.innerHeight);
+      renderer.setSize(dims.width, dims.height, false);
+      camera.aspect = Math.max(0.1, window.innerWidth / Math.max(1, window.innerHeight));
+      camera.updateProjectionMatrix();
+      if (resolutionDisplay) {
+        resolutionDisplay.textContent = formatResolutionText(currentResolution, dims);
+      }
+      if (note) {
+        note.textContent = `${APP_VERSION} • ${APP_CODENAME} • ${currentResolution.label}`;
+      }
+      if (announce) {
+        console.log(`Resolution set to ${dims.width}×${dims.height} (${currentResolution.label}).`);
+      }
+    }
+
+    let resizeRaf = 0;
+    let pendingAnnounce = false;
+    function scheduleResize({ announce = false } = {}){
+      pendingAnnounce = pendingAnnounce || announce;
+      if (resizeRaf) cancelAnimationFrame(resizeRaf);
+      resizeRaf = requestAnimationFrame(() => {
+        resizeRaf = 0;
+        syncResolution({ announce: pendingAnnounce });
+        pendingAnnounce = false;
+      });
+    }
+
+    const resizeListener = () => scheduleResize();
+    window.addEventListener('resize', resizeListener);
+    if (window.visualViewport) window.visualViewport.addEventListener('resize', resizeListener);
+    window.addEventListener('orientationchange', resizeListener);
+
+    syncResolution();
+    scheduleResize({ announce: true });
+
+    if (resolutionSelect) {
+      resolutionSelect.addEventListener('change', () => {
+        currentResolution = parseResolutionValue(resolutionSelect.value);
+        scheduleResize({ announce: true });
+        flashResolutionPanel();
+      });
+    }
 
     // Star background
     function makeStarTexture(size=2048){ const c=document.createElement('canvas'); c.width=c.height=size; const ctx=c.getContext('2d'); ctx.fillStyle='#000'; ctx.fillRect(0,0,size,size); const n=3800; for(let i=0;i<n;i++){ const x=Math.random()*size, y=Math.random()*size; const r=Math.random()*1.8+0.2; const l=72+Math.random()*28; const hue = Math.random()<0.75 ? (200+Math.random()*40) : (40+Math.random()*20); ctx.fillStyle=`hsl(${hue},100%,${l}%)`; ctx.beginPath(); ctx.arc(x,y,r,0,Math.PI*2); ctx.fill(); } return new THREE.CanvasTexture(c); }
@@ -668,6 +1289,7 @@
     let _lastTime = performance.now();
     function animate(){
       const now = performance.now(); const dt = Math.min(0.05, (now - _lastTime) / 1000); _lastTime = now;
+      fpsMonitor.begin();
       if (stats.begin) stats.begin();
       // Smooth touch input
       const k = 1 - Math.exp(-dt * 12); touchYawSm += (touchAgg.yaw - touchYawSm) * k; touchThrottleSm += (touchAgg.throttle - touchThrottleSm) * k;
@@ -675,6 +1297,7 @@
       updateControls(dt); updateBlackHole(blackHole, dt); updateAndromeda(andromeda, dt); updateGalaxyField(galaxyField, dt); updateLensArcs(lensArcs, dt); updateNebulae(nebulae, dt); grb.update(dt);
       renderer.render(scene, camera);
       if (stats.end) stats.end();
+      fpsMonitor.end();
       requestAnimationFrame(animate);
     }
 
@@ -695,20 +1318,139 @@
 
   // ===== Fallback (Canvas 2D) — minimal but pretty
   function initCanvasFallback(cause){
-    const container = document.getElementById('container'); const fpsHolder = document.getElementById('fps'); const note = document.getElementById('note'); note.textContent = `${APP_VERSION} • Fallback: Canvas space`; const placeholder = document.getElementById('placeholder'); placeholder.style.display='none';
-    const canvas = document.createElement('canvas'); const WIDTH=1280, HEIGHT=720; canvas.width=WIDTH; canvas.height=HEIGHT; container.appendChild(canvas); applyScaleAll();
-    const stats = new MiniStats(); fpsHolder.appendChild(stats.dom); const ctx = canvas.getContext('2d');
-    const stars = Array.from({length: 1600}, ()=>({ x: Math.random()*WIDTH, y: Math.random()*HEIGHT, z: Math.random()*2+0.2 }));
-    let t=0;
-    function frame(){ stats.begin(); t+=1/60; ctx.fillStyle='#000'; ctx.fillRect(0,0,WIDTH,HEIGHT);
-      for(const s of stars){ s.x -= s.z*0.3; if(s.x<0) s.x += WIDTH; const b = 150 + Math.floor(s.z*50); ctx.fillStyle=`rgb(${b},${b},${b})`; ctx.fillRect(s.x, s.y, 2, 2);} 
-      const cx=WIDTH*0.5, cy=HEIGHT*0.52;
-      ctx.save(); ctx.translate(cx-180, cy-120); ctx.rotate(0.2); ctx.globalCompositeOperation='lighter'; ctx.fillStyle='rgba(255,230,180,0.10)'; for(let r=40;r<240;r+=14){ ctx.beginPath(); ctx.arc(0,0,r,0,Math.PI*2); ctx.fill(); } ctx.restore(); ctx.globalCompositeOperation='source-over';
-      ctx.fillStyle='#000'; ctx.beginPath(); ctx.arc(cx,cy,28,0,Math.PI*2); ctx.fill();
-      ctx.save(); ctx.translate(cx,cy); ctx.rotate(t*0.2); ctx.globalCompositeOperation='lighter'; ctx.strokeStyle='rgba(255,200,100,0.9)'; ctx.lineWidth=3; ctx.beginPath(); ctx.ellipse(0,0,34,34,0,0,Math.PI*2); ctx.stroke();
-      ctx.strokeStyle='rgba(255,170,80,0.35)'; ctx.lineWidth=2; for(let i=0;i<20;i++){ const r=36+Math.random()*46; ctx.beginPath(); ctx.arc(0,0,r,0,Math.PI*2); ctx.stroke(); }
-      for(let i=0;i<22;i++){ const life=(t*0.7+i*0.1)%1.6; const dir=i%2?1:-1; const y=(life*180-90)*dir; const op=Math.max(0,1-(life*life)); ctx.fillStyle=`rgba(120,180,255,${0.9*op})`; ctx.beginPath(); ctx.ellipse(0,y,7+10*(1-life),7+5*(1-life),0,0,Math.PI*2); ctx.fill(); }
-      ctx.restore(); stats.end(); requestAnimationFrame(frame); }
+    const container = document.getElementById('container');
+    const fpsHolder = document.getElementById('fps');
+    const note = document.getElementById('note');
+    const placeholder = document.getElementById('placeholder');
+    const resolutionSelect = document.getElementById('resolution-select');
+    const resolutionDisplay = document.getElementById('resolution-display');
+    placeholder.style.display = 'none';
+
+    const canvas = document.createElement('canvas');
+    container.appendChild(canvas);
+    const ctx = canvas.getContext('2d');
+
+    const stats = new MiniStats();
+    if (stats.dom) stats.dom.style.display = 'none';
+    const fpsMonitor = new FpsMonitor(fpsHolder);
+
+    const q = chooseQuality();
+    const defaultResValue = q.isMobile ? '854x480' : '1280x720';
+    if (resolutionSelect && resolutionSelect.querySelector(`option[value="${defaultResValue}"]`)) {
+      resolutionSelect.value = defaultResValue;
+    }
+    let currentResolution = parseResolutionValue(resolutionSelect ? resolutionSelect.value : defaultResValue);
+    let stars = [];
+
+    function syncResolution({ announce = false } = {}){
+      const dims = computeScaledDimensions(currentResolution, window.innerWidth, window.innerHeight);
+      canvas.width = dims.width;
+      canvas.height = dims.height;
+      stars = Array.from({ length: 1600 }, () => ({ x: Math.random() * canvas.width, y: Math.random() * canvas.height, z: Math.random() * 2 + 0.2 }));
+      if (resolutionDisplay) {
+        resolutionDisplay.textContent = formatResolutionText(currentResolution, dims);
+      }
+      if (note) {
+        note.textContent = `${APP_VERSION} • Fallback: Canvas space • ${currentResolution.label}`;
+      }
+      if (announce) {
+        console.log(`Fallback resolution set to ${dims.width}×${dims.height} (${currentResolution.label}).`);
+      }
+    }
+
+    let resizeRaf = 0;
+    let pendingAnnounce = false;
+    function scheduleResize({ announce = false } = {}){
+      pendingAnnounce = pendingAnnounce || announce;
+      if (resizeRaf) cancelAnimationFrame(resizeRaf);
+      resizeRaf = requestAnimationFrame(() => {
+        resizeRaf = 0;
+        syncResolution({ announce: pendingAnnounce });
+        pendingAnnounce = false;
+      });
+    }
+
+    syncResolution({ announce: true });
+
+    const resizeListener = () => scheduleResize();
+    window.addEventListener('resize', resizeListener);
+    if (window.visualViewport) window.visualViewport.addEventListener('resize', resizeListener);
+    window.addEventListener('orientationchange', resizeListener);
+
+    if (resolutionSelect) {
+      resolutionSelect.addEventListener('change', () => {
+        currentResolution = parseResolutionValue(resolutionSelect.value);
+        scheduleResize({ announce: true });
+        flashResolutionPanel();
+      });
+    }
+
+    let t = 0;
+    function frame(){
+      fpsMonitor.begin();
+      stats.begin();
+      t += 1/60;
+      const WIDTH = canvas.width;
+      const HEIGHT = canvas.height;
+      ctx.fillStyle = '#000';
+      ctx.fillRect(0, 0, WIDTH, HEIGHT);
+      for (const s of stars) {
+        s.x -= s.z * 0.3;
+        if (s.x < 0) s.x += WIDTH;
+        const b = 150 + Math.floor(s.z * 50);
+        ctx.fillStyle = `rgb(${b},${b},${b})`;
+        ctx.fillRect(s.x, s.y, 2, 2);
+      }
+      const cx = WIDTH * 0.5;
+      const cy = HEIGHT * 0.52;
+      ctx.save();
+      ctx.translate(cx - 180, cy - 120);
+      ctx.rotate(0.2);
+      ctx.globalCompositeOperation = 'lighter';
+      ctx.fillStyle = 'rgba(255,230,180,0.10)';
+      for (let r = 40; r < 240; r += 14) {
+        ctx.beginPath();
+        ctx.arc(0, 0, r, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.restore();
+      ctx.globalCompositeOperation = 'source-over';
+      ctx.fillStyle = '#000';
+      ctx.beginPath();
+      ctx.arc(cx, cy, 28, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.save();
+      ctx.translate(cx, cy);
+      ctx.rotate(t * 0.2);
+      ctx.globalCompositeOperation = 'lighter';
+      ctx.strokeStyle = 'rgba(255,200,100,0.9)';
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.ellipse(0, 0, 34, 34, 0, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.strokeStyle = 'rgba(255,170,80,0.35)';
+      ctx.lineWidth = 2;
+      for (let i = 0; i < 20; i++) {
+        const r = 36 + Math.random() * 46;
+        ctx.beginPath();
+        ctx.arc(0, 0, r, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+      for (let i = 0; i < 22; i++) {
+        const life = (t * 0.7 + i * 0.1) % 1.6;
+        const dir = i % 2 ? 1 : -1;
+        const y = (life * 180 - 90) * dir;
+        const op = Math.max(0, 1 - (life * life));
+        ctx.fillStyle = `rgba(120,180,255,${0.9 * op})`;
+        ctx.beginPath();
+        ctx.ellipse(0, y, 7 + 10 * (1 - life), 7 + 5 * (1 - life), 0, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.restore();
+      stats.end();
+      fpsMonitor.end();
+      requestAnimationFrame(frame);
+    }
     frame();
     showErrorOverlay('Three.js failed to load — running fallback renderer.', cause);
   }
