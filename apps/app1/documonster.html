@@ -4,7 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <meta http-equiv="Content-Language" content="en" />
-<title>DocuMonster — ProtoDesk Orbit v0.9.0</title>
+<title>Docu Monster Studio Pro — Orbit OS v 0.1.0</title>
 <style>
   /* ===== Base ===== */
   *,*::before,*::after{ box-sizing:border-box; }
@@ -182,10 +182,11 @@
   .frame-image{ flex:1 1 auto; background:repeating-linear-gradient(135deg,#dde7ef,#dde7ef 12px,#c7d6e5 12px,#c7d6e5 24px); display:flex; align-items:center; justify-content:center; color:#344860; font:11px var(--font-ui); text-align:center; padding:4mm; }
   .frame-image[data-src]{ background-size:cover; background-position:center; color:transparent; text-indent:-9999px; }
   .frame figcaption{ font:11px var(--font-ui); color:#333; padding:2mm 3mm 3mm; }
-  .frame .resize-handle{ position:absolute; width:10px; height:10px; background:#000080; border:1px solid #fff; }
+  .frame .resize-handle{ position:absolute; width:10px; height:10px; background:#000080; border:1px solid #fff; display:none; }
   .frame .resize-handle.se{ right:-5px; bottom:-5px; cursor:se-resize; }
   .frame .resize-handle.e{ right:-5px; top:50%; transform:translateY(-50%); cursor:e-resize; }
   .frame .resize-handle.s{ bottom:-5px; left:50%; transform:translateX(-50%); cursor:s-resize; }
+  .frame.selected .resize-handle{ display:block; }
   .quote{ font-size:14px; line-height:1.3; }
   .attribution{ font:11px var(--font-ui); text-transform:uppercase; letter-spacing:0.08em; }
   .callout{ font:12px var(--font-ui); font-weight:bold; }
@@ -211,6 +212,7 @@
     :root{ --m-top:12mm; --m-bot:12mm; --m-in:12mm; --m-out:12mm; }
     body.pdf-mirror .sheet.even{ --m-in:20mm; --m-out:14mm; }
     *{ -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+    .frame .resize-handle{ display:none !important; }
   }
 </style>
 <body>
@@ -309,7 +311,7 @@
     <div class="spacer"></div>
     <div class="win-group">
       <span class="win-stat" id="status">Ready.</span>
-      <span class="win-stat" id="ver">ProtoDesk Orbit v0.9.0 • DocuMonster 0.8.0</span>
+      <span class="win-stat" id="ver">Orbit OS v 0.1.0 • Docu Monster Studio Pro 0.1.0</span>
     </div>
   </div>
 
@@ -333,7 +335,7 @@
 (function(){
   'use strict';
   const pxPerMm = 96/25.4;
-  const STORAGE_KEY = 'documonster-autosave-v0-9';
+  const STORAGE_KEY = 'documonster-studiopro-autosave-v0-1';
   const pagesEl = document.getElementById('pages');
   const releaseCardEl = document.getElementById('releaseCard');
   const curEl = document.getElementById('cur');
@@ -387,47 +389,48 @@
 
   function defaultDocument(){
     return {
-      version:'0.9.0',
-      docVersion:'0.8.0',
-      codename:'ProtoDesk Orbit',
+      version:'0.1.0',
+      docVersion:'0.1.0',
+      codename:'Orbit OS',
+      docName:'Docu Monster Studio Pro',
       releaseNotes:[
-        'Windows 3.11 inspired menubar with File/Export/Edit commands.',
-        'Dynamic columns, draggable overlay frames, and floating wraps.',
-        'Metric + imperial rulers for precision layout in the browser.',
-        'Autosave, JSON import/export, and PDF bleed/trim exports.'
+        'Orbit OS v 0.1.0 desktop shell refreshed with renamed menus and inspector tools.',
+        'Docu Monster Studio Pro 0.1.0 editing engine with multi-column layouts and floating frames.',
+        'Guides, rulers, and print marks aligned with Docu Monster Studio Pro terminology.',
+        'Docu Monster Studio Pro PDF exports with bleed and trim presets ready for press.'
       ],
       pages:[
         {
-          title:'PROTO DESK LAUNCH DOSSIER',
-          subtitle:'DocuMonster Studio Editor 0.8.0',
-          deck:'A Windows 3.11 inspired layout lab for the browser-native creative desktop.',
+          title:'ORBIT OS LAUNCH DOSSIER',
+          subtitle:'Docu Monster Studio Pro 0.1.0',
+          deck:'Orbit OS v 0.1.0 introduces Docu Monster Studio Pro, a desktop publishing lab for the browser.',
           elements:[
             {
               type:'columns', columns:2,
-              html:'<p>DocuMonster enters a quasi-operating-system era with ProtoDesk Orbit. This release introduces a polished menubar, autosave, and a true layout inspector that keeps your spreads fluid while remaining production ready.</p>'+
-                   '<p>Use the new Edit menu to mix single, double, or triple column grids inside a single spread. Add text or image frames, then choose whether they float alongside the story or overlay for poster-style compositions.</p>'+
-                   '<p>Versioning is now meaningful: the core editor is DocuMonster 0.8.0, bundled inside ProtoDesk Orbit v0.9.0—the codename for our browser-based creative desktop.</p>'+
-                   '<p>Guides, crop marks, and proofing toggles remain one click away. Save layouts locally or export press-ready PDFs straight from the Export menu.</p>'
+              html:'<p>Docu Monster Studio Pro debuts alongside Orbit OS v 0.1.0. The refreshed shell keeps the retro desktop look while focusing entirely on print production.</p>'+
+                   '<p>Swap between one, two, or three column grids from the Edit menu. Add text or image frames, set them to overlay or float, and fine-tune them with the inspector.</p>'+
+                   '<p>All terminology now aligns with Orbit OS and Docu Monster Studio Pro, making it clear which layer handles the interface and which powers layout.</p>'+
+                   '<p>Guides, crop marks, and colour bars are still a click away, so exporting from Docu Monster Studio Pro feels just like working in a print studio.</p>'
             },
             {
               type:'columns', columns:1,
               html:'<h2 class="span-all">Release Highlights</h2>'+
-                   '<ul class="bullet"><li>Persistent rulers in centimetres and inches for accurate placement.</li>'+
-                   '<li>Frame inspector for millimetre-perfect positioning.</li>'+
-                   '<li>Autosave with local storage plus JSON import/export.</li>'+
-                   '<li>Mirrored gutter toggles, bleed proofing, and Ugra/Fogra colour bars.</li></ul>'
+                   '<ul class="bullet"><li>Persistent centimetre and inch rulers for exact placement.</li>'+
+                   '<li>Frame inspector with millimetre precision controls.</li>'+
+                   '<li>Autosave with local storage plus JSON import and export.</li>'+
+                   '<li>Mirrored gutter toggles, bleed proofing, and Docu Monster Studio Pro colour bars.</li></ul>'
             },
             {
               type:'frame', frameType:'text', mode:'overlay', x:118, y:58, width:62, height:40,
-              content:'<p class="quote">“Design for print, proof in the browser, and ship without leaving ProtoDesk.”</p><p class="attribution">— DocuMonster Team</p>',
+              content:'<p class="quote">“Design for print, proof in the browser, and ship straight from Docu Monster Studio Pro.”</p><p class="attribution">— Orbit OS Team</p>',
               caption:''
             },
             {
               type:'frame', frameType:'image', mode:'float-right', x:110, y:120, width:70, height:50,
-              src:'', caption:'ProtoDesk shells the editor with a familiar Windows 3.11 style surface.'
+              src:'', caption:'Orbit OS wraps the editor with a familiar desktop-style workspace.'
             }
           ],
-          footerLeft:'DocuMonster ProtoDesk Orbit',
+          footerLeft:'Docu Monster Studio Pro • Orbit OS',
           footerRight:'Page {{page}} / {{total}} — Build {{version}}'
         },
         {
@@ -437,16 +440,16 @@
           elements:[
             {
               type:'columns', columns:3,
-              html:'<p>Switch between one, two, and three column sets inside the same spread. Each block remains editable—type directly into place and DocuMonster will keep track for autosave.</p>'+
+              html:'<p>Switch between one, two, and three column sets inside the same spread. Each block remains editable—type directly into place and Docu Monster Studio Pro keeps autosave running.</p>'+
                    '<p>Frame wrap controls let imagery ride alongside the story or float freely for poster art. Overlay frames honour millimetre coordinates; floats behave like magazine callouts.</p>'+
-                   '<p>Columns are contenteditable, so you can prototype copy or import drafted HTML snippets without leaving ProtoDesk.</p>'
+                   '<p>Columns are contenteditable, so you can prototype copy or import drafted HTML snippets without leaving Orbit OS.</p>'
             },
             {
               type:'columns', columns:2,
               html:'<h3 class="span-all">Workflow Tips</h3>'+
-                   '<p>Mix floats with overlay quotes for striking emphasis. Use the inspector to dial in the exact millimetre offsets while the rulers confirm alignment.</p>'+
+                   '<p>Mix floats with overlay quotes for emphasis. Use the inspector to dial in millimetre offsets while the rulers confirm alignment.</p>'+
                    '<p>Activate mirrored gutters when you are prepping signatures, then disable them for single-sided reports.</p>'+
-                   '<p>Autosave keeps your progress safe between sessions—reload later with the File → Load Autosave command.</p>'
+                   '<p>Autosave keeps progress safe between sessions—reload later with File → Load Autosave.</p>'
             },
             {
               type:'frame', frameType:'text', mode:'float-left', x:32, y:70, width:55, height:45,
@@ -459,7 +462,7 @@
             }
           ],
           footerLeft:'Workshop Series',
-          footerRight:'DocuMonster {{version}} • Page {{page}}'
+          footerRight:'Docu Monster Studio Pro {{version}} • Page {{page}}'
         },
         {
           title:'EXPORT & DELIVERY',
@@ -474,32 +477,32 @@
             {
               type:'columns', columns:1,
               html:'<p>Use Save As to download a JSON snapshot of this publication. Share with collaborators or re-import to continue editing. Autosave keeps a local copy even if you forget.</p>'+
-                   '<p>The rulers and inspector stay active while printing, so you can verify alignment before hitting Export.</p>'
+                   '<p>The rulers and inspector stay active while printing, so you can verify alignment before exporting from Docu Monster Studio Pro.</p>'
             },
             {
               type:'frame', frameType:'text', mode:'block', x:40, y:120, width:100, height:35,
-              content:'<p class="note">ProtoDesk Orbit surfaces system status in the toolbar. Watch the autosave indicator whenever you make quick adjustments.</p>',
+              content:'<p class="note">Orbit OS surfaces system status in the toolbar. Watch the autosave indicator whenever you make adjustments.</p>',
               caption:''
             }
           ],
           footerLeft:'Production Stack',
-          footerRight:'ProtoDesk Orbit — Page {{page}}/{{total}}'
+          footerRight:'Orbit OS — Page {{page}}/{{total}}'
         },
         {
           title:'SYSTEM MANIFEST',
-          subtitle:'Browser-based Windows-like studio',
-          deck:'The ProtoDesk initiative blurs the line between OS shell and creative suite.',
+          subtitle:'Browser-based studio platform',
+          deck:'Orbit OS frames the creative suite powered by Docu Monster Studio Pro.',
           elements:[
             {
               type:'columns', columns:2,
-              html:'<p>DocuMonster now ships with ProtoDesk Orbit, our browser-first desktop metaphor. The menubar mirrors Ami Pro on Windows 3.11, while the editing core stays modern and responsive.</p>'+
-                   '<p>This manifest tracks everything bundled in v0.9.0: rulers, menu commands, frame inspector, autosave, and more. Use it as a base template for your own newsroom workflows.</p>'
+              html:'<p>Docu Monster Studio Pro now ships with Orbit OS v 0.1.0, our browser-first desktop metaphor. The menubar nods to classic environments while the editor remains fast and modern.</p>'+
+                   '<p>This manifest tracks everything bundled in v0.1.0: rulers, menu commands, the frame inspector, autosave, and more. Use it as a base template for newsroom workflows.</p>'
             },
             {
               type:'columns', columns:2,
               html:'<h3 class="span-all">Included Modules</h3>'+
-                   '<ul class="bullet"><li>DocuMonster Editor 0.8.0 (column engine, frames, PDF export).</li>'+
-                   '<li>ProtoDesk shell v0.9.0 (menubar, status HUD, OS release card).</li>'+
+                   '<ul class="bullet"><li>Docu Monster Studio Pro 0.1.0 (column engine, frames, PDF export).</li>'+
+                   '<li>Orbit OS shell v 0.1.0 (menubar, status HUD, OS release card).</li>'+
                    '<li>Colour labs with Standard &amp; Ugra/Fogra presets.</li>'+
                    '<li>Layout workshop library with editable spreads.</li></ul>'
             },
@@ -508,8 +511,8 @@
               src:'', caption:'Frames can be positioned freely or floated for magazine style wraps.'
             }
           ],
-          footerLeft:'ProtoDesk Release Card',
-          footerRight:'{{codename}} v{{version}} — Page {{page}}'
+          footerLeft:'Orbit OS Release Card',
+          footerRight:'{{codename}} v {{version}} — Page {{page}}'
         }
       ]
     };
@@ -521,6 +524,7 @@
     doc.version = doc.version || base.version;
     doc.docVersion = doc.docVersion || base.docVersion;
     doc.codename = doc.codename || base.codename;
+    doc.docName = typeof doc.docName === 'string' && doc.docName.trim() ? doc.docName : base.docName;
     doc.releaseNotes = Array.isArray(doc.releaseNotes) && doc.releaseNotes.length ? doc.releaseNotes : base.releaseNotes.slice();
     doc.pages = Array.isArray(doc.pages) && doc.pages.length ? doc.pages.map(normalizePage) : base.pages.slice().map(normalizePage);
     return doc;
@@ -532,7 +536,7 @@
       subtitle:'',
       deck:'',
       elements:[],
-      footerLeft:'DocuMonster',
+      footerLeft:'Docu Monster Studio Pro',
       footerRight:'Page {{page}}'
     }, page || {});
     p.elements = Array.isArray(p.elements) ? p.elements.map(normalizeElement) : [];
@@ -606,14 +610,14 @@
   }
 
   function updateVersionInfo(){
-    versionEl.textContent = docModel.codename+' v'+docModel.version+' • DocuMonster '+docModel.docVersion;
-    document.title = 'DocuMonster — '+docModel.codename+' v'+docModel.version;
+    versionEl.textContent = docModel.codename+' v '+docModel.version+' • '+docModel.docName+' '+docModel.docVersion;
+    document.title = 'Docu Monster Studio Pro — '+docModel.codename+' v '+docModel.version;
   }
 
   function renderReleaseCard(){
     const notes = (docModel.releaseNotes || []).map(note=>'<li>'+note+'</li>').join('');
-    releaseCardEl.innerHTML = '<h2>'+docModel.codename+' v'+docModel.version+'</h2>'+
-      '<p>DocuMonster Editor '+docModel.docVersion+' • ProtoDesk Orbit environment.</p>'+
+    releaseCardEl.innerHTML = '<h2>'+docModel.codename+' v '+docModel.version+'</h2>'+
+      '<p>'+docModel.docName+' '+docModel.docVersion+' • '+docModel.codename+' v '+docModel.version+'</p>'+
       '<ul>'+notes+'</ul>';
   }
 
@@ -637,7 +641,7 @@
     marks.appendChild(bar);
     const info = document.createElement('div');
     info.className = 'info';
-    info.textContent = docModel.codename+' v'+docModel.version+' — page '+(idx+1)+'/'+getTotalPages();
+    info.textContent = docModel.codename+' v '+docModel.version+' — page '+(idx+1)+'/'+getTotalPages();
     marks.appendChild(info);
     ['tl','tr','bl','br'].forEach(pos=>{
       const r = document.createElement('div');
@@ -1221,7 +1225,7 @@
   }
 
   function addPage(afterIndex){
-    const base = { title:'Untitled Spread', subtitle:'', deck:'', elements:[{ type:'columns', columns:1, html:'<p>Start typing…</p>' }], footerLeft:'DocuMonster ProtoDesk', footerRight:'Page {{page}} / {{total}}' };
+    const base = { title:'Untitled Spread', subtitle:'', deck:'', elements:[{ type:'columns', columns:1, html:'<p>Start typing…</p>' }], footerLeft:'Docu Monster Studio Pro • Orbit OS', footerRight:'Page {{page}} / {{total}}' };
     docModel.pages.splice(afterIndex+1, 0, base);
     markDirty();
     renderDocument();

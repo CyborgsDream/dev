@@ -19,7 +19,7 @@
           "label": "Format Disk"
         },
         {
-          "label": "Exit WebGUI"
+          "label": "Exit Orbit OS v 0.1.0"
         }
       ]
     },
@@ -82,7 +82,7 @@
           "type": "notes"
         },
         {
-          "label": "DocuMonster",
+          "label": "Docu Monster Studio Pro",
           "type": "document-editor"
         }
       ]
@@ -114,10 +114,10 @@
   ],
   "status": "Ready.",
   "welcome": {
-    "title": "WebGUI 1.9.1",
+    "title": "Orbit OS v 0.1.0",
     "lines": [
-      "Welcome to WebGUI - Web browser based windows GUI",
-      "Version 1.9.1",
+      "Welcome to Orbit OS v 0.1.0 — browser-based creative desktop",
+      "Powered by Docu Monster Studio Pro 0.1.0",
       "(c) 2025 CyborgsDream"
     ],
     "button": "OK"
@@ -142,7 +142,7 @@
       {
         "type": "document-editor",
         "emoji": "📄",
-        "label": "DocuMonster"
+        "label": "Docu Monster Studio Pro"
       },
       {
         "type": "calculator",
@@ -198,19 +198,19 @@
   "windows": {
     "system-info": {
       "title": "System Information",
-      "content": "<h2>WebGUI Demo Machine</h2><p>Motorola 68030 @ 25MHz</p><p>2MB Chip RAM + 8MB Fast RAM</p><p>Kickstart 2.04</p><p>WebGUI 1.9.1</p><p>Display: 640x512 (ECS)</p><p>Floppy: 880KB 3.5\"</p><p>HD: 120MB SCSI</p><div style=\"margin-top: 20px; text-align: center;\"><div style=\"display: inline-block; padding: 10px; background: #0000aa; color: white;\">Power Without the Price</div></div>",
+      "content": "<h2>Orbit OS v 0.1.0 Demo Machine</h2><p>Motorola 68030 @ 25MHz</p><p>2MB Chip RAM + 8MB Fast RAM</p><p>Kickstart 2.04</p><p>Orbit OS v 0.1.0</p><p>Display: 640x512 (ECS)</p><p>Floppy: 880KB 3.5\"</p><p>HD: 120MB SCSI</p><div style=\"margin-top: 20px; text-align: center;\"><div style=\"display: inline-block; padding: 10px; background: #0000aa; color: white;\">Creative Control</div></div>",
       "width": 320,
       "height": 300
     },
     "terminal": {
       "title": "CLI",
-      "content": "<div class=\"terminal\"><div class=\"terminal-line\">WebGUI CLI</div><div class=\"terminal-line\">(c) 2025 CyborgsDream</div><div class=\"terminal-line\">WebGUI started.</div><div class=\"terminal-line\">System date: {DATE}</div><div class=\"terminal-line\">System time: {TIME}</div><div class=\"terminal-line\"><br></div><div class=\"terminal-line\"><span class=\"prompt\">1&gt;</span> <span class=\"cursor\">█</span></div></div>",
+      "content": "<div class=\"terminal\"><div class=\"terminal-line\">Orbit OS v 0.1.0 CLI</div><div class=\"terminal-line\">(c) 2025 CyborgsDream</div><div class=\"terminal-line\">Orbit OS v 0.1.0 started.</div><div class=\"terminal-line\">System date: {DATE}</div><div class=\"terminal-line\">System time: {TIME}</div><div class=\"terminal-line\"><br></div><div class=\"terminal-line\"><span class=\"prompt\">1&gt;</span> <span class=\"cursor\">█</span></div></div>",
       "width": 450,
       "height": 250
     },
     "text-editor": {
         "title": "Text Editor",
-        "content": "<div class=\"text-editor\" style=\"display:flex;flex-direction:column;height:100%\"><div style=\"text-align:right;margin-bottom:5px;\"><button id=\"text-editor-export\" style=\"font-size:16px;\">Export PDF</button></div><textarea id=\"text-editor-area\" style=\"flex:1;background:#fff;border:1px solid #aaa;padding:5px;font-family:monospace;font-size:18px;\">Welcome to WebGUI 1.9.1!\n\nThe icon issue has been fixed!\n• All desktop icons are now fully functional\n• Click any icon to open an application\n• The wallpaper no longer blocks clicks\n\nTry clicking on any icon to open its application.\n\nWebGUI continues to push the boundaries of personal computing!</textarea></div>",
+        "content": "<div class=\"text-editor\" style=\"display:flex;flex-direction:column;height:100%\"><div style=\"text-align:right;margin-bottom:5px;\"><button id=\"text-editor-export\" style=\"font-size:16px;\">Export PDF</button></div><textarea id=\"text-editor-area\" style=\"flex:1;background:#fff;border:1px solid #aaa;padding:5px;font-family:monospace;font-size:18px;\">Welcome to Orbit OS v 0.1.0!\n\nThe workspace has been retuned for Docu Monster Studio Pro 0.1.0.\n• All desktop icons are ready for Orbit OS v 0.1.0 apps\n• Click any icon to open its application\n• Wallpaper layering stays click-through\n\nLaunch Docu Monster Studio Pro 0.1.0 to design spreads and export PDFs straight from Orbit OS v 0.1.0.</textarea></div>",
         "width": 500,
         "height": 350
       },
@@ -257,7 +257,7 @@
       "height": 450
     },
     "document-editor": {
-      "title": "DocuMonster A4 Studio",
+      "title": "Docu Monster Studio Pro A4",
       "content": "<iframe src=\"documonster.html\" style=\"width:100%;height:100%;border:none;background:#c0c0c0;\"></iframe>",
       "width": 1280,
       "height": 900
