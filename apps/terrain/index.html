@@ -5,34 +5,32 @@
   <title>Terrain</title>
   <style>
     :root {
-      --amiga-blue: #0060b6;
-      --amiga-blue-dark: #004b8a;
-      --amiga-shadow: #002c63;
-      --amiga-highlight: #f4fbff;
-      --amiga-panel-bg: #dfe9ff;
-      --amiga-panel-border-dark: #0f3c70;
-      --amiga-panel-border-light: #ffffff;
-      --amiga-text: #0c2559;
-      --accent-amber: #ffcc5c;
-      --accent-mint: #6fffd3;
-      --graph-bg: #142d5e;
-      --graph-line: #6fffd3;
-      --graph-fill: rgba(111, 255, 211, 0.2);
+      --navy-900: #020817;
+      --navy-800: #071127;
+      --navy-700: #0b1a35;
+      --frame-border: rgba(0, 0, 0, 0.45);
+      --frame-border-light: rgba(255, 255, 255, 0.08);
+      --text-white: #ffffff;
+      --text-black: #050505;
+      --accent-orange: #ff8b2f;
+      --graph-grid: rgba(255, 255, 255, 0.18);
+      --graph-fill: rgba(255, 139, 47, 0.18);
+      --graph-line: #ff8b2f;
     }
     html, body {
       margin: 0;
       height: 100%;
       overflow: hidden;
-      color: var(--amiga-text);
+      color: var(--text-white);
       font-family: 'Trebuchet MS', 'Lucida Sans', 'Geneva', sans-serif;
     }
     body {
       position: relative;
       background:
-        linear-gradient(90deg, rgba(255, 255, 255, 0.08) 1px, transparent 1px),
-        linear-gradient(180deg, rgba(255, 255, 255, 0.08) 1px, transparent 1px),
-        var(--amiga-blue);
-      background-size: 18px 18px;
+        radial-gradient(circle at 20% 20%, rgba(255, 255, 255, 0.06), transparent 45%),
+        radial-gradient(circle at 80% 30%, rgba(255, 139, 47, 0.08), transparent 55%),
+        var(--navy-900);
+      background-size: cover;
     }
     #scene-shell {
       position: fixed;
@@ -55,9 +53,9 @@
     }
     canvas {
       display: block;
-      border: 4px solid var(--amiga-panel-border-dark);
+      border: 2px solid var(--frame-border);
       background: #000;
-      box-shadow: 8px 8px 0 var(--amiga-shadow);
+      box-shadow: 0 18px 32px rgba(0, 0, 0, 0.45);
       max-width: 100%;
       max-height: 100%;
       image-rendering: pixelated;
@@ -71,13 +69,16 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      background: rgba(0, 45, 105, 0.92);
-      color: var(--amiga-highlight);
+      background: rgba(2, 8, 23, 0.92);
+      color: var(--text-white);
       font-family: 'Lucida Sans', 'Geneva', sans-serif;
       font-size: 2em;
       letter-spacing: 0.08em;
       text-transform: uppercase;
       z-index: 60;
+    }
+    #loader #progress {
+      color: var(--accent-orange);
     }
     #fps {
       position: fixed;
@@ -89,85 +90,112 @@
     #fps-monitor {
       position: relative;
       display: grid;
-      row-gap: 8px;
-      padding: 14px 16px 16px;
-      background: var(--amiga-panel-bg);
-      border: 2px solid var(--amiga-panel-border-dark);
-      box-shadow: 6px 6px 0 var(--amiga-shadow);
-      min-width: 200px;
+      row-gap: 10px;
+      padding: 16px;
+      background: linear-gradient(160deg, var(--navy-800), var(--navy-700));
+      border: 1px solid var(--frame-border);
+      box-shadow: inset 0 0 0 1px var(--frame-border-light);
+      min-width: 210px;
       text-transform: uppercase;
-      letter-spacing: 0.1em;
+      letter-spacing: 0.08em;
+      color: var(--text-white);
     }
-    #fps-monitor::before {
-      content: 'Performance';
-      display: block;
-      background: linear-gradient(90deg, var(--amiga-blue-dark), var(--amiga-blue));
-      color: var(--amiga-highlight);
+    #fps-monitor .panel-title {
+      display: flex;
+      align-items: center;
+      gap: 10px;
       font-size: 0.7rem;
-      padding: 6px 10px;
-      margin: -14px -16px 10px;
-      border-bottom: 2px solid var(--amiga-shadow);
-      letter-spacing: 0.16em;
+      color: var(--accent-orange);
+      letter-spacing: 0.18em;
+    }
+    #fps-monitor .panel-title .label {
+      color: var(--text-white);
+      letter-spacing: 0.2em;
     }
     #fps-monitor .fps-readout {
       display: flex;
       align-items: baseline;
       gap: 12px;
       font-family: 'Lucida Console', 'Courier New', monospace;
+      color: var(--text-white);
     }
     #fps-monitor .fps-label {
       font-size: 0.65rem;
-      color: var(--accent-amber);
+      color: var(--accent-orange);
     }
     #fps-monitor .fps-value {
       font-size: 1.6rem;
       font-weight: 700;
-      color: var(--accent-mint);
+      color: var(--text-white);
       min-width: 4.5em;
-      text-shadow: 1px 1px 0 var(--amiga-panel-border-light);
+      text-shadow: 0 0 14px rgba(255, 139, 47, 0.3);
     }
     #fps-monitor canvas {
       width: 100%;
       height: 64px;
-      border: 2px solid var(--amiga-panel-border-dark);
-      background: var(--graph-bg);
-      box-shadow: inset 2px 2px 0 var(--amiga-panel-border-light), inset -2px -2px 0 var(--amiga-shadow);
+      border: 1px solid var(--frame-border);
+      background: var(--navy-900);
+      box-shadow: inset 0 0 0 1px var(--frame-border-light);
     }
     #control-ui {
       position: fixed;
       top: 18px;
       right: 18px;
-      background: var(--amiga-panel-bg);
-      border: 2px solid var(--amiga-panel-border-dark);
-      padding: 16px 18px 20px;
+      background: linear-gradient(150deg, var(--navy-800), var(--navy-700));
+      border: 1px solid var(--frame-border);
+      box-shadow: inset 0 0 0 1px var(--frame-border-light), 0 18px 32px rgba(0, 0, 0, 0.45);
+      padding: 18px 20px 22px;
       display: grid;
-      row-gap: 12px;
+      row-gap: 14px;
       width: min(240px, 80vw);
       z-index: 30;
       font-family: 'Lucida Sans', 'Geneva', sans-serif;
-      color: var(--amiga-text);
+      color: var(--text-white);
       text-transform: uppercase;
       letter-spacing: 0.08em;
-      box-shadow: 6px 6px 0 var(--amiga-shadow);
     }
     #control-ui h2 {
-      margin: -16px -18px 10px;
-      padding: 8px 12px;
-      font-size: 0.78rem;
-      color: var(--amiga-highlight);
-      background: linear-gradient(90deg, var(--amiga-blue-dark), var(--amiga-blue));
-      letter-spacing: 0.22em;
-      border-bottom: 2px solid var(--amiga-shadow);
+      margin: 0;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 0.76rem;
+      color: var(--accent-orange);
+      letter-spacing: 0.2em;
+    }
+    #control-ui h2 span:last-child {
+      color: var(--text-white);
+      letter-spacing: 0.24em;
+    }
+    .ui-icon {
+      width: 26px;
+      height: 26px;
+      display: grid;
+      place-items: center;
+      perspective: 400px;
+    }
+    .ui-icon svg {
+      width: 100%;
+      height: 100%;
+      fill: var(--text-white);
+      transform-origin: center;
+      animation: icon-spin 6s linear infinite;
+      filter: drop-shadow(0 0 6px rgba(255, 139, 47, 0.35));
+    }
+    @keyframes icon-spin {
+      0% { transform: rotateX(0deg) rotateY(0deg); }
+      50% { transform: rotateX(18deg) rotateY(180deg); }
+      100% { transform: rotateX(0deg) rotateY(360deg); }
     }
     #resolution-display {
       font-size: 0.85rem;
       font-weight: 700;
-      color: var(--accent-mint);
-      text-shadow: 1px 1px 0 var(--amiga-panel-border-light);
+      color: var(--text-white);
+      text-shadow: 0 0 12px rgba(255, 139, 47, 0.4);
     }
     label[for="resolution-select"] {
       font-size: 0.7rem;
-      color: var(--amiga-text);
+      color: var(--text-white);
     }
     .select-wrap {
       position: relative;
@@ -179,8 +207,8 @@
       right: 12px;
       width: 8px;
       height: 8px;
-      border-right: 2px solid var(--amiga-panel-border-dark);
-      border-bottom: 2px solid var(--amiga-panel-border-dark);
+      border-right: 2px solid var(--accent-orange);
+      border-bottom: 2px solid var(--accent-orange);
       transform: translateY(-50%) rotate(45deg);
       pointer-events: none;
     }
@@ -188,19 +216,19 @@
       width: 100%;
       padding: 8px 32px 8px 12px;
       border-radius: 0;
-      border: 2px solid var(--amiga-panel-border-dark);
-      background: var(--amiga-highlight);
-      color: var(--amiga-text);
+      border: 1px solid var(--frame-border);
+      background: rgba(2, 8, 23, 0.65);
+      color: var(--text-white);
       font-size: 0.75rem;
       font-weight: 700;
       letter-spacing: 0.06em;
       appearance: none;
       outline: none;
-      box-shadow: inset 2px 2px 0 var(--amiga-panel-border-light), inset -2px -2px 0 var(--amiga-shadow);
+      box-shadow: inset 0 0 0 1px var(--frame-border-light);
     }
     #resolution-select:focus {
-      border-color: var(--accent-amber);
-      box-shadow: inset 2px 2px 0 var(--amiga-panel-border-light), inset -2px -2px 0 var(--amiga-shadow), 0 0 0 2px rgba(255, 204, 92, 0.4);
+      border-color: var(--accent-orange);
+      box-shadow: 0 0 0 1px rgba(255, 139, 47, 0.35), 0 0 0 4px rgba(255, 139, 47, 0.15);
     }
     #fullscreen-btn {
       position: fixed;
@@ -208,14 +236,14 @@
       bottom: 32px;
       transform: translateX(-50%);
       padding: 10px 32px;
-      background: var(--amiga-panel-bg);
-      border: 2px solid var(--amiga-panel-border-dark);
-      color: var(--amiga-text);
+      background: linear-gradient(160deg, rgba(2, 8, 23, 0.85), rgba(11, 26, 53, 0.85));
+      border: 1px solid var(--frame-border);
+      color: var(--text-white);
       font-size: 0.75rem;
       font-weight: 700;
       letter-spacing: 0.12em;
       cursor: pointer;
-      box-shadow: 6px 6px 0 var(--amiga-shadow), inset 2px 2px 0 var(--amiga-panel-border-light), inset -2px -2px 0 var(--amiga-shadow);
+      box-shadow: 0 12px 24px rgba(0, 0, 0, 0.45);
       text-transform: uppercase;
       transition: transform 0.15s ease;
       z-index: 35;
@@ -226,7 +254,7 @@
     }
     #fullscreen-btn:active {
       transform: translateX(-50%) translateY(2px);
-      box-shadow: 2px 2px 0 var(--amiga-shadow), inset 1px 1px 0 var(--amiga-panel-border-light), inset -1px -1px 0 var(--amiga-shadow);
+      box-shadow: 0 6px 12px rgba(0, 0, 0, 0.55);
     }
     #control-pad {
       position: fixed;
@@ -243,17 +271,17 @@
       width: 54px;
       height: 54px;
       border-radius: 12px;
-      border: 2px solid var(--amiga-panel-border-dark);
-      background: var(--amiga-panel-bg);
-      color: var(--amiga-text);
+      border: 1px solid var(--frame-border);
+      background: rgba(2, 8, 23, 0.72);
+      color: var(--text-white);
       font-size: 20px;
       display: flex;
       align-items: center;
       justify-content: center;
       cursor: pointer;
-      box-shadow: 4px 4px 0 var(--amiga-shadow), inset 2px 2px 0 var(--amiga-panel-border-light), inset -2px -2px 0 var(--amiga-shadow);
-      transition: transform 0.1s ease;
-      text-shadow: 1px 1px 0 var(--amiga-panel-border-light);
+      box-shadow: 0 12px 18px rgba(0, 0, 0, 0.45);
+      transition: transform 0.1s ease, box-shadow 0.1s ease;
+      text-shadow: 0 0 10px rgba(255, 139, 47, 0.35);
     }
     #control-pad span {
       cursor: default;
@@ -264,7 +292,7 @@
     }
     #control-pad button:active {
       transform: translateY(2px);
-      box-shadow: 1px 1px 0 var(--amiga-shadow), inset 1px 1px 0 var(--amiga-panel-border-light), inset -1px -1px 0 var(--amiga-shadow);
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.6);
     }
     @media (max-width: 720px) {
       #control-pad {
@@ -282,11 +310,8 @@
       #control-ui {
         right: 12px;
         top: 12px;
-        padding: 14px 14px 16px;
+        padding: 16px 16px 18px;
         width: min(210px, 84vw);
-      }
-      #control-ui h2 {
-        margin: -14px -14px 10px;
       }
     }
   </style>
@@ -296,7 +321,16 @@
     <div id="canvas-wrap"></div>
   </div>
   <div id="control-ui">
-    <h2>Games Mode</h2>
+    <h2>
+      <span class="ui-icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24" role="presentation">
+          <polygon points="12,2 22,7 22,17 12,22 2,17 2,7" opacity="0.4"></polygon>
+          <polygon points="12,4.5 19.5,8.2 19.5,15.8 12,19.5 4.5,15.8 4.5,8.2" fill="currentColor"></polygon>
+          <path d="M9 10h2v2H9zm4 0h2v2h-2zm-2 3h2v2h-2z" fill="var(--accent-orange)"></path>
+        </svg>
+      </span>
+      <span>Games Mode</span>
+    </h2>
     <div id="resolution-display">—</div>
     <label for="resolution-select">Resolution</label>
     <div class="select-wrap">
@@ -353,6 +387,22 @@
     constructor(container) {
       this.dom = document.createElement('div');
       this.dom.id = 'fps-monitor';
+
+      const iconMarkup = `
+        <span class="ui-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" role="presentation">
+            <polygon points="12,2 22,7 22,17 12,22 2,17 2,7" opacity="0.35"></polygon>
+            <polygon points="12,4.5 19.5,8.2 19.5,15.8 12,19.5 4.5,15.8 4.5,8.2" fill="currentColor"></polygon>
+            <path d="M8 15h2.5V9H8zm5-6v8h-2.5V9zm2.5 0H18v10h-2.5z" fill="var(--accent-orange)"></path>
+          </svg>
+        </span>`;
+
+      this.titleEl = document.createElement('div');
+      this.titleEl.className = 'panel-title';
+      this.titleEl.innerHTML = `${iconMarkup}<span class="label">Performance</span>`;
+      this.dom.appendChild(this.titleEl);
+
+      this.styles = getComputedStyle(document.documentElement);
 
       this.readoutEl = document.createElement('div');
       this.readoutEl.className = 'fps-readout';
@@ -422,10 +472,15 @@
       const height = this.graphCanvas.height;
       ctx.clearRect(0, 0, width, height);
 
-      ctx.fillStyle = '#142d5e';
+      const background = this.styles.getPropertyValue('--navy-900').trim() || '#020817';
+      const gridColor = this.styles.getPropertyValue('--graph-grid').trim() || 'rgba(255, 255, 255, 0.18)';
+      const fillColor = this.styles.getPropertyValue('--graph-fill').trim() || 'rgba(255, 139, 47, 0.18)';
+      const lineColor = this.styles.getPropertyValue('--graph-line').trim() || '#ff8b2f';
+
+      ctx.fillStyle = background;
       ctx.fillRect(0, 0, width, height);
 
-      ctx.strokeStyle = 'rgba(255, 255, 255, 0.15)';
+      ctx.strokeStyle = gridColor;
       ctx.lineWidth = 1;
       const gridLines = 4;
       for (let i = 1; i < gridLines; i++) {
@@ -452,7 +507,7 @@
       }
       ctx.lineTo(width, height - verticalPadding);
       ctx.closePath();
-      ctx.fillStyle = 'rgba(111, 255, 211, 0.2)';
+      ctx.fillStyle = fillColor;
       ctx.fill();
 
       ctx.beginPath();
@@ -467,7 +522,7 @@
           ctx.lineTo(x, y);
         }
       }
-      ctx.strokeStyle = '#6fffd3';
+      ctx.strokeStyle = lineColor;
       ctx.lineWidth = 1.5;
       ctx.stroke();
     }
