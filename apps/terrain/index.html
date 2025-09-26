@@ -359,6 +359,98 @@
       60% { opacity: 0.2; transform: translate3d(2px, 0, 0); }
       100% { opacity: 0; transform: translate3d(0, 0, 0); }
     }
+    #canvas-wrap .vhs-line {
+      --shift-start: 0px;
+      --shift-mid: 0px;
+      --shift-end: 0px;
+      --shift-clear: 0px;
+      --skew-start: 0deg;
+      --skew-mid: 0deg;
+      --skew-end: 0deg;
+      --line-opacity: 0.6;
+      --line-brightness: 1.1;
+      --line-hue: 0deg;
+      position: absolute;
+      left: -8%;
+      width: 116%;
+      top: 50%;
+      height: 8px;
+      pointer-events: none;
+      background:
+        linear-gradient(90deg, rgba(255, 0, 90, 0.25), rgba(0, 240, 255, 0.32)),
+        repeating-linear-gradient(
+          90deg,
+          rgba(255, 255, 255, 0.75) 0px,
+          rgba(255, 255, 255, 0.75) 6px,
+          rgba(255, 255, 255, 0.05) 6px,
+          rgba(255, 255, 255, 0.05) 12px
+        );
+      background-size: 180px 100%, 20px 100%;
+      mix-blend-mode: screen;
+      box-shadow: 0 0 24px rgba(255, 139, 47, 0.4);
+      opacity: 0;
+      transform: translateX(var(--shift-start)) skewX(var(--skew-start));
+      animation: vhs-line-burst 0.55s cubic-bezier(0.25, 0.8, 0.45, 1) forwards;
+      filter: hue-rotate(var(--line-hue)) saturate(1.6) brightness(var(--line-brightness));
+    }
+    #canvas-wrap .vhs-line::before,
+    #canvas-wrap .vhs-line::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+    }
+    #canvas-wrap .vhs-line::before {
+      background:
+        repeating-linear-gradient(
+          0deg,
+          rgba(255, 139, 47, 0.45) 0px,
+          rgba(255, 139, 47, 0.45) 2px,
+          rgba(0, 0, 0, 0) 2px,
+          rgba(0, 0, 0, 0) 4px
+        );
+      opacity: 0.8;
+    }
+    #canvas-wrap .vhs-line::after {
+      background: linear-gradient(90deg, rgba(255, 255, 255, 0.4), transparent);
+      mix-blend-mode: overlay;
+      opacity: 0.5;
+    }
+    #canvas-wrap .vhs-line--cluster {
+      box-shadow: 0 0 28px rgba(0, 240, 255, 0.32);
+    }
+    #canvas-wrap .vhs-line--cluster::before {
+      background:
+        repeating-linear-gradient(
+          0deg,
+          rgba(0, 240, 255, 0.35) 0px,
+          rgba(0, 240, 255, 0.35) var(--cluster-thickness, 3px),
+          rgba(0, 0, 0, 0) var(--cluster-thickness, 3px),
+          rgba(0, 0, 0, 0) calc(var(--cluster-thickness, 3px) * 2)
+        );
+      opacity: 0.9;
+    }
+    @keyframes vhs-line-burst {
+      0% {
+        opacity: 0;
+        transform: translateX(var(--shift-start)) skewX(var(--skew-start));
+      }
+      14% {
+        opacity: calc(var(--line-opacity) + 0.2);
+      }
+      38% {
+        opacity: var(--line-opacity);
+        transform: translateX(var(--shift-mid)) skewX(var(--skew-mid));
+      }
+      70% {
+        opacity: calc(var(--line-opacity) * 0.45);
+        transform: translateX(var(--shift-end)) skewX(var(--skew-end));
+      }
+      100% {
+        opacity: 0;
+        transform: translateX(var(--shift-clear)) skewX(0deg);
+      }
+    }
     #resolution-display {
       font-size: 0.74rem;
       font-weight: 700;
@@ -1403,11 +1495,70 @@
   let currentResolution = RESOLUTIONS[4];
   let vhsTimeoutId = null;
 
+  const spawnVhsLines = () => {
+    if (!canvasWrap) return;
+    const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
+    const createLine = (topPercent) => {
+      const line = document.createElement('div');
+      line.classList.add('vhs-line');
+
+      const isCluster = Math.random() < 0.45;
+      if (isCluster) {
+        line.classList.add('vhs-line--cluster');
+        const clusterThickness = 2 + Math.random() * 3;
+        line.style.setProperty('--cluster-thickness', `${clusterThickness}px`);
+        const clusterHeight = 14 + Math.random() * 26;
+        line.style.height = `${clusterHeight}px`;
+      } else {
+        const baseHeight = 4 + Math.random() * 10;
+        line.style.height = `${baseHeight}px`;
+      }
+
+      const top = clamp(topPercent, 0, 100);
+      line.style.top = `${top}%`;
+
+      const shiftStart = (Math.random() - 0.5) * 140;
+      const shiftMid = shiftStart + (Math.random() - 0.5) * 180;
+      const shiftEnd = (Math.random() - 0.5) * 120;
+      const shiftClear = (Math.random() - 0.5) * 20;
+      line.style.setProperty('--shift-start', `${shiftStart}px`);
+      line.style.setProperty('--shift-mid', `${shiftMid}px`);
+      line.style.setProperty('--shift-end', `${shiftEnd}px`);
+      line.style.setProperty('--shift-clear', `${shiftClear}px`);
+
+      const skewStart = (Math.random() - 0.5) * 4;
+      const skewMid = (Math.random() - 0.5) * 12;
+      const skewEnd = (Math.random() - 0.5) * 4;
+      line.style.setProperty('--skew-start', `${skewStart}deg`);
+      line.style.setProperty('--skew-mid', `${skewMid}deg`);
+      line.style.setProperty('--skew-end', `${skewEnd}deg`);
+
+      line.style.setProperty('--line-opacity', `${0.5 + Math.random() * 0.4}`);
+      line.style.setProperty('--line-brightness', `${0.85 + Math.random() * 0.6}`);
+      line.style.setProperty('--line-hue', `${(Math.random() - 0.5) * 100}deg`);
+
+      canvasWrap.appendChild(line);
+      line.addEventListener('animationend', () => {
+        line.remove();
+      }, { once: true });
+    };
+
+    const groupCount = 3 + Math.floor(Math.random() * 4);
+    for (let group = 0; group < groupCount; group++) {
+      const baseTop = Math.random() * 100;
+      const linesInGroup = 1 + Math.floor(Math.random() * 3);
+      for (let i = 0; i < linesInGroup; i++) {
+        createLine(baseTop + (Math.random() - 0.5) * 10);
+      }
+    }
+  };
+
   const triggerVhsEffect = () => {
     if (!canvasWrap) return;
     canvasWrap.classList.remove('vhs-glitch');
     void canvasWrap.offsetWidth;
     canvasWrap.classList.add('vhs-glitch');
+    spawnVhsLines();
     if (vhsTimeoutId) {
       clearTimeout(vhsTimeoutId);
     }
