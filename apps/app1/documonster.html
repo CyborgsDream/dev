@@ -1,0 +1,270 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta http-equiv="Content-Language" content="en" />
+<title>DocuMonster — A4 Studio (HTML Paged v0.7.0)</title>
+<style>
+  /* ====== Base ====== */
+  *,*::before,*::after{ box-sizing: border-box; }
+  html,body{ margin:0; padding:0; }
+  :root{
+    --bleed: 3mm;
+    --page-w: 210mm; --page-h: 297mm;
+    --sheet-w: calc(var(--page-w) + 2*var(--bleed));
+    --sheet-h: calc(var(--page-h) + 2*var(--bleed));
+    --m-top: 15mm; --m-out: 17mm; --m-bot: 20mm; --m-in: 17mm; /* on-screen */
+    --col-gap: 6mm;
+    --accent: #008080; /* teal-ish */
+    --ink: #111; --ink-soft:#444; --rule:#ddd; --paper:#fff; --thumb-bg:#c0c0c0;
+    --font-ui: "Tahoma","Segoe UI","MS Sans Serif",ui-sans-serif,system-ui,sans-serif;
+    --font-body: "Times New Roman","Noto Serif",ui-serif,serif;
+    --ui-h: 52px; --sidebar-w: 212px;
+    --crop-l: 7mm; --crop-w: 0.25mm;
+  }
+
+  /* ====== Windows 3.11 look ====== */
+  body{ background:#c0c0c0; font: 12px var(--font-body); color: var(--ink); }
+  #ui{ position: sticky; top:0; z-index:1000; background:#c0c0c0; padding:6px; border-bottom: 2px solid #808080; display:flex; align-items:center; gap:6px; flex-wrap:wrap; }
+  .win-group{ padding:6px; background:#c0c0c0; border:2px solid #808080; border-right-color:#fff; border-bottom-color:#fff; }
+  .win-btn{ padding:2px 8px; min-width:28px; background:#c0c0c0; border:2px solid #fff; border-right-color:#000; border-bottom-color:#000; cursor:pointer; font: 12px var(--font-ui); }
+  .win-btn:active{ border:2px solid #000; border-right-color:#fff; border-bottom-color:#fff; }
+  .win-check{ display:inline-flex; align-items:center; gap:4px; font:12px var(--font-ui); }
+  .win-check input{ width:13px; height:13px; }
+  .win-stat{ font:12px var(--font-ui); padding:2px 6px; background:#fff; border:2px solid #000; border-right-color:#fff; border-bottom-color:#fff; }
+  input[type="number"], select{ font:12px var(--font-ui); padding:2px 4px; background:#fff; border:2px solid #000; border-right-color:#fff; border-bottom-color:#fff; }
+  .spacer{ flex:1 1 auto; }
+
+  /* ===== Sidebar thumbnails ===== */
+  #sidebar{ position: fixed; top: var(--ui-h); left:0; bottom:0; width: var(--sidebar-w); background:#c0c0c0; border-right: 2px solid #808080; overflow:auto; padding:6px; }
+  #thumbs .thumb{ padding:4px; margin:6px 0; background:#c0c0c0; border:2px solid #808080; border-right-color:#fff; border-bottom-color:#fff; cursor:pointer; }
+  #thumbs .thumb.active{ outline:2px solid var(--accent); }
+  .mini-wrap{ width: 160px; height: 230px; overflow:hidden; position: relative; margin:4px auto; background:#fff; }
+  .mini-wrap .sheet{ box-shadow:none; border:none; }
+  .mini-wrap .trim::before, .mini-wrap .crop, .mini-wrap .marks{ display:none; }
+  .mini-meta{ text-align:center; font: 11px var(--font-ui); color:#000; }
+
+  /* ===== Pages ===== */
+  #pages{ margin-left: calc(var(--sidebar-w) + 10px); }
+  .sheet{ position: relative; width: var(--sheet-w); height: var(--sheet-h); background: var(--paper); color: var(--ink); box-shadow: 0 0 0 2px #808080, 0 0 0 4px #fff; margin: 10px auto; border:none; scroll-margin-top: calc(var(--ui-h) + 8px); overflow:hidden; }
+  .sheet{ --inPage: var(--m-in); --outPage: var(--m-out); }
+  .sheet.even{ --inPage: var(--m-out); --outPage: var(--m-in); }
+
+  /* Crop marks */
+  .crop{ position:absolute; width:0; height:0; }
+  .crop::before, .crop::after{ content:""; position:absolute; background:#000; }
+  .crop.tl{ left: var(--bleed); top: var(--bleed); }
+  .crop.tr{ right: var(--bleed); top: var(--bleed); }
+  .crop.bl{ left: var(--bleed); bottom: var(--bleed); }
+  .crop.br{ right: var(--bleed); bottom: var(--bleed); }
+  .crop.tl::after, .crop.tr::after, .crop.bl::after, .crop.br::after{ height: var(--crop-w); width: var(--crop-l); }
+  .crop.tl::after{ left: 0; top: calc(var(--m-top) - var(--crop-w)); transform: translateX(calc(-1 * var(--crop-l))); }
+  .crop.tr::after{ right: 0; top: calc(var(--m-top) - var(--crop-w)); }
+  .crop.bl::after{ left: 0; bottom: calc(var(--m-bot) - var(--crop-w)); transform: translateX(calc(-1 * var(--crop-l))); }
+  .crop.br::after{ right: 0; bottom: calc(var(--m-bot) - var(--crop-w)); }
+  .crop.tl::before, .crop.tr::before, .crop.bl::before, .crop.br::before{ width: var(--crop-w); height: var(--crop-l); }
+  .crop.tl::before{ top: 0; left: calc(var(--inPage) - var(--crop-w)); transform: translateY(calc(-1 * var(--crop-l))); }
+  .crop.tr::before{ top: 0; right: calc(var(--outPage) - var(--crop-w)); transform: translateY(calc(-1 * var(--crop-l))); }
+  .crop.bl::before{ bottom: 0; left: calc(var(--inPage) - var(--crop-w)); }
+  .crop.br::before{ bottom: 0; right: calc(var(--outPage) - var(--crop-w)); }
+
+  /* Trim + content */
+  .trim{ position:absolute; left: var(--bleed); top: var(--bleed); width: var(--page-w); height: var(--page-h); }
+  .trim::before{ content:""; position:absolute; left: var(--inPage); right: var(--outPage); top: var(--m-top); bottom: var(--m-bot); border:1px dotted #808080; }
+  .content{ position:absolute; left: var(--inPage); right: var(--outPage); top: var(--m-top); bottom: var(--m-bot); }
+
+  /* Marks */
+  .marks{ position:absolute; inset:0; pointer-events:none; }
+  .marks .colorbar{ position:absolute; left: var(--bleed); right: var(--bleed); bottom: 0.8mm; height: 6mm; display:flex; gap:0.6mm; align-items:stretch; }
+  .marks .patch{ flex:0 0 10mm; height:100%; border:0.2pt solid #ccc; }
+  .patch.c{ background:#00B5E2; } .patch.m{ background:#D5006D; } .patch.y{ background:#FFD400; } .patch.k{ background:#000; }
+  .patch.r{ background:#FF3B30; } .patch.g{ background:#34C759; } .patch.b{ background:#007AFF; }
+  .patch.w{ background:#fff; } .patch.g10{ background:#1a1a1a; } .patch.g20{ background:#333; } .patch.g30{ background:#4d4d4d; }
+  .patch.g40{ background:#666; } .patch.g50{ background:#808080; } .patch.g60{ background:#999; } .patch.g70{ background:#b3b3b3; } .patch.g80{ background:#ccc; } .patch.g90{ background:#e6e6e6; }
+  .marks .info{ position:absolute; right: var(--bleed); top: 0.8mm; font: 11px var(--font-ui); color:#000; background:#fff; padding:2px 4px; border:1px solid #808080; }
+  .marks .reg{ position:absolute; width:7mm; height:7mm; border-radius:50%; border:1px solid #000; }
+  .marks .reg::before, .marks .reg::after{ content:""; position:absolute; left:50%; top:50%; background:#000; transform:translate(-50%,-50%); }
+  .marks .reg::before{ width:6mm; height:0.25mm; }
+  .marks .reg::after{ width:0.25mm; height:6mm; }
+  .marks .reg.tl{ left: 1mm; top: 1mm; } .marks .reg.tr{ right: 1mm; top: 1mm; }
+  .marks .reg.bl{ left: 1mm; bottom: 1mm; } .marks .reg.br{ right: 1mm; bottom: 1mm; }
+  .marks .safe-area{ position:absolute; left: var(--bleed); right: var(--bleed); top: var(--bleed); bottom: var(--bleed); border:1px dotted #bbb; }
+  body.printshop .marks::after{ content:""; position:absolute; inset:0; background:
+    repeating-linear-gradient(to bottom, rgba(0,0,0,.06), rgba(0,0,0,.06) 0.4mm, transparent 0.4mm, transparent 1.6mm),
+    repeating-linear-gradient(to right, rgba(0,0,0,.04), rgba(0,0,0,.04) 0.4mm, transparent 0.4mm, transparent 1.6mm);
+  }
+  body.printshop .marks .slur{ position:absolute; width:14mm; height:14mm; border:1px dashed #000; border-radius: 50%; left: calc(50% - 7mm); top: 1mm; }
+
+  /* Content blocks */
+  h1,h2,h3{ font-family: var(--font-ui); margin:0 0 3mm 0; line-height:1.2; }
+  h1.title{ font-size: 20px; }
+  h2{ font-size: 14px; }
+  h3{ font-size: 12px; }
+  p{ margin:0 0 3.2mm 0; hyphens:auto; orphans:3; widows:3; }
+  .head{ padding: 6mm 0 3mm 0; border-bottom:1px solid #ddd; }
+  .cols{ padding: 4mm 0 0 0; column-fill:auto; }
+  .cols-1{ column-count:1; }
+  .cols-2{ column-count:2; column-gap: var(--col-gap); }
+  .cols-3{ column-count:3; column-gap: var(--col-gap); }
+  .cols p, .cols li, .cols figure, .cols h2, .cols h3{ break-inside: avoid-column; }
+  .span-all{ column-span: all; break-before: column; break-after: column; }
+  .split{ padding-bottom: 6mm; }
+  .foot{ padding: 3mm 0 4mm 0; border-top:1px solid #ddd; font: 11px var(--font-ui); color:#333; display:flex; justify-content:space-between; }
+  figure{ margin:0 0 4mm 0; }
+  .ph{ width:100%; height:40mm; background: linear-gradient(135deg,#e8f7fb,#f5e8ff); border:1px solid #dcdcdc; }
+  figcaption{ font: 11px var(--font-ui); color:#555; margin-top:1.6mm; }
+
+  /* Toggles */
+  body.hide-guides .trim::before{ display:none !important; }
+  body.no-crop .crop{ display:none !important; }
+  body.hide-crops .crop{ display:none !important; }
+  body.hide-colorbar .marks .colorbar{ display:none !important; }
+  body.hide-reg .marks .reg{ display:none !important; }
+  body.hide-safe .marks .safe-area{ opacity:0 !important; }
+
+  /* ====== PRINT: absolute page box + symmetric margins ====== */
+  @media print{
+    @page{ size: 216mm 303mm; margin:0; }
+    html,body{ width:216mm; height:303mm; margin:0; padding:0; }
+    #ui,#sidebar{ display:none!important; }
+    #pages{ margin:0; }
+    /* Neutralize UA centering: anchor at 0,0 */
+    body, #pages{ position: static !important; }
+    .sheet{ position: relative !important; left:0!important; top:0!important; width:216mm!important; height:303mm!important; margin:0!important; box-shadow:none!important; border:none!important; page-break-after: always; page-break-inside: avoid; overflow:hidden; }
+    .sheet:last-child{ page-break-after:auto; }
+    .trim{ left:3mm!important; top:3mm!important; width:210mm!important; height:297mm!important; }
+    /* Symmetric margins in print to avoid apparent left/bottom bias */
+    :root{ --m-top: 12mm; --m-bot: 12mm; --m-in: 12mm; --m-out: 12mm; }
+    /* Optional mirrored gutter when class present */
+    body.pdf-mirror .sheet.even{ --m-in: 20mm; --m-out: 14mm; }
+    /* Ensure exact colors */
+    *{ -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  }
+</style>
+</head>
+<body>
+
+  <!-- ======= Windows 3.11 Toolbar ======= -->
+  <div id="ui" style="height:var(--ui-h)">
+    <div class="win-group">
+      <button class="win-btn" id="firstBtn">|◀</button>
+      <button class="win-btn" id="prevBtn">◀</button>
+      <span class="win-stat">Page <span id="cur">1</span> / <span id="tot">32</span></span>
+      <input type="number" id="goto" min="1" max="32" value="1" />
+      <button class="win-btn" id="goBtn">Go</button>
+      <button class="win-btn" id="nextBtn">▶</button>
+      <button class="win-btn" id="lastBtn">▶|</button>
+    </div>
+    <div class="win-group">
+      <label class="win-check"><input type="checkbox" id="chkGuides" checked> Guides</label>
+      <label class="win-check"><input type="checkbox" id="chkCrops" checked> Marks</label>
+      <label class="win-check"><input type="checkbox" id="chkColor" checked> Color bars</label>
+      <label class="win-check"><input type="checkbox" id="chkReg" checked> Registration</label>
+      <label class="win-check"><input type="checkbox" id="chkSafe"> Safe</label>
+      <label class="win-check"><input type="checkbox" id="chkShop"> Printshop grid</label>
+      <label class="win-check"><input type="checkbox" id="chkMirror"> Mirrored gutter (PDF)</label>
+      <label class="win-check">Preset:<select id="selColorPreset"><option value="std">Standard</option><option value="ugra">Ugra/Fogra 21</option></select></label>
+    </div>
+    <div class="spacer"></div>
+    <div class="win-group">
+      <button class="win-btn" id="pdfBtn">PDF: bleed</button>
+      <button class="win-btn" id="pdfTrimBtn">PDF: A4</button>
+      <span class="win-stat" id="ver">v0.7.0</span>
+    </div>
+  </div>
+
+  <aside id="sidebar"><div id="thumbs"></div></aside>
+  <div id="pages"></div>
+
+<script>
+(function(){
+  'use strict';
+  const TOTAL = 32; const VERSION = '0.7.0';
+  const pagesEl = document.getElementById('pages');
+  const curEl = document.getElementById('cur'); const totEl = document.getElementById('tot'); const gotoEl = document.getElementById('goto');
+  const prevBtn = document.getElementById('prevBtn'); const nextBtn = document.getElementById('nextBtn'); const firstBtn = document.getElementById('firstBtn'); const lastBtn = document.getElementById('lastBtn'); const goBtn = document.getElementById('goBtn');
+  const thumbsEl = document.getElementById('thumbs');
+  const pdfBtn = document.getElementById('pdfBtn'); const pdfTrimBtn = document.getElementById('pdfTrimBtn');
+  const chkGuides = document.getElementById('chkGuides'); const chkCrops = document.getElementById('chkCrops'); const chkColor = document.getElementById('chkColor'); const chkReg = document.getElementById('chkReg'); const chkSafe = document.getElementById('chkSafe'); const chkShop = document.getElementById('chkShop'); const chkMirror = document.getElementById('chkMirror'); const selColorPreset = document.getElementById('selColorPreset');
+  totEl.textContent = String(TOTAL); document.title = 'DocuMonster — A4 Studio (HTML Paged v'+VERSION+')';
+
+  function applyToggles(){
+    document.body.classList.toggle('hide-guides', !chkGuides.checked);
+    document.body.classList.toggle('hide-crops', !chkCrops.checked);
+    document.body.classList.toggle('hide-colorbar', !chkColor.checked);
+    document.body.classList.toggle('hide-reg', !chkReg.checked);
+    document.body.classList.toggle('hide-safe', !chkSafe.checked);
+    document.body.classList.toggle('printshop', chkShop.checked);
+  }
+  [chkGuides,chkCrops,chkColor,chkReg,chkSafe,chkShop].forEach(el=> el.addEventListener('change', applyToggles));
+  applyToggles();
+
+  function applyColorPreset(){
+    const preset = selColorPreset.value; const bars = document.querySelectorAll('.marks .colorbar');
+    bars.forEach(bar=>{ bar.innerHTML=''; let patches=[]; if(preset==='ugra'){ patches=['c','m','y','k']; for(let i=0;i<=20;i++){ const val=Math.round((i/20)*90); patches.push('g'+(val||'90')); } } else { patches=['c','m','y','k','r','g','b','w','g10','g20','g30','g40','g50','g60','g70','g80','g90']; } patches.forEach(p=>{ const d=document.createElement('div'); d.className='patch '+p; bar.appendChild(d); }); });
+  }
+  selColorPreset.addEventListener('change', applyColorPreset);
+
+  // Demo lorem
+  const patterns = [['2'],['3'],['1'],['2','3'],['3','2'],['1','2'],['2','1','3'],['3','1'],['2','2','3'],['3','3','1']];
+  const vocab=['DocuMonster layout','production pipeline','vector art','modern typography','baseline grid','ink density','preflight checklist','advanced master pages','PDF/X export','linked assets','footnote engine','multi-column flow','interactive elements','instant imposition'];
+  function loremSentence(){ const bits=['Capture ideas','Shape your narrative','Balance typography','Polish every column','Refine kerning','Streamline exports','Test print-ready spreads','Design without compromise','Deliver publication-grade PDFs','Stay in control','Automate routine tasks','Build reusable components']; const len=6+Math.floor(Math.random()*8); let out=[]; for(let i=0;i<len;i++) out.push(bits[Math.floor(Math.random()*bits.length)]); let s=out.join(' ')+'.'; return s.charAt(0).toUpperCase()+s.slice(1); }
+  function loremPara(){ const n=3+Math.floor(Math.random()*5); let p=[]; for(let i=0;i<n;i++) p.push(loremSentence()); return p.join(' '); }
+  function fig(h){ const hh=h||['h30','h40','h50','h60'][Math.floor(Math.random()*4)]; const spanAll=Math.random()<0.35; const f=document.createElement('figure'); if(spanAll) f.classList.add('span-all'); const img=document.createElement('div'); img.className='ph '+hh; const cap=document.createElement('figcaption'); cap.textContent= spanAll? 'Illustration: full spread preview' : 'Illustration: placeholder'; f.appendChild(img); f.appendChild(cap); return f; }
+  function para(t){ const p=document.createElement('p'); p.textContent=t||loremPara(); return p; }
+  function makeColsBlock(cc){ const b=document.createElement('div'); b.className='cols cols-'+cc+' split'; const parts=3+Math.floor(Math.random()*5); for(let i=0;i<parts;i++){ if(i>0 && i%3===0){ b.appendChild(fig()); } b.appendChild(para()); } if(Math.random()<0.25) b.appendChild(fig('h40')); return b; }
+
+  function makeTrim(sheet){ const t=document.createElement('div'); t.className='trim'; for(const c of ['tl','tr','bl','br']){ const m=document.createElement('div'); m.className='crop '+c; t.appendChild(m);} sheet.appendChild(t); return t; }
+  function addMarks(sheet, idx){ const m=document.createElement('div'); m.className='marks'; const cb=document.createElement('div'); cb.className='colorbar'; m.appendChild(cb); const info=document.createElement('div'); info.className='info'; info.textContent='DocuMonster v'+VERSION+' — page '+(idx+1)+'/'+TOTAL; m.appendChild(info); ['tl','tr','bl','br'].forEach(pos=>{ const r=document.createElement('div'); r.className='reg '+pos; m.appendChild(r); }); const safe=document.createElement('div'); safe.className='safe-area'; m.appendChild(safe); const slur=document.createElement('div'); slur.className='slur'; m.appendChild(slur); sheet.appendChild(m); }
+
+  function pageSkeleton(title, idx){ const sheet=document.createElement('section'); sheet.className='sheet '+(idx%2?'even':'odd'); const trim=makeTrim(sheet); const content=document.createElement('div'); content.className='content'; trim.appendChild(content); addMarks(sheet, idx); const head=document.createElement('header'); head.className='head'; head.innerHTML='<h1 class="title">'+(title||'Publication blueprint')+'</h1>'; content.appendChild(head); return {sheet, content}; }
+
+  function chapterOnePage(i){ const {sheet,content}=pageSkeleton('KICKOFF: PLAN THE ISSUE', i); const c2=document.createElement('div'); c2.className='cols cols-2 split'; c2.appendChild(para('Every DocuMonster project begins with intent. Define the story you want to tell, identify the assets you need, and decide which spreads should shine. This workspace keeps the full publication in view while you iterate.'));
+  c2.appendChild(para('Assign layout presets, import typography scales, and keep an eye on your bleed. Styles are responsive to the toggles above, so you can verify print marks, color bars, and gutter mirroring instantly.'));
+  c2.appendChild(para('Drag new sections into the outline, let automatic columns handle flow, and reserve space for photography or callouts. DocuMonster keeps your spreads balanced while the ideas are still fluid.'));
+  c2.appendChild(para('When you are ready to export, choose the bleed or trim preset and produce press-ready PDFs in seconds.')); c2.appendChild(para('The on-screen preview mimics production margins and demonstrates live imposition. Scroll through the sidebar thumbnails to navigate any page instantly.'));
+  content.appendChild(c2);
+  const cspan=document.createElement('div'); cspan.className='cols cols-2 split'; const h2=document.createElement('h2'); h2.className='span-all'; h2.textContent='CHECKLIST: BEFORE YOU EXPORT'; cspan.appendChild(h2); cspan.appendChild(para('☑ Validate linked assets and confirm resolution targets. ☑ Ensure baseline grid alignment across multi-column articles. ☑ Run your editorial workflow and confirm approvals.'));
+  cspan.appendChild(para('DocuMonster thrives on iteration. Duplicate spreads, shuffle modules, and test alternative covers without losing sight of your production specs.'));
+  content.appendChild(cspan);
+  const c3=document.createElement('div'); c3.className='cols cols-3 split'; c3.appendChild(para('Build with confidence.'));
+  c3.appendChild(para('Use mirrored gutters for print signatures or disable them for single-sided reports.')); c3.appendChild(para('Fine-tune grid densities and spot potential overflow with the safe area overlay.'));
+  c3.appendChild(para('The preview color bars can be switched to Ugra/Fogra references for quick proofing.'));
+  c3.appendChild(fig('h40'));
+  content.appendChild(c3);
+  const foot=document.createElement('footer'); foot.className='foot'; foot.innerHTML='<span>DocuMonster Studio</span><span>Page '+(i+1)+' / '+TOTAL+' - v'+VERSION+'</span>';
+  content.appendChild(foot);
+  return sheet; }
+
+  function genericPage(i){ const {sheet,content}=pageSkeleton('Layout Study — Page '+(i+1), i); const pat=patterns[i%patterns.length]; for(const c of pat){ content.appendChild(makeColsBlock(c)); }
+  const foot=document.createElement('footer'); foot.className='foot'; foot.innerHTML='<span>DocuMonster Studio</span><span>Page '+(i+1)+' / '+TOTAL+' - v'+VERSION+'</span>';
+  content.appendChild(foot); return sheet; }
+
+  for(let i=0;i<TOTAL;i++){ const page=(i===0)? chapterOnePage(i) : genericPage(i); page.dataset.index=String(i); pagesEl.appendChild(page); }
+
+  const pages = Array.from(document.querySelectorAll('.sheet')); let cur=0;
+  function buildThumbnails(){ thumbsEl.innerHTML=''; const r=pages[0].getBoundingClientRect(); const baseW=r.width||pages[0].offsetWidth||1000; const baseH=r.height||pages[0].offsetHeight||1400; pages.forEach((p,idx)=>{ const wrap=document.createElement('div'); wrap.className='thumb'; wrap.dataset.index=String(idx); const mini=document.createElement('div'); mini.className='mini-wrap'; const clone=p.cloneNode(true); clone.style.pointerEvents='none'; mini.appendChild(clone); wrap.appendChild(mini); const meta=document.createElement('div'); meta.className='mini-meta'; meta.textContent='Page '+(idx+1); wrap.appendChild(meta); wrap.addEventListener('click',()=>snapTo(idx)); thumbsEl.appendChild(wrap); const availW=mini.clientWidth; let scale=availW/baseW; if(!isFinite(scale)||scale<=0){ scale=0.2; } clone.style.transformOrigin='top left'; clone.style.transform='scale('+scale.toFixed(4)+')'; mini.style.height=(baseH*scale)+'px'; }); setActiveThumb(); applyColorPreset(); }
+  function setActiveThumb(){ document.querySelectorAll('.thumb.active').forEach(e=>e.classList.remove('active')); const t=thumbsEl.querySelector('.thumb[data-index="'+cur+'"]'); if(t) t.classList.add('active'); }
+  function snapTo(idx){ cur=Math.max(0,Math.min(TOTAL-1,idx)); pages[cur].scrollIntoView({behavior:'smooth',block:'start'}); curEl.textContent=String(cur+1); gotoEl.value=String(cur+1); prevBtn.disabled=(cur===0); firstBtn.disabled=(cur===0); nextBtn.disabled=(cur===TOTAL-1); lastBtn.disabled=(cur===TOTAL-1); setActiveThumb(); }
+
+  prevBtn.addEventListener('click',()=>snapTo(cur-1)); nextBtn.addEventListener('click',()=>snapTo(cur+1)); firstBtn.addEventListener('click',()=>snapTo(0)); lastBtn.addEventListener('click',()=>snapTo(TOTAL-1)); goBtn.addEventListener('click',()=>{ const v=parseInt(gotoEl.value,10)||1; snapTo(v-1); }); gotoEl.addEventListener('keydown',e=>{ if(e.key==='Enter'){ const v=parseInt(gotoEl.value,10)||1; snapTo(v-1); }});
+  window.addEventListener('keydown',e=>{ if(e.target===gotoEl) return; if(e.key==='ArrowRight'||e.key==='PageDown') snapTo(cur+1); if(e.key==='ArrowLeft'||e.key==='PageUp') snapTo(cur-1); if(e.key==='Home') snapTo(0); if(e.key==='End') snapTo(TOTAL-1); });
+
+  const obs=new IntersectionObserver(entries=>{ let topMost=null; let topY=Infinity; for(const e of entries){ if(e.isIntersecting){ const rr=e.target.getBoundingClientRect(); if(rr.top>=0 && rr.top<topY){ topY=rr.top; topMost=e.target; } } } if(topMost){ const idx=pages.indexOf(topMost); if(idx>=0){ cur=idx; curEl.textContent=String(cur+1); gotoEl.value=String(cur+1); setActiveThumb(); prevBtn.disabled=(cur===0); firstBtn.disabled=(cur===0); nextBtn.disabled=(cur===TOTAL-1); lastBtn.disabled=(cur===TOTAL-1); } } },{root:null,rootMargin:'0px',threshold:[0.6]});
+  pages.forEach(p=>obs.observe(p));
+
+  function injectPrintStyle(css){ let t=document.getElementById('print-style'); if(t) t.remove(); t=document.createElement('style'); t.id='print-style'; t.type='text/css'; t.appendChild(document.createTextNode(css)); document.head.appendChild(t); }
+  function prePrintCommon(){ applyToggles(); document.body.classList.toggle('pdf-mirror', !!chkMirror.checked); thumbsEl.innerHTML=''; window.scrollTo({top:0,behavior:'auto'}); }
+  function postPrint(){ const t=document.getElementById('print-style'); if(t) t.remove(); buildThumbnails(); }
+
+  pdfBtn.addEventListener('click',()=>{ prePrintCommon(); injectPrintStyle('@page{size:216mm 303mm;margin:0} html,body{width:216mm;height:303mm;margin:0;padding:0} #pages{margin:0} .sheet{left:0;top:0;width:216mm!important;height:303mm!important;margin:0!important;position:relative!important} .trim{left:3mm!important;top:3mm!important;width:210mm!important;height:297mm!important} :root{--m-top:12mm;--m-bot:12mm;--m-in:12mm;--m-out:12mm}'); setTimeout(()=>window.print(),100); });
+  pdfTrimBtn.addEventListener('click',()=>{ const prev={crops:chkCrops.checked,color:chkColor.checked,reg:chkReg.checked}; chkCrops.checked=false; chkColor.checked=false; chkReg.checked=false; applyToggles(); prePrintCommon(); injectPrintStyle('@page{size:210mm 297mm;margin:0} html,body{width:210mm;height:297mm;margin:0;padding:0} #pages{margin:0} .sheet{left:0;top:0;width:210mm!important;height:297mm!important;margin:0!important;position:relative!important} .trim{left:0!important;top:0!important;width:210mm!important;height:297mm!important} :root{--m-top:12mm;--m-bot:12mm;--m-in:12mm;--m-out:12mm}'); setTimeout(()=>window.print(),100); window.addEventListener('afterprint',function r(){ chkCrops.checked=prev.crops; chkColor.checked=prev.color; chkReg.checked=prev.reg; applyToggles(); window.removeEventListener('afterprint',r); }); });
+  window.addEventListener('afterprint', postPrint);
+
+  window.addEventListener('load',()=>{ buildThumbnails(); applyColorPreset(); }); window.addEventListener('resize', buildThumbnails);
+  snapTo(0);
+})();
+</script>
+</body>
+</html>
