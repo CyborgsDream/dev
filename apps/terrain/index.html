@@ -28,17 +28,29 @@
       display: flex;
       align-items: center;
       justify-content: center;
+      padding: clamp(24px, 6vh, 72px) clamp(16px, 5vw, 64px);
       pointer-events: none;
+      box-sizing: border-box;
+    }
+    body.is-fullscreen #scene-shell {
+      padding: clamp(48px, 14vh, 160px) clamp(24px, 8vw, 96px);
     }
     #canvas-wrap {
       position: relative;
       pointer-events: auto;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      max-width: 100%;
+      max-height: 100%;
     }
     canvas {
       display: block;
       border-radius: 12px;
       background: radial-gradient(circle at top, rgba(8, 24, 41, 0.95), #030712 85%);
-      box-shadow: 0 28px 60px rgba(0, 0, 0, 0.5);
+      box-shadow: 0 24px 48px rgba(0, 0, 0, 0.55);
+      max-width: 100%;
+      max-height: 100%;
     }
     #loader {
       position: fixed;
@@ -57,63 +69,109 @@
     }
     #fps {
       position: fixed;
-      top: 12px;
-      left: 12px;
+      top: 14px;
+      left: 14px;
       z-index: 40;
       pointer-events: none;
     }
+    #fps-monitor {
+      display: grid;
+      row-gap: 6px;
+      padding: 8px 10px;
+      background: rgba(5, 18, 40, 0.78);
+      border: 1px solid rgba(80, 115, 176, 0.55);
+      border-radius: 12px;
+      width: 160px;
+      box-shadow: 0 12px 24px rgba(0, 0, 0, 0.35);
+      font-family: "JetBrains Mono", "Fira Mono", monospace;
+    }
+    #fps-monitor .fps-label {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.16em;
+      color: rgba(255, 255, 255, 0.52);
+    }
+    #fps-monitor .fps-value {
+      font-size: 20px;
+      font-weight: 600;
+      color: #fdfdff;
+      letter-spacing: 0.04em;
+    }
+    #fps-monitor canvas {
+      width: 100%;
+      height: 42px;
+      border-radius: 8px;
+      background: rgba(3, 12, 26, 0.9);
+      image-rendering: pixelated;
+    }
     #control-ui {
       position: fixed;
-      top: 16px;
-      right: 16px;
-      background: var(--panel-bg);
-      border: 1px solid var(--panel-border);
-      border-radius: 16px;
-      padding: 12px 16px;
+      top: 18px;
+      right: 18px;
+      background: rgba(5, 18, 40, 0.78);
+      border: 1px solid rgba(82, 118, 180, 0.55);
+      border-radius: 12px;
+      padding: 10px 12px 12px;
       display: grid;
-      row-gap: 8px;
-      width: min(240px, 80vw);
-      backdrop-filter: blur(14px);
-      box-shadow: 0 20px 35px rgba(0, 0, 0, 0.35);
+      row-gap: 6px;
+      width: min(200px, 78vw);
+      backdrop-filter: blur(10px);
+      box-shadow: 0 14px 28px rgba(0, 0, 0, 0.35);
       z-index: 30;
+      font-family: "JetBrains Mono", "Fira Mono", monospace;
     }
     #control-ui h2 {
       margin: 0;
-      font-size: 15px;
+      font-size: 11px;
       text-transform: uppercase;
-      letter-spacing: 0.12em;
-      color: rgba(255, 255, 255, 0.7);
+      letter-spacing: 0.18em;
+      color: rgba(255, 255, 255, 0.55);
     }
     #resolution-display {
-      font-size: 18px;
+      font-size: 14px;
       font-weight: 600;
-      color: #fff;
+      color: #f5f8ff;
+      letter-spacing: 0.04em;
     }
     label[for="resolution-select"] {
-      font-size: 13px;
-      color: rgba(255, 255, 255, 0.7);
+      font-size: 11px;
+      color: rgba(255, 255, 255, 0.52);
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+    .select-wrap {
+      position: relative;
+    }
+    .select-wrap::after {
+      content: '';
+      position: absolute;
+      top: 50%;
+      right: 10px;
+      width: 8px;
+      height: 8px;
+      border-right: 1px solid rgba(205, 220, 255, 0.8);
+      border-bottom: 1px solid rgba(205, 220, 255, 0.8);
+      transform: translateY(-60%) rotate(45deg);
+      pointer-events: none;
+      opacity: 0.7;
     }
     #resolution-select {
       width: 100%;
-      padding: 8px 10px;
-      border-radius: 10px;
-      border: 1px solid rgba(150, 200, 255, 0.35);
-      background: rgba(2, 18, 36, 0.9);
-      color: #f3f7ff;
-      font-size: 14px;
+      padding: 6px 28px 6px 8px;
+      border-radius: 8px;
+      border: 1px solid rgba(72, 102, 155, 0.8);
+      background: rgba(7, 22, 43, 0.88);
+      color: #dfe9ff;
+      font-size: 12px;
       font-weight: 500;
+      letter-spacing: 0.04em;
       appearance: none;
-      background-image: linear-gradient(45deg, transparent 50%, rgba(255, 255, 255, 0.45) 50%),
-        linear-gradient(135deg, rgba(255, 255, 255, 0.45) 50%, transparent 50%),
-        linear-gradient(to right, rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0));
-      background-position: calc(100% - 18px) calc(50% - 2px), calc(100% - 12px) calc(50% - 2px), 0 0;
-      background-size: 6px 6px, 6px 6px, 100% 100%;
-      background-repeat: no-repeat;
+      outline: none;
+      transition: border-color 0.15s ease, box-shadow 0.15s ease;
     }
     #resolution-select:focus {
-      outline: none;
-      border-color: rgba(111, 182, 255, 0.75);
-      box-shadow: 0 0 0 3px rgba(54, 132, 255, 0.25);
+      border-color: rgba(122, 168, 255, 0.95);
+      box-shadow: 0 0 0 2px rgba(68, 120, 214, 0.35);
     }
     #fullscreen-btn {
       position: fixed;
@@ -187,9 +245,10 @@
         height: 46px;
       }
       #control-ui {
-        right: 12px;
-        top: 12px;
-        padding: 10px 14px;
+        right: 10px;
+        top: 10px;
+        padding: 8px 10px 10px;
+        width: min(180px, 75vw);
       }
     }
   </style>
@@ -202,7 +261,8 @@
     <h2>Viewport</h2>
     <div id="resolution-display">—</div>
     <label for="resolution-select">Resolution</label>
-    <select id="resolution-select" aria-label="Resolution selector">
+    <div class="select-wrap">
+      <select id="resolution-select" aria-label="Resolution selector">
       <option value="256x144">144p — 256 × 144</option>
       <option value="426x240">240p — 426 × 240</option>
       <option value="640x360">360p — 640 × 360</option>
@@ -211,7 +271,8 @@
       <option value="1920x1080">1080p — 1920 × 1080</option>
       <option value="2560x1440">1440p — 2560 × 1440</option>
       <option value="3840x2160">2160p — 3840 × 2160</option>
-    </select>
+      </select>
+    </div>
   </div>
   <button id="fullscreen-btn" type="button">Enter Fullscreen</button>
   <div id="control-pad">
@@ -249,85 +310,98 @@
   function setProgress(p){ progressEl.textContent = Math.round(p) + '%'; }
 
   const fpsHolder = document.getElementById('fps');
-  let stats;
 
-  class MiniStats {
-    constructor(){
+  class FpsMonitor {
+    constructor(container) {
       this.dom = document.createElement('div');
-      this.dom.style.cssText = 'background:rgba(0,0,0,.6);padding:4px 6px;font:12px/1.2 monospace;';
-      this.dom.style.pointerEvents = 'none';
-      this.label = document.createElement('div');
-      this.dom.appendChild(this.label);
-      this._smoothing = 0.9;
-      this._fps = 0;
-      this._valid = false;
-      this.begin();
+      this.dom.id = 'fps-monitor';
+
+      this.labelEl = document.createElement('div');
+      this.labelEl.className = 'fps-label';
+      this.labelEl.textContent = 'Frame rate';
+
+      this.valueEl = document.createElement('div');
+      this.valueEl.className = 'fps-value';
+      this.valueEl.textContent = '0';
+
+      this.canvas = document.createElement('canvas');
+      this.canvas.width = 140;
+      this.canvas.height = 42;
+      this.ctx = this.canvas.getContext('2d');
+      this.ctx.imageSmoothingEnabled = false;
+
+      this.history = Array.from({ length: 60 }, () => 0);
+      this.maxFps = 60;
+      this.sampleWindow = 250;
+      this.frameCount = 0;
+      this.lastSample = performance.now();
+      this.smoothed = 0;
+
+      this.dom.appendChild(this.labelEl);
+      this.dom.appendChild(this.valueEl);
+      this.dom.appendChild(this.canvas);
+      container.appendChild(this.dom);
+      this.drawGraph();
     }
-    begin(){ this._tick = performance.now(); }
-    end(){
+
+    begin() {}
+
+    end() {
       const now = performance.now();
-      const dt = now - this._tick;
-      const inst = 1000 / Math.max(dt, 0.0001);
-      this._fps = this._valid ? (this._smoothing * this._fps + (1 - this._smoothing) * inst) : inst;
-      this._valid = true;
-      this.label.textContent = `FPS: ${this._fps.toFixed(1)} | ms: ${dt.toFixed(2)}`;
-    }
-    showPanel() {}
-  }
-
-  function loadScript(url, timeoutMs = 9000) {
-    return new Promise((resolve, reject) => {
-      const s = document.createElement('script');
-      const t = setTimeout(() => {
-        s.onload = s.onerror = null;
-        reject(new Error('Timeout loading: ' + url));
-      }, timeoutMs);
-      s.src = url;
-      s.async = true;
-      s.defer = true;
-      s.crossOrigin = 'anonymous';
-      s.referrerPolicy = 'no-referrer';
-      s.onload = () => { clearTimeout(t); resolve(url); };
-      s.onerror = () => {
-        clearTimeout(t);
-        reject(new Error('Failed to load: ' + url));
-      };
-      document.head.appendChild(s);
-    });
-  }
-
-  async function loadFirstAvailable(urls) {
-    let lastErr;
-    for (const url of urls) {
-      try {
-        await loadScript(url);
-        return url;
-      } catch (err) {
-        lastErr = err;
-        console.warn(err.message);
+      this.frameCount += 1;
+      if (now - this.lastSample >= this.sampleWindow) {
+        const elapsed = now - this.lastSample;
+        const fps = (this.frameCount * 1000) / elapsed;
+        this.frameCount = 0;
+        this.lastSample = now;
+        this.update(fps);
       }
     }
-    throw lastErr || new Error('All URLs failed: ' + urls.join(', '));
+
+    update(rawFps) {
+      const fps = Math.max(0, rawFps);
+      this.smoothed = this.smoothed === 0 ? fps : (this.smoothed * 0.8 + fps * 0.2);
+      const rounded = Math.round(this.smoothed);
+      this.valueEl.textContent = `${rounded} fps`;
+      this.history.push(Math.min(fps, this.maxFps));
+      if (this.history.length > 60) {
+        this.history.shift();
+      }
+      this.drawGraph();
+    }
+
+    drawGraph() {
+      const ctx = this.ctx;
+      const { width, height } = this.canvas;
+      ctx.clearRect(0, 0, width, height);
+      const values = this.history;
+      const step = width / values.length;
+      values.forEach((value, index) => {
+        const clamped = Math.min(value, this.maxFps);
+        const barHeight = (clamped / this.maxFps) * height;
+        ctx.fillStyle = this.getColor(value);
+        const x = index * step;
+        ctx.fillRect(Math.floor(x), height - barHeight, Math.ceil(step), barHeight);
+      });
+
+      // draw baseline markers for 20 and 40 fps
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.12)';
+      const marks = [20, 40, 60];
+      marks.forEach(mark => {
+        const y = height - (Math.min(mark, this.maxFps) / this.maxFps) * height;
+        ctx.fillRect(0, Math.round(y), width, 1);
+      });
+    }
+
+    getColor(value) {
+      if (value >= 60) return '#ff8c1a';
+      if (value >= 40) return '#3ddc97';
+      if (value >= 20) return '#f2c94c';
+      return '#ff4d4f';
+    }
   }
 
-  try {
-    const statsUrl = await loadFirstAvailable([
-      'https://unpkg.com/stats.js@0.17.0/build/stats.min.js',
-      'https://cdn.jsdelivr.net/npm/stats.js@0.17.0/build/stats.min.js',
-      'https://cdnjs.cloudflare.com/ajax/libs/stats.js/r17/Stats.min.js'
-    ]);
-    console.log('Stats loaded from:', statsUrl);
-    const StatsCtor = (typeof window !== 'undefined' && window.Stats) ? window.Stats : MiniStats;
-    stats = new StatsCtor();
-    if (stats.showPanel) stats.showPanel(0);
-  } catch (err) {
-    console.warn('Stats unavailable, using MiniStats. Cause:', err.message);
-    stats = new MiniStats();
-  }
-  if (stats?.dom) {
-    stats.dom.style.pointerEvents = 'none';
-    fpsHolder.appendChild(stats.dom);
-  }
+  const fpsMonitor = new FpsMonitor(fpsHolder);
 
   const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
   renderer.setPixelRatio(1);
@@ -532,15 +606,15 @@
 
   let last = performance.now();
   function animate(){
+    fpsMonitor.begin();
     const now = performance.now();
     const dt = Math.min(0.05, (now - last) / 1000);
     last = now;
-    if (stats?.begin) stats.begin();
     updateControls(dt);
     updateTerrainFollow();
     updateBlocks(dt, now / 1000);
     renderer.render(scene, camera);
-    if (stats?.end) stats.end();
+    fpsMonitor.end();
     requestAnimationFrame(animate);
   }
 
@@ -552,6 +626,12 @@
   const resolutionSelect = document.getElementById('resolution-select');
   const resolutionDisplay = document.getElementById('resolution-display');
   const fullscreenBtn = document.getElementById('fullscreen-btn');
+
+  const isFullscreenActive = () => Boolean(
+    document.fullscreenElement ||
+    document.webkitFullscreenElement ||
+    document.msFullscreenElement
+  );
 
   let currentResolution = RESOLUTIONS[4];
 
@@ -571,18 +651,37 @@
     return RESOLUTIONS.find(r => r.width === w && r.height === h) || RESOLUTIONS[0];
   }
 
+  const sceneShell = document.getElementById('scene-shell');
+
   function updateCanvasLayout() {
     const aspect = currentResolution.width / currentResolution.height;
-    const availableWidth = window.innerWidth;
-    const availableHeight = window.innerHeight;
+    const styles = getComputedStyle(sceneShell);
+    const toNumber = value => Number.parseFloat(value) || 0;
+    const availableWidth = Math.max(100, window.innerWidth - toNumber(styles.paddingLeft) - toNumber(styles.paddingRight));
+    const availableHeight = Math.max(100, window.innerHeight - toNumber(styles.paddingTop) - toNumber(styles.paddingBottom));
     let displayWidth = availableWidth;
     let displayHeight = displayWidth / aspect;
     if (displayHeight > availableHeight) {
       displayHeight = availableHeight;
       displayWidth = displayHeight * aspect;
     }
+
+    if (isFullscreenActive()) {
+      const maxFullscreenHeight = availableHeight * 0.88;
+      if (displayHeight > maxFullscreenHeight) {
+        displayHeight = maxFullscreenHeight;
+        displayWidth = displayHeight * aspect;
+      }
+      if (displayWidth > availableWidth) {
+        displayWidth = availableWidth;
+        displayHeight = displayWidth / aspect;
+      }
+    }
+
     renderer.domElement.style.width = `${displayWidth}px`;
     renderer.domElement.style.height = `${displayHeight}px`;
+    canvasWrap.style.width = `${displayWidth}px`;
+    canvasWrap.style.height = `${displayHeight}px`;
   }
 
   resolutionSelect.addEventListener('change', () => {
@@ -590,23 +689,36 @@
   });
 
   function updateFullscreenButton() {
-    const isFullscreen = document.fullscreenElement != null;
+    const isFullscreen = isFullscreenActive();
     fullscreenBtn.textContent = isFullscreen ? 'Exit Fullscreen' : 'Enter Fullscreen';
     const shouldShow = isFullscreen || window.innerWidth >= 720;
     fullscreenBtn.style.display = shouldShow ? 'inline-flex' : 'none';
+    document.body.classList.toggle('is-fullscreen', isFullscreen);
   }
 
   fullscreenBtn.addEventListener('click', () => {
-    const isFullscreen = document.fullscreenElement != null;
-    if (isFullscreen) {
-      document.exitFullscreen();
+    if (isFullscreenActive()) {
+      if (document.exitFullscreen) {
+        document.exitFullscreen();
+      } else if (document.webkitExitFullscreen) {
+        document.webkitExitFullscreen();
+      }
     } else {
-      const shell = document.getElementById('scene-shell');
-      if (shell.requestFullscreen) shell.requestFullscreen();
+      const target = document.documentElement;
+      const request = target.requestFullscreen || target.webkitRequestFullscreen || target.msRequestFullscreen;
+      if (request) request.call(target);
     }
   });
 
   document.addEventListener('fullscreenchange', () => {
+    updateCanvasLayout();
+    updateFullscreenButton();
+  });
+  document.addEventListener('webkitfullscreenchange', () => {
+    updateCanvasLayout();
+    updateFullscreenButton();
+  });
+  document.addEventListener('msfullscreenchange', () => {
     updateCanvasLayout();
     updateFullscreenButton();
   });
