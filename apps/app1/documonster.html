@@ -1536,6 +1536,19 @@
   if(zoomResetBtn) zoomResetBtn.addEventListener('click', zoomReset);
   if(zoomFullBtn) zoomFullBtn.addEventListener('click', zoomFit);
 
+  function handleWheelZoom(ev){
+    if(!(ev.ctrlKey || ev.metaKey)) return;
+    ev.preventDefault();
+    const delta = ev.deltaY;
+    if(!Number.isFinite(delta) || delta === 0) return;
+    const step = delta < 0 ? 0.1 : -0.1;
+    zoomTo(zoomLevel + step);
+  }
+
+  if(pageViewport){
+    pageViewport.addEventListener('wheel', handleWheelZoom, { passive:false });
+  }
+
   function refreshCounts(){
     const total = getTotalPages();
     totEl.textContent = String(total);
@@ -1561,6 +1574,14 @@
     lastBtn.disabled = (cur >= total-1);
   }
 
+  function scrollPageIntoView(target, behavior){
+    if(!target) return;
+    const style = getComputedStyle(target);
+    const marginTop = parseFloat(style.scrollMarginTop) || 0;
+    const y = target.getBoundingClientRect().top + window.scrollY - marginTop;
+    window.scrollTo({ top: Math.max(0, y), left: 0, behavior });
+  }
+
   function updateNavigationState(skipScroll){
     const total = getTotalPages();
     cur = Math.max(0, Math.min(total-1, cur));
@@ -1572,10 +1593,7 @@
     refreshElementStyleControl();
     buildRulers();
     if(!skipScroll){
-      const target = pages[cur];
-      if(target){
-        target.scrollIntoView({ behavior:'smooth', block:'start' });
-      }
+      scrollPageIntoView(pages[cur], 'smooth');
     }
   }
 
@@ -1584,7 +1602,7 @@
     cur = Math.max(0, Math.min(total-1, idx));
     const target = pages[cur];
     if(target){
-      target.scrollIntoView({ behavior: instant ? 'auto' : 'smooth', block:'start' });
+      scrollPageIntoView(target, instant ? 'auto' : 'smooth');
     }
     updateNavigationState(true);
   }
@@ -2266,6 +2284,23 @@
   });
 
   window.addEventListener('keydown', ev=>{
+    if(ev.ctrlKey || ev.metaKey){
+      if(ev.key === '=' || ev.key === '+'){
+        ev.preventDefault();
+        zoomIn();
+        return;
+      }
+      if(ev.key === '-'){
+        ev.preventDefault();
+        zoomOut();
+        return;
+      }
+      if(ev.key === '0'){
+        ev.preventDefault();
+        zoomReset();
+        return;
+      }
+    }
     if(ev.target === gotoEl) return;
     if(ev.key === 'ArrowRight' || ev.key === 'PageDown') snapTo(cur+1, false);
     if(ev.key === 'ArrowLeft' || ev.key === 'PageUp') snapTo(cur-1, false);
