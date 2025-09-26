@@ -75,7 +75,7 @@
   /* ===== Rulers ===== */
   #rulerTop, #rulerLeft{ position:fixed; background:#f2f2f2; color:#000; font:10px var(--font-ui); z-index:900; pointer-events:none; }
   #rulerTop{ top:calc(var(--menu-h) + var(--ui-h)); left:calc(var(--sidebar-w) + 12px); height:28px; width:calc(var(--sheet-w) + 36px); border:1px solid #808080; border-left:none; display:block; }
-  #rulerLeft{ top:calc(var(--menu-h) + var(--ui-h) + 28px); left:0; width:36px; height:calc(var(--sheet-h) + 40px); border:1px solid #808080; border-top:none; display:block; }
+  #rulerLeft{ top:calc(var(--menu-h) + var(--ui-h) + 28px); left:calc(var(--sidebar-w) - 24px); width:36px; height:calc(var(--sheet-h) + 40px); border:1px solid #808080; border-top:none; display:block; }
   #rulerTop::before{ content:""; position:absolute; inset:0; background:
     repeating-linear-gradient(to right, rgba(0,0,0,0.3) 0, rgba(0,0,0,0.3) 1px, transparent 1px, transparent 3.7795px),
     repeating-linear-gradient(to right, rgba(0,0,0,0.6) 0, rgba(0,0,0,0.6) 1.3px, transparent 1.3px, transparent 37.795px),
@@ -100,6 +100,11 @@
   .sheet{ position:relative; width:var(--sheet-w); height:var(--sheet-h); background:var(--paper); color:var(--ink); box-shadow:0 0 0 2px #808080, 0 0 0 4px #fff; margin:18px auto; border:none; scroll-margin-top:calc(var(--menu-h) + var(--ui-h) + 14px); overflow:hidden; }
   .sheet{ --inPage:var(--m-in); --outPage:var(--m-out); }
   .sheet.even{ --inPage:var(--m-out); --outPage:var(--m-in); }
+  .sheet.theme-standard{ --paper:#fff; --ink:#111; --ink-soft:#444; }
+  .sheet.theme-newsprint{ --paper:#fdf4e3; --ink:#352a1a; --ink-soft:#6a4f2d; }
+  .sheet.theme-midnight{ --paper:#151b2c; --ink:#f2f6ff; --ink-soft:#c8d4ff; }
+  .sheet.theme-midnight .subtitle{ color:rgba(200,212,255,0.78); }
+  .sheet.theme-newsprint .subtitle{ color:rgba(106,79,45,0.75); }
 
   /* Crop marks */
   .crop{ position:absolute; width:0; height:0; }
@@ -165,6 +170,7 @@
   .cols p, .cols li, .cols figure, .cols h2, .cols h3{ break-inside:avoid-column; }
   .cols.editable{ outline:1px dashed transparent; transition:outline 0.15s ease; }
   .cols.editable:focus{ outline:1px dashed #008080; }
+  .cols.editable.selected{ outline:1px dashed var(--accent); background-clip:padding-box; }
   .span-all{ column-span:all; break-before:column; break-after:column; }
   .split{ padding-bottom:6mm; }
   .foot{ padding:3mm 0 4mm 0; border-top:1px solid #ddd; font:11px var(--font-ui); color:#333; display:flex; justify-content:space-between; gap:6mm; }
@@ -187,6 +193,14 @@
   .frame .resize-handle.e{ right:-5px; top:50%; transform:translateY(-50%); cursor:e-resize; }
   .frame .resize-handle.s{ bottom:-5px; left:50%; transform:translateX(-50%); cursor:s-resize; }
   .frame.selected .resize-handle{ display:block; }
+  .cols.style-accent{ background:rgba(0,128,128,0.08); border-left:3px solid var(--accent); padding:4mm; }
+  .cols.style-note{ background:rgba(255,225,150,0.45); border:1px dashed #c58a00; padding:4mm; }
+  .cols.style-inverse{ background:#0c3c52; color:#f5faff; padding:4mm; }
+  .cols.style-inverse h2, .cols.style-inverse h3{ color:#f5faff; }
+  .frame.style-outline{ border:2px solid var(--accent); box-shadow:4px 4px 0 rgba(0,128,128,0.2); }
+  .frame.style-shadow{ box-shadow:6px 6px 0 rgba(0,0,0,0.35); }
+  .frame.style-banner figcaption{ background:var(--accent); color:#fff; text-transform:uppercase; letter-spacing:0.12em; padding:3mm 4mm; }
+  .frame.style-banner .frame-content{ padding-top:4mm; }
   .quote{ font-size:14px; line-height:1.3; }
   .attribution{ font:11px var(--font-ui); text-transform:uppercase; letter-spacing:0.08em; }
   .callout{ font:12px var(--font-ui); font-weight:bold; }
@@ -261,6 +275,24 @@
       <button class="win-btn" id="goBtn">Go</button>
       <button class="win-btn" id="nextBtn">▶</button>
       <button class="win-btn" id="lastBtn">▶|</button>
+    </div>
+    <div class="win-group" id="pageActions">
+      <button class="win-btn" id="newPageBtn">+ Page</button>
+      <button class="win-btn" id="duplicatePageBtn">Duplicate</button>
+    </div>
+    <div class="win-group" id="styleControls">
+      <label class="win-check">Page Style:
+        <select id="pageThemeSelect">
+          <option value="standard">Standard</option>
+          <option value="newsprint">Newsprint</option>
+          <option value="midnight">Midnight Studio</option>
+        </select>
+      </label>
+      <label class="win-check">Element Style:
+        <select id="elementStyleSelect" disabled>
+          <option value="standard">Standard</option>
+        </select>
+      </label>
     </div>
     <div class="win-group" id="toggleGroup">
       <label class="win-check"><input type="checkbox" id="chkGuides" checked> Guides</label>
@@ -346,6 +378,8 @@
   const firstBtn = document.getElementById('firstBtn');
   const lastBtn = document.getElementById('lastBtn');
   const goBtn = document.getElementById('goBtn');
+  const newPageBtn = document.getElementById('newPageBtn');
+  const duplicatePageBtn = document.getElementById('duplicatePageBtn');
   const thumbsEl = document.getElementById('thumbs');
   const chkGuides = document.getElementById('chkGuides');
   const chkCrops = document.getElementById('chkCrops');
@@ -355,6 +389,8 @@
   const chkShop = document.getElementById('chkShop');
   const chkMirror = document.getElementById('chkMirror');
   const selColorPreset = document.getElementById('selColorPreset');
+  const pageThemeSelect = document.getElementById('pageThemeSelect');
+  const elementStyleSelect = document.getElementById('elementStyleSelect');
   const statusEl = document.getElementById('status');
   const versionEl = document.getElementById('ver');
   const menubar = document.getElementById('menubar');
@@ -368,8 +404,10 @@
   const frameCaption = document.getElementById('frameCaption');
   const frameImageUrl = document.getElementById('frameImageUrl');
   const frameImageUrlLabel = document.getElementById('frameImageUrlLabel');
+  const rulerTopEl = document.getElementById('rulerTop');
   const rulerTopCm = document.querySelector('#rulerTop .cm');
   const rulerTopIn = document.querySelector('#rulerTop .inch');
+  const rulerLeftEl = document.getElementById('rulerLeft');
   const rulerLeftCm = document.querySelector('#rulerLeft .cm');
   const rulerLeftIn = document.querySelector('#rulerLeft .inch');
 
@@ -382,6 +420,32 @@
   let selectedFrame = null;
   let selectedFramePage = -1;
   let selectedFrameIndex = -1;
+  let selectedColumnsBlock = null;
+  let selectedColumnsPage = -1;
+  let selectedColumnsIndex = -1;
+  let styledSelection = { type:null, page:-1, index:-1 };
+  let currentStyleOptionType = null;
+
+  const PAGE_THEMES = ['standard','newsprint','midnight'];
+  const PAGE_THEME_CLASSES = PAGE_THEMES.map(t=>'theme-'+t);
+  const COLUMN_STYLES = ['standard','accent','note','inverse'];
+  const FRAME_STYLES = ['standard','outline','shadow','banner'];
+  const COLUMN_STYLE_CLASSES = COLUMN_STYLES.filter(v=>v!=='standard').map(v=>'style-'+v);
+  const FRAME_STYLE_CLASSES = FRAME_STYLES.filter(v=>v!=='standard').map(v=>'style-'+v);
+  const ELEMENT_STYLE_OPTIONS = {
+    columns:[
+      { value:'standard', label:'Standard Body' },
+      { value:'accent', label:'Accent Block' },
+      { value:'note', label:'Note Panel' },
+      { value:'inverse', label:'Inverse Type' }
+    ],
+    frame:[
+      { value:'standard', label:'Standard Frame' },
+      { value:'outline', label:'Outline Emphasis' },
+      { value:'shadow', label:'Drop Shadow Card' },
+      { value:'banner', label:'Banner Caption' }
+    ]
+  };
 
   function mmToPx(mm){ return mm * pxPerMm; }
   function pxToMm(px){ return px / pxPerMm; }
@@ -404,6 +468,7 @@
           title:'ORBIT OS LAUNCH DOSSIER',
           subtitle:'Docu Monster Studio Pro 0.1.0',
           deck:'Orbit OS v 0.1.0 introduces Docu Monster Studio Pro, a desktop publishing lab for the browser.',
+          theme:'standard',
           elements:[
             {
               type:'columns', columns:2,
@@ -437,6 +502,7 @@
           title:'LAYOUT WORKSHOP',
           subtitle:'Dynamic columns & intelligent flow',
           deck:'Mix content structures per page for editorial rhythm.',
+          theme:'standard',
           elements:[
             {
               type:'columns', columns:3,
@@ -468,6 +534,7 @@
           title:'EXPORT & DELIVERY',
           subtitle:'Bleed, trim, and PDF flows',
           deck:'Control print outputs directly from the Export menu.',
+          theme:'standard',
           elements:[
             {
               type:'columns', columns:2,
@@ -492,6 +559,7 @@
           title:'SYSTEM MANIFEST',
           subtitle:'Browser-based studio platform',
           deck:'Orbit OS frames the creative suite powered by Docu Monster Studio Pro.',
+          theme:'standard',
           elements:[
             {
               type:'columns', columns:2,
@@ -530,6 +598,15 @@
     return doc;
   }
 
+  function normalizeTheme(value){
+    return PAGE_THEMES.includes(value) ? value : 'standard';
+  }
+
+  function normalizeStyleValue(type, value){
+    const list = type === 'frame' ? FRAME_STYLES : COLUMN_STYLES;
+    return list.includes(value) ? value : 'standard';
+  }
+
   function normalizePage(page, idx){
     const p = Object.assign({
       title:'Untitled Page '+(idx+1),
@@ -537,8 +614,10 @@
       deck:'',
       elements:[],
       footerLeft:'Docu Monster Studio Pro',
-      footerRight:'Page {{page}}'
+      footerRight:'Page {{page}}',
+      theme:'standard'
     }, page || {});
+    p.theme = normalizeTheme(p.theme);
     p.elements = Array.isArray(p.elements) ? p.elements.map(normalizeElement) : [];
     return p;
   }
@@ -551,7 +630,8 @@
       return {
         type:'columns',
         columns:Math.min(3, Math.max(1, parseInt(el.columns,10) || 1)),
-        html: typeof el.html === 'string' ? el.html : '<p>Edit me.</p>'
+        html: typeof el.html === 'string' ? el.html : '<p>Edit me.</p>',
+        style: normalizeStyleValue('columns', el.style)
       };
     }
     const mode = el.mode || 'overlay';
@@ -565,7 +645,8 @@
       height: typeof el.height === 'number' ? el.height : 40,
       content: typeof el.content === 'string' ? el.content : '<p>Frame content</p>',
       src: typeof el.src === 'string' ? el.src : '',
-      caption: typeof el.caption === 'string' ? el.caption : ''
+      caption: typeof el.caption === 'string' ? el.caption : '',
+      style: normalizeStyleValue('frame', el.style)
     };
   }
 
@@ -661,6 +742,7 @@
     const sheet = document.createElement('section');
     sheet.className = 'sheet '+(idx%2 ? 'even' : 'odd');
     sheet.dataset.index = String(idx);
+    applyPageThemeClass(sheet, page.theme || 'standard');
     const trim = createTrim(sheet);
     const content = document.createElement('div');
     content.className = 'content';
@@ -699,10 +781,17 @@
         block.dataset.pageIndex = String(idx);
         block.dataset.elementIndex = String(elementIndex);
         block.innerHTML = el.html;
+        el.style = applyElementStyleClass(block, el.style, 'columns');
+        if(selectedColumnsPage === idx && selectedColumnsIndex === elementIndex){
+          selectedColumnsBlock = block;
+          block.classList.add('selected');
+        }
         block.addEventListener('input', ()=>{
           el.html = block.innerHTML;
           markDirty();
         });
+        block.addEventListener('focus', ()=>{ selectColumnsBlock(block, idx, elementIndex); });
+        block.addEventListener('click', ()=>{ selectColumnsBlock(block, idx, elementIndex); });
         content.appendChild(block);
       } else {
         const frame = createFrameElement(el, idx, elementIndex);
@@ -724,6 +813,13 @@
     foot.appendChild(right);
     content.appendChild(foot);
     return sheet;
+  }
+
+  function applyPageThemeClass(sheet, theme){
+    const safeTheme = normalizeTheme(theme);
+    PAGE_THEME_CLASSES.forEach(cls=>sheet.classList.remove(cls));
+    sheet.classList.add('theme-'+safeTheme);
+    sheet.dataset.theme = safeTheme;
   }
 
   function resolveFooter(template, idx){
@@ -832,6 +928,7 @@
     });
 
     applyFrameMode(frame, el);
+    el.style = applyElementStyleClass(frame, el.style, 'frame');
     return frame;
   }
 
@@ -858,9 +955,19 @@
         frame.style.margin = '0 0 3mm 4mm';
       } else {
         frame.style.float = 'none';
-        frame.style.margin = '3mm auto';
-      }
+      frame.style.margin = '3mm auto';
     }
+  }
+
+  function applyElementStyleClass(node, styleName, type){
+    const safeStyle = type === 'frame' ? normalizeStyleValue('frame', styleName) : normalizeStyleValue('columns', styleName);
+    const list = type === 'frame' ? FRAME_STYLE_CLASSES : COLUMN_STYLE_CLASSES;
+    list.forEach(cls=>node.classList.remove(cls));
+    if(safeStyle && safeStyle !== 'standard'){
+      node.classList.add('style-'+safeStyle);
+    }
+    return safeStyle;
+  }
   }
 
   function renderDocument(){
@@ -898,6 +1005,9 @@
     applyColorPreset();
     buildThumbnails();
     restoreFrameSelection();
+    restoreColumnsSelection();
+    updatePageThemeControl();
+    refreshElementStyleControl();
   }
 
   function refreshCounts(){
@@ -932,6 +1042,9 @@
     gotoEl.value = String(cur+1);
     updateNavigationButtons();
     setActiveThumb();
+    updatePageThemeControl();
+    refreshElementStyleControl();
+    buildRulers();
     if(!skipScroll){
       const target = pages[cur];
       if(target){
@@ -1025,8 +1138,17 @@
   selColorPreset.addEventListener('change', applyColorPreset);
 
   function buildRulers(){
-    const widthMm = 210;
-    const heightMm = 297;
+    if(!pages.length){
+      rulerTopEl.style.display = 'none';
+      rulerLeftEl.style.display = 'none';
+      return;
+    }
+    const sheet = pages[cur] || pages[0];
+    const rect = sheet.getBoundingClientRect();
+    const widthPx = rect.width;
+    const heightPx = rect.height;
+    const widthMm = pxToMm(widthPx);
+    const heightMm = pxToMm(heightPx);
     const cmTopCount = Math.ceil(widthMm / 10);
     const inTopCount = Math.ceil(widthMm / 25.4);
     const cmLeftCount = Math.ceil(heightMm / 10);
@@ -1035,6 +1157,13 @@
     rulerTopIn.innerHTML = '';
     rulerLeftCm.innerHTML = '';
     rulerLeftIn.innerHTML = '';
+    rulerTopEl.style.display = 'block';
+    rulerLeftEl.style.display = 'block';
+    rulerTopEl.style.width = Math.round(widthPx)+'px';
+    rulerTopEl.style.left = Math.max(0, Math.round(rect.left))+'px';
+    const verticalWidth = rulerLeftEl.offsetWidth || 36;
+    rulerLeftEl.style.left = Math.max(0, Math.round(rect.left - verticalWidth))+'px';
+    rulerLeftEl.style.height = Math.round(heightPx + 40)+'px';
     for(let i=0;i<=cmTopCount;i++){
       const span = document.createElement('span');
       span.textContent = i;
@@ -1069,6 +1198,8 @@
     selectedFrameIndex = elementIndex;
     frameInspector.classList.add('active');
     updateInspectorFields(docModel.pages[pageIndex].elements[elementIndex]);
+    clearColumnsSelection(true);
+    setStyledSelection('frame', pageIndex, elementIndex);
   }
 
   function restoreFrameSelection(){
@@ -1111,19 +1242,157 @@
     }
   }
 
-  function clearFrameSelection(){
+  function clearFrameSelection(silent = false){
     document.querySelectorAll('.frame.selected').forEach(el=>el.classList.remove('selected'));
     selectedFrame = null;
     selectedFrameIndex = -1;
     selectedFramePage = -1;
     frameInspector.classList.remove('active');
+    if(!silent && styledSelection.type === 'frame'){
+      clearStyleControl();
+    }
   }
 
   document.addEventListener('click', ev=>{
     if(!ev.target.closest('.frame') && !ev.target.closest('#frameInspector')){
       clearFrameSelection();
     }
+    if(!ev.target.closest('.cols.editable') && !ev.target.closest('#styleControls')){
+      clearColumnsSelection();
+    }
   });
+
+  function selectColumnsBlock(block, pageIndex, elementIndex){
+    if(selectedColumnsBlock && selectedColumnsBlock !== block){
+      selectedColumnsBlock.classList.remove('selected');
+    }
+    selectedColumnsBlock = block;
+    selectedColumnsPage = pageIndex;
+    selectedColumnsIndex = elementIndex;
+    block.classList.add('selected');
+    clearFrameSelection(true);
+    setStyledSelection('columns', pageIndex, elementIndex);
+  }
+
+  function clearColumnsSelection(skipStyle = false){
+    if(selectedColumnsBlock){
+      selectedColumnsBlock.classList.remove('selected');
+    }
+    selectedColumnsBlock = null;
+    selectedColumnsPage = -1;
+    selectedColumnsIndex = -1;
+    if(!skipStyle && styledSelection.type === 'columns'){
+      clearStyleControl();
+    }
+  }
+
+  function restoreColumnsSelection(){
+    if(selectedColumnsPage < 0 || selectedColumnsIndex < 0) return;
+    const selector = '.cols[data-page-index="'+selectedColumnsPage+'"][data-element-index="'+selectedColumnsIndex+'"]';
+    const block = document.querySelector(selector);
+    if(block){
+      selectedColumnsBlock = block;
+      block.classList.add('selected');
+      setStyledSelection('columns', selectedColumnsPage, selectedColumnsIndex);
+    } else {
+      clearColumnsSelection();
+    }
+  }
+
+  function populateElementStyleOptions(type, currentValue){
+    if(!elementStyleSelect) return;
+    const options = ELEMENT_STYLE_OPTIONS[type] || ELEMENT_STYLE_OPTIONS.columns;
+    if(currentStyleOptionType !== type){
+      elementStyleSelect.innerHTML = '';
+      options.forEach(opt=>{
+        const option = document.createElement('option');
+        option.value = opt.value;
+        option.textContent = opt.label;
+        elementStyleSelect.appendChild(option);
+      });
+      currentStyleOptionType = type;
+    }
+    const hasValue = options.some(opt=>opt.value === currentValue);
+    elementStyleSelect.value = hasValue ? currentValue : options[0].value;
+  }
+
+  function setStyledSelection(type, pageIndex, elementIndex){
+    const page = docModel.pages[pageIndex];
+    if(!page){
+      clearStyleControl();
+      return;
+    }
+    const element = page.elements[elementIndex];
+    if(!element){
+      clearStyleControl();
+      return;
+    }
+    const normalized = type === 'frame' ? normalizeStyleValue('frame', element.style) : normalizeStyleValue('columns', element.style);
+    element.style = normalized;
+    styledSelection = { type, page:pageIndex, index:elementIndex };
+    populateElementStyleOptions(type, normalized);
+    elementStyleSelect.disabled = false;
+    elementStyleSelect.value = normalized;
+  }
+
+  function clearStyleControl(){
+    styledSelection = { type:null, page:-1, index:-1 };
+    if(elementStyleSelect){
+      elementStyleSelect.innerHTML = '<option value="standard">Standard</option>';
+      elementStyleSelect.value = 'standard';
+      elementStyleSelect.disabled = true;
+    }
+    currentStyleOptionType = null;
+  }
+
+  function refreshElementStyleControl(){
+    if(!elementStyleSelect) return;
+    if(!styledSelection.type){
+      clearStyleControl();
+      return;
+    }
+    if(styledSelection.page !== cur){
+      if(styledSelection.type === 'columns'){
+        clearColumnsSelection();
+      } else {
+        clearStyleControl();
+      }
+      return;
+    }
+    const page = docModel.pages[styledSelection.page];
+    if(!page){
+      clearStyleControl();
+      return;
+    }
+    const element = page.elements[styledSelection.index];
+    if(!element){
+      if(styledSelection.type === 'columns'){
+        clearColumnsSelection();
+      } else {
+        clearStyleControl();
+      }
+      return;
+    }
+    const normalized = styledSelection.type === 'frame' ? normalizeStyleValue('frame', element.style) : normalizeStyleValue('columns', element.style);
+    element.style = normalized;
+    populateElementStyleOptions(styledSelection.type, normalized);
+    elementStyleSelect.disabled = false;
+    elementStyleSelect.value = normalized;
+  }
+
+  function updatePageThemeControl(){
+    if(!pageThemeSelect) return;
+    const page = docModel.pages[cur];
+    if(!page){
+      pageThemeSelect.value = 'standard';
+      pageThemeSelect.disabled = true;
+      return;
+    }
+    const theme = normalizeTheme(page.theme);
+    page.theme = theme;
+    pageThemeSelect.disabled = false;
+    pageThemeSelect.value = theme;
+  }
 
   framePosX.addEventListener('input', ()=>{
     if(!selectedFrame) return;
@@ -1194,7 +1463,7 @@
   function addColumnsToCurrent(count){
     const page = docModel.pages[cur];
     if(!page) return;
-    page.elements.push({ type:'columns', columns:count, html:'<p>Type your story here.</p>' });
+    page.elements.push({ type:'columns', columns:count, html:'<p>Type your story here.</p>', style:'standard' });
     markDirty();
     renderDocument();
     snapTo(cur, true);
@@ -1213,7 +1482,8 @@
       height:40,
       content: type === 'text' ? '<p>Double-click to edit frame text.</p>' : '',
       src:'',
-      caption:''
+      caption:'',
+      style:'standard'
     };
     page.elements.push(frame);
     selectedFramePage = cur;
@@ -1225,7 +1495,8 @@
   }
 
   function addPage(afterIndex){
-    const base = { title:'Untitled Spread', subtitle:'', deck:'', elements:[{ type:'columns', columns:1, html:'<p>Start typing…</p>' }], footerLeft:'Docu Monster Studio Pro • Orbit OS', footerRight:'Page {{page}} / {{total}}' };
+    const inheritTheme = docModel.pages[afterIndex] ? docModel.pages[afterIndex].theme : 'standard';
+    const base = { title:'Untitled Spread', subtitle:'', deck:'', theme:inheritTheme, elements:[{ type:'columns', columns:1, html:'<p>Start typing…</p>', style:'standard' }], footerLeft:'Docu Monster Studio Pro • Orbit OS', footerRight:'Page {{page}} / {{total}}' };
     docModel.pages.splice(afterIndex+1, 0, base);
     markDirty();
     renderDocument();
@@ -1426,6 +1697,43 @@
   lastBtn.addEventListener('click', ()=>snapTo(getTotalPages()-1, false));
   goBtn.addEventListener('click', ()=>{ const v = parseInt(gotoEl.value,10)||1; snapTo(v-1, false); });
   gotoEl.addEventListener('keydown', ev=>{ if(ev.key === 'Enter'){ const v = parseInt(gotoEl.value,10)||1; snapTo(v-1, false); }});
+  newPageBtn.addEventListener('click', ()=>addPage(cur));
+  duplicatePageBtn.addEventListener('click', duplicateCurrentPage);
+  pageThemeSelect.addEventListener('change', ()=>{
+    const page = docModel.pages[cur];
+    if(!page) return;
+    const theme = normalizeTheme(pageThemeSelect.value);
+    page.theme = theme;
+    const sheet = pages[cur];
+    if(sheet){
+      applyPageThemeClass(sheet, theme);
+    }
+    markDirty();
+    buildThumbnails();
+  });
+  elementStyleSelect.addEventListener('change', ()=>{
+    if(!styledSelection.type) return;
+    const pageIdx = styledSelection.page;
+    const elementIdx = styledSelection.index;
+    const type = styledSelection.type;
+    const page = docModel.pages[pageIdx];
+    if(!page) return;
+    const element = page.elements[elementIdx];
+    if(!element) return;
+    const normalized = type === 'frame' ? normalizeStyleValue('frame', elementStyleSelect.value) : normalizeStyleValue('columns', elementStyleSelect.value);
+    element.style = normalized;
+    if(type === 'frame'){
+      const frame = document.querySelector('.frame[data-page-index="'+pageIdx+'"][data-element-index="'+elementIdx+'"]');
+      if(frame) applyElementStyleClass(frame, normalized, 'frame');
+    } else {
+      const block = document.querySelector('.cols[data-page-index="'+pageIdx+'"][data-element-index="'+elementIdx+'"]');
+      if(block) applyElementStyleClass(block, normalized, 'columns');
+    }
+    populateElementStyleOptions(type, normalized);
+    elementStyleSelect.value = normalized;
+    markDirty();
+    buildThumbnails();
+  });
 
   window.addEventListener('keydown', ev=>{
     if(ev.target === gotoEl) return;
@@ -1447,7 +1755,10 @@
   updateVersionInfo();
   snapTo(0, true);
   setStatus('Ready.', false);
-  window.addEventListener('resize', buildThumbnails);
+  window.addEventListener('resize', ()=>{
+    buildThumbnails();
+    buildRulers();
+  });
 
 })();
 </script>
