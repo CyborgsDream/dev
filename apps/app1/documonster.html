@@ -101,6 +101,12 @@
   .sheet{ position:relative; width:var(--sheet-w); height:var(--sheet-h); background:var(--paper); color:var(--ink); box-shadow:0 0 0 2px #808080, 0 0 0 4px #fff; margin:18px auto; border:none; scroll-margin-top:calc(var(--menu-h) + var(--workspace-pad)); overflow:hidden; }
   .sheet{ --inPage:var(--m-in); --outPage:var(--m-out); }
   .sheet.even{ --inPage:var(--m-out); --outPage:var(--m-in); }
+  #viewportZoomControls{ position:fixed; right:32px; bottom:32px; display:flex; gap:10px; z-index:950; pointer-events:auto; }
+  #viewportZoomControls button{ width:40px; height:40px; border:2px solid #fff; border-right-color:#000; border-bottom-color:#000; background:#c0c0c0; display:flex; align-items:center; justify-content:center; cursor:pointer; padding:0; border-radius:8px; box-shadow:3px 3px 0 rgba(0,0,0,0.25); }
+  #viewportZoomControls button:disabled{ opacity:0.5; cursor:not-allowed; box-shadow:none; }
+  #viewportZoomControls button:focus-visible{ outline:2px dotted #000; }
+  #viewportZoomControls button svg{ width:18px; height:18px; fill:currentColor; }
+  body.preview-open #viewportZoomControls{ display:none; }
   .sheet.theme-standard{ --paper:#fff; --ink:#111; --ink-soft:#444; }
   .sheet.theme-newsprint{ --paper:#fdf4e3; --ink:#352a1a; --ink-soft:#6a4f2d; }
   .sheet.theme-midnight{ --paper:#151b2c; --ink:#f2f6ff; --ink-soft:#c8d4ff; }
@@ -163,6 +169,11 @@
   p{ margin:0 0 3.2mm 0; hyphens:auto; orphans:3; widows:3; }
   ul.bullet{ margin:0 0 3mm 0; padding-left:18px; }
   ul.bullet li{ margin:0 0 2mm 0; }
+  .news-kicker{ font:11px var(--font-ui); letter-spacing:0.32em; text-transform:uppercase; color:var(--ink-soft); margin:0 0 2mm 0; }
+  .news-banner{ font:18px var(--font-ui); letter-spacing:0.08em; text-transform:uppercase; margin:0 0 2mm 0; }
+  .dropcap{ float:left; font:700 28px/0.8 var(--font-ui); margin:0 6px 2px 0; text-transform:uppercase; }
+  .news-rail{ border-top:2px solid var(--ink); border-bottom:2px solid var(--ink); padding:2mm 0; font:11px var(--font-ui); letter-spacing:0.28em; text-transform:uppercase; text-align:center; }
+  .ad-box{ border:2px double var(--ink); padding:3mm; font:11px var(--font-ui); text-transform:uppercase; letter-spacing:0.18em; background:rgba(0,0,0,0.04); }
   .head{ padding:6mm 0 3mm 0; border-bottom:1px solid #ddd; }
   .column-window-stack{ display:flex; flex-wrap:wrap; gap:6mm; padding:4mm 0 0 0; align-items:flex-start; position:relative; }
   .column-window-stack.split{ margin-bottom:6mm; }
@@ -429,6 +440,19 @@
   <div id="pageViewport">
     <div id="pages"></div>
   </div>
+  <div id="viewportZoomControls" role="group" aria-label="Canvas zoom controls">
+    <button type="button" id="viewportZoomOut" aria-label="Zoom out">
+      <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+        <rect x="5" y="11" width="14" height="2" rx="1"></rect>
+      </svg>
+    </button>
+    <button type="button" id="viewportZoomIn" aria-label="Zoom in">
+      <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+        <rect x="11" y="5" width="2" height="14" rx="1"></rect>
+        <rect x="5" y="11" width="14" height="2" rx="1"></rect>
+      </svg>
+    </button>
+  </div>
   <div id="pagePreviewModal" role="dialog" aria-modal="true" aria-labelledby="pagePreviewHeading" tabindex="-1" aria-hidden="true">
     <div class="page-preview-card">
       <div class="page-preview-bar">
@@ -537,6 +561,9 @@
   const pagePreviewPrev = document.getElementById('pagePreviewPrev');
   const pagePreviewNext = document.getElementById('pagePreviewNext');
   const pagePreviewHeading = document.getElementById('pagePreviewHeading');
+  const viewportZoomOutBtn = document.getElementById('viewportZoomOut');
+  const viewportZoomInBtn = document.getElementById('viewportZoomIn');
+  const pageCanvasRoot = pagesEl || document;
 
   let docModel = null;
   let pages = [];
@@ -580,7 +607,10 @@
     ]
   };
 
-  const DEFAULT_TEMPLATE_ID = 'velocity-feature';
+  const MIN_CANVAS_ZOOM = 0.35;
+  const MAX_CANVAS_ZOOM = 2.5;
+
+  const DEFAULT_TEMPLATE_ID = 'heritage-gazette';
 
   function createColumnElement(columns, windows, style = 'standard', layout = []){
     const count = Math.min(4, Math.max(1, parseInt(columns, 10) || 1));
@@ -623,6 +653,98 @@
       caption:'',
       style:'standard'
     }, data || {});
+  }
+
+  function heritageGazetteTemplate(){
+    return {
+      version:'1.3.0',
+      docVersion:'1.3.0',
+      codename:'Heritage Gazette',
+      docName:'Docu Monster Studio Pro',
+      releaseNotes:[
+        'Two-page broadsheet kit inspired by 1940s U.S. metropolitan newspapers.',
+        'Banner headlines, war bulletins, and local advertising rails mirror historic layouts.',
+        'Includes editorial, community, and radio listing modules tuned for serif body copy.'
+      ],
+      pages:[
+        {
+          title:'THE EVENING LEDGER',
+          subtitle:'Founded 1898 • Final Edition',
+          deck:'Compose a commanding banner with wire-photo placement and column grids faithful to 1940s broadsheets.',
+          theme:'standard',
+          elements:[
+            createColumnElement(1,[
+              '<p class="news-kicker">Late City Final</p><h1 class="title news-banner">Nation Watches Capitol Talks</h1><p class="deck">Set your lede with decisive verbs and authoritative tone to anchor the edition.</p>'
+            ], 'standard', [ { width:160, height:46 } ]),
+            createFrameModel({
+              frameType:'image',
+              mode:'block',
+              width:160,
+              height:80,
+              caption:'Swap in a wire-service photograph with a crisp cutline beneath the fold.',
+              style:'outline'
+            }),
+            createColumnElement(3,[
+              '<p><span class="dropcap">W</span>ashington, D.C.—Write your front-page lead here. Reference telegraph briefings, committee chairs, and the national mood.</p><p>Follow with a second paragraph that delivers figures or quotations from correspondents to mirror syndicated coverage.</p>',
+              '<p><strong>Capitol Steps.</strong> Use this column for sidebars: highlight negotiations, floor debates, and analysis from the city desk.</p><p>Insert subheads or bold phrases like “Industry Mobilizes” to punctuate the narrative.</p>',
+              '<p><strong>City Reaction.</strong> Quote streetcar riders, shopkeepers, and factory crews to humanize the headlines.</p><ul class="bullet"><li>Strike board convenes at dawn</li><li>Bond drive surpasses goal</li><li>Victory gardens expanded</li></ul>'
+            ], 'standard', [ { width:55, height:115 }, { width:55, height:115 }, { width:55, height:115 } ]),
+            createColumnElement(2,[
+              '<div class="news-rail">War Bulletins</div><p><strong>London.</strong> Summarize Allied movements with datelines and terse sentences.</p><p><strong>Pacific.</strong> Note convoy positions, naval escorts, and wireless reports.</p>',
+              '<div class="news-rail">Home Front</div><p>Reserve this rail for ration reminders, blackout drills, or civil defense notices.</p><p>Keep copy tight, factual, and ready for last-minute rewrites.</p>'
+            ], 'note', [ { width:70, height:90 }, { width:70, height:90 } ]),
+            createFrameModel({
+              mode:'float-right',
+              width:60,
+              height:50,
+              content:'<div class="ad-box">Place department store advertising, subscription drives, or classified spotlights here.</div>',
+              style:'banner'
+            })
+          ],
+          footerLeft:'The Evening Ledger • City Desk',
+          footerRight:'Edition {{version}} • Page {{page}} of {{total}}'
+        },
+        {
+          title:'SECOND SECTION',
+          subtitle:'Home Front & Community',
+          deck:'Inside spread with editorials, community notebook, and radio listings styled after 1940s feature pages.',
+          theme:'standard',
+          elements:[
+            createColumnElement(3,[
+              '<p><span class="dropcap">E</span>ditorial Board—Craft opinion columns with measured cadence. Cite letters, telegrams, and senate testimony for authenticity.</p><p>Use italics for signatures or board statements.</p>',
+              '<p><strong>Community Notebook.</strong> Chronicle charity teas, USO dances, and neighborhood drives with tidy paragraphing.</p><p>Include short subheads for each civic update.</p>',
+              '<p><strong>Sports Ticker.</strong> Post box scores, double-header recaps, and pennant races. Keep statistics in tight sentences for easy scanning.</p>'
+            ], 'standard', [ { width:55, height:110 }, { width:55, height:110 }, { width:55, height:110 } ]),
+            createFrameModel({
+              frameType:'image',
+              mode:'block',
+              width:150,
+              height:60,
+              caption:'Drop in archival photography, courtroom sketches, or hometown portraits.',
+              style:'shadow'
+            }),
+            createFrameModel({
+              mode:'overlay',
+              x:22,
+              y:138,
+              width:70,
+              height:36,
+              content:'<div class="news-rail">City Calendar</div><p>List parades, air-raid wardens’ drills, and council meetings.</p>',
+              style:'banner'
+            }),
+            createFrameModel({
+              mode:'block',
+              width:150,
+              height:55,
+              content:'<div class="ad-box">Evening Ledger Radio Listings<br>8:00—Drama Hour<br>9:30—Swing Session<br>11:00—Sign-Off News</div>',
+              style:'outline'
+            })
+          ],
+          footerLeft:'Ledger Features • Community Bureau',
+          footerRight:'Page {{page}} of {{total}} • {{codename}}'
+        }
+      ]
+    };
   }
 
   function velocityFeatureTemplate(){
@@ -969,6 +1091,7 @@
   }
 
   const DOCUMENT_TEMPLATES = [
+    { id:'heritage-gazette', label:'Heritage Gazette Front Page', description:'Traditional 1940s U.S. newspaper spread with banner headlines and classifieds.', create:heritageGazetteTemplate },
     { id:'velocity-feature', label:'Velocity Magazine Feature', description:'Wired-inspired technology feature with neon accents.', create:velocityFeatureTemplate },
     { id:'metropolis-briefing', label:'Metropolis Morning Briefing', description:'New York Times-style broadsheet front page.', create:metropolisBriefingTemplate },
     { id:'atlas-expedition', label:'Atlas Expedition Report', description:'National Geographic-inspired travel narrative.', create:atlasExpeditionTemplate },
@@ -1524,7 +1647,7 @@
       const sheet = renderPage(page, idx);
       pagesEl.appendChild(sheet);
     });
-    pages = Array.from(document.querySelectorAll('.sheet'));
+    pages = pagesEl ? Array.from(pagesEl.querySelectorAll('.sheet')) : Array.from(document.querySelectorAll('#pages .sheet'));
     if(obs){ obs.disconnect(); }
     obs = new IntersectionObserver(entries=>{
       let topMost = null;
@@ -1646,7 +1769,7 @@
   }
 
   function clampZoom(value){
-    return Math.min(2.5, Math.max(0.35, value));
+    return Math.min(MAX_CANVAS_ZOOM, Math.max(MIN_CANVAS_ZOOM, value));
   }
 
   function applyZoom(){
@@ -1654,6 +1777,18 @@
     pageViewport.style.transform = 'scale('+zoomLevel.toFixed(3)+')';
     if(zoomDisplay){
       zoomDisplay.textContent = Math.round(zoomLevel*100)+'%';
+    }
+    if(zoomOutBtn){
+      zoomOutBtn.disabled = zoomLevel <= MIN_CANVAS_ZOOM + 0.01;
+    }
+    if(zoomInBtn){
+      zoomInBtn.disabled = zoomLevel >= MAX_CANVAS_ZOOM - 0.01;
+    }
+    if(viewportZoomOutBtn){
+      viewportZoomOutBtn.disabled = zoomLevel <= MIN_CANVAS_ZOOM + 0.01;
+    }
+    if(viewportZoomInBtn){
+      viewportZoomInBtn.disabled = zoomLevel >= MAX_CANVAS_ZOOM - 0.01;
     }
     buildRulers();
   }
@@ -1690,6 +1825,8 @@
   if(zoomOutBtn) zoomOutBtn.addEventListener('click', zoomOut);
   if(zoomResetBtn) zoomResetBtn.addEventListener('click', zoomReset);
   if(zoomFullBtn) zoomFullBtn.addEventListener('click', zoomFit);
+  if(viewportZoomInBtn) viewportZoomInBtn.addEventListener('click', zoomIn);
+  if(viewportZoomOutBtn) viewportZoomOutBtn.addEventListener('click', zoomOut);
 
   function isPreviewOpen(){
     return !!(pagePreviewModal && pagePreviewModal.classList.contains('open'));
@@ -2085,7 +2222,7 @@
   }
 
   function selectFrame(frameEl, pageIndex, elementIndex){
-    document.querySelectorAll('.frame.selected').forEach(el=>el.classList.remove('selected'));
+    pageCanvasRoot.querySelectorAll('.frame.selected').forEach(el=>el.classList.remove('selected'));
     frameEl.classList.add('selected');
     selectedFrame = frameEl;
     selectedFramePage = pageIndex;
@@ -2099,7 +2236,7 @@
   function restoreFrameSelection(){
     if(selectedFramePage < 0 || selectedFrameIndex < 0) return;
     const selector = '.frame[data-page-index="'+selectedFramePage+'"][data-element-index="'+selectedFrameIndex+'"]';
-    const frame = document.querySelector(selector);
+    const frame = pageCanvasRoot.querySelector(selector);
     if(frame){
       selectFrame(frame, selectedFramePage, selectedFrameIndex);
     } else {
@@ -2137,7 +2274,7 @@
   }
 
   function clearFrameSelection(silent = false){
-    document.querySelectorAll('.frame.selected').forEach(el=>el.classList.remove('selected'));
+    pageCanvasRoot.querySelectorAll('.frame.selected').forEach(el=>el.classList.remove('selected'));
     selectedFrame = null;
     selectedFrameIndex = -1;
     selectedFramePage = -1;
@@ -2183,7 +2320,7 @@
   function restoreColumnsSelection(){
     if(selectedColumnsPage < 0 || selectedColumnsIndex < 0) return;
     const selector = '.column-window-stack[data-page-index="'+selectedColumnsPage+'"][data-element-index="'+selectedColumnsIndex+'"]';
-    const block = document.querySelector(selector);
+    const block = pageCanvasRoot.querySelector(selector);
     if(block){
       selectedColumnsBlock = block;
       block.classList.add('selected');
@@ -2622,10 +2759,10 @@
     const normalized = type === 'frame' ? normalizeStyleValue('frame', elementStyleSelect.value) : normalizeStyleValue('columns', elementStyleSelect.value);
     element.style = normalized;
     if(type === 'frame'){
-      const frame = document.querySelector('.frame[data-page-index="'+pageIdx+'"][data-element-index="'+elementIdx+'"]');
+      const frame = pageCanvasRoot.querySelector('.frame[data-page-index="'+pageIdx+'"][data-element-index="'+elementIdx+'"]');
       if(frame) applyElementStyleClass(frame, normalized, 'frame');
     } else {
-      const block = document.querySelector('.column-window-stack[data-page-index="'+pageIdx+'"][data-element-index="'+elementIdx+'"]');
+      const block = pageCanvasRoot.querySelector('.column-window-stack[data-page-index="'+pageIdx+'"][data-element-index="'+elementIdx+'"]');
       if(block) applyElementStyleClass(block, normalized, 'columns');
     }
     populateElementStyleOptions(type, normalized);
