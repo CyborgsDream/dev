@@ -4,159 +4,263 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <meta http-equiv="Content-Language" content="en" />
-<title>DocuMonster — A4 Studio (HTML Paged v0.7.0)</title>
+<title>DocuMonster — ProtoDesk Orbit v0.9.0</title>
 <style>
-  /* ====== Base ====== */
-  *,*::before,*::after{ box-sizing: border-box; }
+  /* ===== Base ===== */
+  *,*::before,*::after{ box-sizing:border-box; }
   html,body{ margin:0; padding:0; }
   :root{
-    --bleed: 3mm;
-    --page-w: 210mm; --page-h: 297mm;
-    --sheet-w: calc(var(--page-w) + 2*var(--bleed));
-    --sheet-h: calc(var(--page-h) + 2*var(--bleed));
-    --m-top: 15mm; --m-out: 17mm; --m-bot: 20mm; --m-in: 17mm; /* on-screen */
-    --col-gap: 6mm;
-    --accent: #008080; /* teal-ish */
-    --ink: #111; --ink-soft:#444; --rule:#ddd; --paper:#fff; --thumb-bg:#c0c0c0;
-    --font-ui: "Tahoma","Segoe UI","MS Sans Serif",ui-sans-serif,system-ui,sans-serif;
-    --font-body: "Times New Roman","Noto Serif",ui-serif,serif;
-    --ui-h: 52px; --sidebar-w: 212px;
-    --crop-l: 7mm; --crop-w: 0.25mm;
+    --bleed:3mm;
+    --page-w:210mm; --page-h:297mm;
+    --sheet-w:calc(var(--page-w) + 2*var(--bleed));
+    --sheet-h:calc(var(--page-h) + 2*var(--bleed));
+    --m-top:15mm; --m-out:17mm; --m-bot:20mm; --m-in:17mm;
+    --col-gap:6mm;
+    --accent:#008080;
+    --ink:#111; --ink-soft:#444; --rule:#ddd; --paper:#fff; --thumb-bg:#c0c0c0;
+    --font-ui:"Tahoma","Segoe UI","MS Sans Serif",ui-sans-serif,system-ui,sans-serif;
+    --font-body:"Times New Roman","Noto Serif",ui-serif,serif;
+    --menu-h:28px; --ui-h:58px; --sidebar-w:228px;
+    --crop-l:7mm; --crop-w:0.25mm;
   }
 
-  /* ====== Windows 3.11 look ====== */
-  body{ background:#c0c0c0; font: 12px var(--font-body); color: var(--ink); }
-  #ui{ position: sticky; top:0; z-index:1000; background:#c0c0c0; padding:6px; border-bottom: 2px solid #808080; display:flex; align-items:center; gap:6px; flex-wrap:wrap; }
-  .win-group{ padding:6px; background:#c0c0c0; border:2px solid #808080; border-right-color:#fff; border-bottom-color:#fff; }
-  .win-btn{ padding:2px 8px; min-width:28px; background:#c0c0c0; border:2px solid #fff; border-right-color:#000; border-bottom-color:#000; cursor:pointer; font: 12px var(--font-ui); }
+  body{ background:#c0c0c0; font:12px var(--font-body); color:var(--ink); }
+  body.dirty #status{ background:#dede57; }
+  a{ color:inherit; }
+
+  /* ===== Menubar ===== */
+  #menubar{ position:sticky; top:0; z-index:1200; height:var(--menu-h); display:flex; align-items:stretch; gap:2px; padding:2px 6px; background:#c0c0c0; border-bottom:2px solid #808080; }
+  .menu-root{ font:12px var(--font-ui); border:none; background:#c0c0c0; padding:4px 10px; min-width:64px; text-align:left; color:#000; border:1px solid transparent; border-top-color:#fff; border-left-color:#fff; border-right-color:#000; border-bottom-color:#000; cursor:pointer; }
+  .menu-root:focus-visible{ outline:2px dotted #000; }
+  .menu-root.open, .menu-root:hover{ background:#000080; color:#fff; }
+  .menu-dropdown{ position:absolute; background:#c0c0c0; border:2px solid #000; border-right-color:#fff; border-bottom-color:#fff; padding:4px 0; display:none; min-width:190px; box-shadow:4px 4px 0 rgba(0,0,0,0.3); z-index:1300; }
+  .menu-dropdown.open{ display:block; }
+  .menu-dropdown button{ width:100%; text-align:left; background:transparent; border:none; font:12px var(--font-ui); padding:4px 14px; color:#000; cursor:pointer; }
+  .menu-dropdown button:hover{ background:#000080; color:#fff; }
+  .menu-sep{ border-top:1px solid #808080; border-bottom:1px solid #fff; margin:4px 0; }
+
+  /* ===== Toolbar ===== */
+  #ui{ position:sticky; top:var(--menu-h); z-index:1100; background:#c0c0c0; padding:6px; border-bottom:2px solid #808080; display:flex; align-items:center; gap:6px; flex-wrap:wrap; min-height:var(--ui-h); }
+  .win-group{ padding:6px; background:#c0c0c0; border:2px solid #808080; border-right-color:#fff; border-bottom-color:#fff; display:flex; align-items:center; gap:6px; flex-wrap:wrap; }
+  .win-btn{ padding:2px 8px; min-width:28px; background:#c0c0c0; border:2px solid #fff; border-right-color:#000; border-bottom-color:#000; cursor:pointer; font:12px var(--font-ui); }
   .win-btn:active{ border:2px solid #000; border-right-color:#fff; border-bottom-color:#fff; }
   .win-check{ display:inline-flex; align-items:center; gap:4px; font:12px var(--font-ui); }
   .win-check input{ width:13px; height:13px; }
-  .win-stat{ font:12px var(--font-ui); padding:2px 6px; background:#fff; border:2px solid #000; border-right-color:#fff; border-bottom-color:#fff; }
-  input[type="number"], select{ font:12px var(--font-ui); padding:2px 4px; background:#fff; border:2px solid #000; border-right-color:#fff; border-bottom-color:#fff; }
+  .win-stat{ font:12px var(--font-ui); padding:2px 6px; background:#fff; border:2px solid #000; border-right-color:#fff; border-bottom-color:#fff; display:inline-flex; gap:6px; align-items:center; }
+  input[type="number"], select, input[type="text"]{ font:12px var(--font-ui); padding:2px 4px; background:#fff; border:2px solid #000; border-right-color:#fff; border-bottom-color:#fff; }
+  #status{ min-width:140px; }
   .spacer{ flex:1 1 auto; }
 
-  /* ===== Sidebar thumbnails ===== */
-  #sidebar{ position: fixed; top: var(--ui-h); left:0; bottom:0; width: var(--sidebar-w); background:#c0c0c0; border-right: 2px solid #808080; overflow:auto; padding:6px; }
+  /* Inspector */
+  #frameInspector{ display:none; flex-direction:column; align-items:flex-start; gap:4px; }
+  #frameInspector.active{ display:flex; }
+  #frameInspector .ins-grid{ display:grid; grid-template-columns:repeat(2, auto); gap:6px 12px; align-items:center; }
+  #frameInspector label{ font:12px var(--font-ui); display:flex; flex-direction:column; gap:2px; color:#000; }
+  #frameInspector input[type="number"], #frameInspector input[type="text"], #frameInspector select{ min-width:72px; }
+  #frameInspector small{ font-size:11px; color:#333; }
+
+  /* ===== Sidebar ===== */
+  #sidebar{ position:fixed; top:calc(var(--menu-h) + var(--ui-h)); left:0; bottom:0; width:var(--sidebar-w); background:#c0c0c0; border-right:2px solid #808080; overflow:auto; padding:6px; }
+  #releaseCard{ background:#f7f7f7; border:2px solid #808080; border-right-color:#fff; border-bottom-color:#fff; padding:10px; font:11px var(--font-ui); margin-bottom:10px; color:#000; }
+  #releaseCard h2{ font:13px var(--font-ui); margin:0 0 6px 0; color:#000080; }
+  #releaseCard p{ margin:0 0 6px 0; }
+  #releaseCard ul{ margin:0; padding-left:18px; }
   #thumbs .thumb{ padding:4px; margin:6px 0; background:#c0c0c0; border:2px solid #808080; border-right-color:#fff; border-bottom-color:#fff; cursor:pointer; }
   #thumbs .thumb.active{ outline:2px solid var(--accent); }
-  .mini-wrap{ width: 160px; height: 230px; overflow:hidden; position: relative; margin:4px auto; background:#fff; }
+  .mini-wrap{ width:160px; height:230px; overflow:hidden; position:relative; margin:4px auto; background:#fff; }
   .mini-wrap .sheet{ box-shadow:none; border:none; }
   .mini-wrap .trim::before, .mini-wrap .crop, .mini-wrap .marks{ display:none; }
-  .mini-meta{ text-align:center; font: 11px var(--font-ui); color:#000; }
+  .mini-meta{ text-align:center; font:11px var(--font-ui); color:#000; }
+
+  /* ===== Rulers ===== */
+  #rulerTop, #rulerLeft{ position:fixed; background:#f2f2f2; color:#000; font:10px var(--font-ui); z-index:900; pointer-events:none; }
+  #rulerTop{ top:calc(var(--menu-h) + var(--ui-h)); left:calc(var(--sidebar-w) + 12px); height:28px; width:calc(var(--sheet-w) + 36px); border:1px solid #808080; border-left:none; display:block; }
+  #rulerLeft{ top:calc(var(--menu-h) + var(--ui-h) + 28px); left:0; width:36px; height:calc(var(--sheet-h) + 40px); border:1px solid #808080; border-top:none; display:block; }
+  #rulerTop::before{ content:""; position:absolute; inset:0; background:
+    repeating-linear-gradient(to right, rgba(0,0,0,0.3) 0, rgba(0,0,0,0.3) 1px, transparent 1px, transparent 3.7795px),
+    repeating-linear-gradient(to right, rgba(0,0,0,0.6) 0, rgba(0,0,0,0.6) 1.3px, transparent 1.3px, transparent 37.795px),
+    repeating-linear-gradient(to right, rgba(128,0,0,0.45) 0, rgba(128,0,0,0.45) 1.5px, transparent 1.5px, transparent 96px);
+    opacity:0.55;
+  }
+  #rulerLeft::before{ content:""; position:absolute; inset:0; background:
+    repeating-linear-gradient(to bottom, rgba(0,0,0,0.3) 0, rgba(0,0,0,0.3) 1px, transparent 1px, transparent 3.7795px),
+    repeating-linear-gradient(to bottom, rgba(0,0,0,0.6) 0, rgba(0,0,0,0.6) 1.3px, transparent 1.3px, transparent 37.795px),
+    repeating-linear-gradient(to bottom, rgba(128,0,0,0.45) 0, rgba(128,0,0,0.45) 1.5px, transparent 1.5px, transparent 96px);
+    opacity:0.55;
+  }
+  .ruler-labels{ position:relative; width:100%; height:100%; }
+  .ruler-labels span{ position:absolute; transform:translate(-50%,0); font-size:10px; color:#000; }
+  #rulerTop .inch span{ color:#800000; top:14px; }
+  #rulerTop .cm span{ top:2px; }
+  #rulerLeft .inch span{ color:#800000; left:14px; transform:translate(0,-50%); }
+  #rulerLeft .cm span{ left:2px; transform:translate(0,-50%); }
 
   /* ===== Pages ===== */
-  #pages{ margin-left: calc(var(--sidebar-w) + 10px); }
-  .sheet{ position: relative; width: var(--sheet-w); height: var(--sheet-h); background: var(--paper); color: var(--ink); box-shadow: 0 0 0 2px #808080, 0 0 0 4px #fff; margin: 10px auto; border:none; scroll-margin-top: calc(var(--ui-h) + 8px); overflow:hidden; }
-  .sheet{ --inPage: var(--m-in); --outPage: var(--m-out); }
-  .sheet.even{ --inPage: var(--m-out); --outPage: var(--m-in); }
+  #pages{ margin-left:calc(var(--sidebar-w) + 36px); padding-left:20px; }
+  .sheet{ position:relative; width:var(--sheet-w); height:var(--sheet-h); background:var(--paper); color:var(--ink); box-shadow:0 0 0 2px #808080, 0 0 0 4px #fff; margin:18px auto; border:none; scroll-margin-top:calc(var(--menu-h) + var(--ui-h) + 14px); overflow:hidden; }
+  .sheet{ --inPage:var(--m-in); --outPage:var(--m-out); }
+  .sheet.even{ --inPage:var(--m-out); --outPage:var(--m-in); }
 
   /* Crop marks */
   .crop{ position:absolute; width:0; height:0; }
   .crop::before, .crop::after{ content:""; position:absolute; background:#000; }
-  .crop.tl{ left: var(--bleed); top: var(--bleed); }
-  .crop.tr{ right: var(--bleed); top: var(--bleed); }
-  .crop.bl{ left: var(--bleed); bottom: var(--bleed); }
-  .crop.br{ right: var(--bleed); bottom: var(--bleed); }
-  .crop.tl::after, .crop.tr::after, .crop.bl::after, .crop.br::after{ height: var(--crop-w); width: var(--crop-l); }
-  .crop.tl::after{ left: 0; top: calc(var(--m-top) - var(--crop-w)); transform: translateX(calc(-1 * var(--crop-l))); }
-  .crop.tr::after{ right: 0; top: calc(var(--m-top) - var(--crop-w)); }
-  .crop.bl::after{ left: 0; bottom: calc(var(--m-bot) - var(--crop-w)); transform: translateX(calc(-1 * var(--crop-l))); }
-  .crop.br::after{ right: 0; bottom: calc(var(--m-bot) - var(--crop-w)); }
-  .crop.tl::before, .crop.tr::before, .crop.bl::before, .crop.br::before{ width: var(--crop-w); height: var(--crop-l); }
-  .crop.tl::before{ top: 0; left: calc(var(--inPage) - var(--crop-w)); transform: translateY(calc(-1 * var(--crop-l))); }
-  .crop.tr::before{ top: 0; right: calc(var(--outPage) - var(--crop-w)); transform: translateY(calc(-1 * var(--crop-l))); }
-  .crop.bl::before{ bottom: 0; left: calc(var(--inPage) - var(--crop-w)); }
-  .crop.br::before{ bottom: 0; right: calc(var(--outPage) - var(--crop-w)); }
+  .crop.tl{ left:var(--bleed); top:var(--bleed); }
+  .crop.tr{ right:var(--bleed); top:var(--bleed); }
+  .crop.bl{ left:var(--bleed); bottom:var(--bleed); }
+  .crop.br{ right:var(--bleed); bottom:var(--bleed); }
+  .crop.tl::after, .crop.tr::after, .crop.bl::after, .crop.br::after{ height:var(--crop-w); width:var(--crop-l); }
+  .crop.tl::after{ left:0; top:calc(var(--m-top) - var(--crop-w)); transform:translateX(calc(-1 * var(--crop-l))); }
+  .crop.tr::after{ right:0; top:calc(var(--m-top) - var(--crop-w)); }
+  .crop.bl::after{ left:0; bottom:calc(var(--m-bot) - var(--crop-w)); transform:translateX(calc(-1 * var(--crop-l))); }
+  .crop.br::after{ right:0; bottom:calc(var(--m-bot) - var(--crop-w)); }
+  .crop.tl::before, .crop.tr::before, .crop.bl::before, .crop.br::before{ width:var(--crop-w); height:var(--crop-l); }
+  .crop.tl::before{ top:0; left:calc(var(--inPage) - var(--crop-w)); transform:translateY(calc(-1 * var(--crop-l))); }
+  .crop.tr::before{ top:0; right:calc(var(--outPage) - var(--crop-w)); transform:translateY(calc(-1 * var(--crop-l))); }
+  .crop.bl::before{ bottom:0; left:calc(var(--inPage) - var(--crop-w)); }
+  .crop.br::before{ bottom:0; right:calc(var(--outPage) - var(--crop-w)); }
 
   /* Trim + content */
-  .trim{ position:absolute; left: var(--bleed); top: var(--bleed); width: var(--page-w); height: var(--page-h); }
-  .trim::before{ content:""; position:absolute; left: var(--inPage); right: var(--outPage); top: var(--m-top); bottom: var(--m-bot); border:1px dotted #808080; }
-  .content{ position:absolute; left: var(--inPage); right: var(--outPage); top: var(--m-top); bottom: var(--m-bot); }
+  .trim{ position:absolute; left:var(--bleed); top:var(--bleed); width:var(--page-w); height:var(--page-h); }
+  .trim::before{ content:""; position:absolute; left:var(--inPage); right:var(--outPage); top:var(--m-top); bottom:var(--m-bot); border:1px dotted #808080; }
+  .content{ position:absolute; left:var(--inPage); right:var(--outPage); top:var(--m-top); bottom:var(--m-bot); padding:2mm 0; }
 
   /* Marks */
   .marks{ position:absolute; inset:0; pointer-events:none; }
-  .marks .colorbar{ position:absolute; left: var(--bleed); right: var(--bleed); bottom: 0.8mm; height: 6mm; display:flex; gap:0.6mm; align-items:stretch; }
+  .marks .colorbar{ position:absolute; left:var(--bleed); right:var(--bleed); bottom:0.8mm; height:6mm; display:flex; gap:0.6mm; align-items:stretch; }
   .marks .patch{ flex:0 0 10mm; height:100%; border:0.2pt solid #ccc; }
   .patch.c{ background:#00B5E2; } .patch.m{ background:#D5006D; } .patch.y{ background:#FFD400; } .patch.k{ background:#000; }
   .patch.r{ background:#FF3B30; } .patch.g{ background:#34C759; } .patch.b{ background:#007AFF; }
   .patch.w{ background:#fff; } .patch.g10{ background:#1a1a1a; } .patch.g20{ background:#333; } .patch.g30{ background:#4d4d4d; }
-  .patch.g40{ background:#666; } .patch.g50{ background:#808080; } .patch.g60{ background:#999; } .patch.g70{ background:#b3b3b3; } .patch.g80{ background:#ccc; } .patch.g90{ background:#e6e6e6; }
-  .marks .info{ position:absolute; right: var(--bleed); top: 0.8mm; font: 11px var(--font-ui); color:#000; background:#fff; padding:2px 4px; border:1px solid #808080; }
+  .patch.g40{ background:#666; } .patch.g50{ background:#808080; } .patch.g60{ background:#999; } .patch.g70{ background:#b3b3b3; }
+  .patch.g80{ background:#ccc; } .patch.g90{ background:#e6e6e6; }
+  .marks .info{ position:absolute; right:var(--bleed); top:0.8mm; font:11px var(--font-ui); color:#000; background:#fff; padding:2px 4px; border:1px solid #808080; }
   .marks .reg{ position:absolute; width:7mm; height:7mm; border-radius:50%; border:1px solid #000; }
   .marks .reg::before, .marks .reg::after{ content:""; position:absolute; left:50%; top:50%; background:#000; transform:translate(-50%,-50%); }
   .marks .reg::before{ width:6mm; height:0.25mm; }
   .marks .reg::after{ width:0.25mm; height:6mm; }
-  .marks .reg.tl{ left: 1mm; top: 1mm; } .marks .reg.tr{ right: 1mm; top: 1mm; }
-  .marks .reg.bl{ left: 1mm; bottom: 1mm; } .marks .reg.br{ right: 1mm; bottom: 1mm; }
-  .marks .safe-area{ position:absolute; left: var(--bleed); right: var(--bleed); top: var(--bleed); bottom: var(--bleed); border:1px dotted #bbb; }
+  .marks .reg.tl{ left:1mm; top:1mm; } .marks .reg.tr{ right:1mm; top:1mm; }
+  .marks .reg.bl{ left:1mm; bottom:1mm; } .marks .reg.br{ right:1mm; bottom:1mm; }
+  .marks .safe-area{ position:absolute; left:var(--bleed); right:var(--bleed); top:var(--bleed); bottom:var(--bleed); border:1px dotted #bbb; }
   body.printshop .marks::after{ content:""; position:absolute; inset:0; background:
     repeating-linear-gradient(to bottom, rgba(0,0,0,.06), rgba(0,0,0,.06) 0.4mm, transparent 0.4mm, transparent 1.6mm),
     repeating-linear-gradient(to right, rgba(0,0,0,.04), rgba(0,0,0,.04) 0.4mm, transparent 0.4mm, transparent 1.6mm);
   }
-  body.printshop .marks .slur{ position:absolute; width:14mm; height:14mm; border:1px dashed #000; border-radius: 50%; left: calc(50% - 7mm); top: 1mm; }
+  body.printshop .marks .slur{ position:absolute; width:14mm; height:14mm; border:1px dashed #000; border-radius:50%; left:calc(50% - 7mm); top:1mm; }
 
   /* Content blocks */
-  h1,h2,h3{ font-family: var(--font-ui); margin:0 0 3mm 0; line-height:1.2; }
-  h1.title{ font-size: 20px; }
-  h2{ font-size: 14px; }
-  h3{ font-size: 12px; }
+  h1,h2,h3{ font-family:var(--font-ui); margin:0 0 3mm 0; line-height:1.2; }
+  h1.title{ font-size:20px; }
+  .subtitle{ font:14px var(--font-ui); color:#444; margin:0 0 3mm 0; }
+  .deck{ font:12px var(--font-ui); color:#000; margin:0 0 4mm 0; }
+  h2{ font-size:14px; }
+  h3{ font-size:12px; }
   p{ margin:0 0 3.2mm 0; hyphens:auto; orphans:3; widows:3; }
-  .head{ padding: 6mm 0 3mm 0; border-bottom:1px solid #ddd; }
-  .cols{ padding: 4mm 0 0 0; column-fill:auto; }
+  ul.bullet{ margin:0 0 3mm 0; padding-left:18px; }
+  ul.bullet li{ margin:0 0 2mm 0; }
+  .head{ padding:6mm 0 3mm 0; border-bottom:1px solid #ddd; }
+  .cols{ padding:4mm 0 0 0; column-fill:auto; }
   .cols-1{ column-count:1; }
-  .cols-2{ column-count:2; column-gap: var(--col-gap); }
-  .cols-3{ column-count:3; column-gap: var(--col-gap); }
-  .cols p, .cols li, .cols figure, .cols h2, .cols h3{ break-inside: avoid-column; }
-  .span-all{ column-span: all; break-before: column; break-after: column; }
-  .split{ padding-bottom: 6mm; }
-  .foot{ padding: 3mm 0 4mm 0; border-top:1px solid #ddd; font: 11px var(--font-ui); color:#333; display:flex; justify-content:space-between; }
-  figure{ margin:0 0 4mm 0; }
-  .ph{ width:100%; height:40mm; background: linear-gradient(135deg,#e8f7fb,#f5e8ff); border:1px solid #dcdcdc; }
-  figcaption{ font: 11px var(--font-ui); color:#555; margin-top:1.6mm; }
+  .cols-2{ column-count:2; column-gap:var(--col-gap); }
+  .cols-3{ column-count:3; column-gap:var(--col-gap); }
+  .cols p, .cols li, .cols figure, .cols h2, .cols h3{ break-inside:avoid-column; }
+  .cols.editable{ outline:1px dashed transparent; transition:outline 0.15s ease; }
+  .cols.editable:focus{ outline:1px dashed #008080; }
+  .span-all{ column-span:all; break-before:column; break-after:column; }
+  .split{ padding-bottom:6mm; }
+  .foot{ padding:3mm 0 4mm 0; border-top:1px solid #ddd; font:11px var(--font-ui); color:#333; display:flex; justify-content:space-between; gap:6mm; }
+  .foot span{ flex:1 1 auto; }
+  .foot span[contenteditable="true"]:focus{ outline:1px dashed #008080; }
+  figure.frame{ margin:0; }
+  .frame{ border:1px solid rgba(0,0,0,0.35); background:#fff; box-shadow:3px 3px 0 rgba(0,0,0,0.2); position:absolute; display:flex; flex-direction:column; }
+  .frame.mode-float-left, .frame.mode-float-right, .frame.mode-block{ position:relative; box-shadow:2px 2px 0 rgba(0,0,0,0.2); }
+  .frame.mode-float-left{ float:left; margin:0 4mm 3mm 0; }
+  .frame.mode-float-right{ float:right; margin:0 0 3mm 4mm; }
+  .frame.mode-block{ float:none; margin:3mm auto; }
+  .frame.selected{ outline:2px dashed #008080; }
+  .frame-content{ flex:1 1 auto; padding:3mm; font-size:12px; line-height:1.4; }
+  .frame-content:focus{ outline:1px dashed #008080; }
+  .frame-image{ flex:1 1 auto; background:repeating-linear-gradient(135deg,#dde7ef,#dde7ef 12px,#c7d6e5 12px,#c7d6e5 24px); display:flex; align-items:center; justify-content:center; color:#344860; font:11px var(--font-ui); text-align:center; padding:4mm; }
+  .frame-image[data-src]{ background-size:cover; background-position:center; color:transparent; text-indent:-9999px; }
+  .frame figcaption{ font:11px var(--font-ui); color:#333; padding:2mm 3mm 3mm; }
+  .frame .resize-handle{ position:absolute; width:10px; height:10px; background:#000080; border:1px solid #fff; }
+  .frame .resize-handle.se{ right:-5px; bottom:-5px; cursor:se-resize; }
+  .frame .resize-handle.e{ right:-5px; top:50%; transform:translateY(-50%); cursor:e-resize; }
+  .frame .resize-handle.s{ bottom:-5px; left:50%; transform:translateX(-50%); cursor:s-resize; }
+  .quote{ font-size:14px; line-height:1.3; }
+  .attribution{ font:11px var(--font-ui); text-transform:uppercase; letter-spacing:0.08em; }
+  .callout{ font:12px var(--font-ui); font-weight:bold; }
+  .note{ font:12px var(--font-ui); }
 
   /* Toggles */
   body.hide-guides .trim::before{ display:none !important; }
-  body.no-crop .crop{ display:none !important; }
   body.hide-crops .crop{ display:none !important; }
   body.hide-colorbar .marks .colorbar{ display:none !important; }
   body.hide-reg .marks .reg{ display:none !important; }
   body.hide-safe .marks .safe-area{ opacity:0 !important; }
 
-  /* ====== PRINT: absolute page box + symmetric margins ====== */
+  /* Print overrides */
   @media print{
-    @page{ size: 216mm 303mm; margin:0; }
+    @page{ size:216mm 303mm; margin:0; }
     html,body{ width:216mm; height:303mm; margin:0; padding:0; }
-    #ui,#sidebar{ display:none!important; }
-    #pages{ margin:0; }
-    /* Neutralize UA centering: anchor at 0,0 */
-    body, #pages{ position: static !important; }
-    .sheet{ position: relative !important; left:0!important; top:0!important; width:216mm!important; height:303mm!important; margin:0!important; box-shadow:none!important; border:none!important; page-break-after: always; page-break-inside: avoid; overflow:hidden; }
+    #menubar,#ui,#sidebar,#rulerTop,#rulerLeft{ display:none!important; }
+    #pages{ margin:0; padding:0; }
+    body, #pages{ position:static !important; }
+    .sheet{ position:relative !important; left:0!important; top:0!important; width:216mm!important; height:303mm!important; margin:0!important; box-shadow:none!important; border:none!important; page-break-after:always; page-break-inside:avoid; overflow:hidden; }
     .sheet:last-child{ page-break-after:auto; }
     .trim{ left:3mm!important; top:3mm!important; width:210mm!important; height:297mm!important; }
-    /* Symmetric margins in print to avoid apparent left/bottom bias */
-    :root{ --m-top: 12mm; --m-bot: 12mm; --m-in: 12mm; --m-out: 12mm; }
-    /* Optional mirrored gutter when class present */
-    body.pdf-mirror .sheet.even{ --m-in: 20mm; --m-out: 14mm; }
-    /* Ensure exact colors */
-    *{ -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    :root{ --m-top:12mm; --m-bot:12mm; --m-in:12mm; --m-out:12mm; }
+    body.pdf-mirror .sheet.even{ --m-in:20mm; --m-out:14mm; }
+    *{ -webkit-print-color-adjust:exact; print-color-adjust:exact; }
   }
 </style>
-</head>
 <body>
+  <div id="menubar" role="menubar">
+    <button class="menu-root" data-menu="file" type="button">File</button>
+    <button class="menu-root" data-menu="export" type="button">Export</button>
+    <button class="menu-root" data-menu="edit" type="button">Edit</button>
+    <div class="menu-dropdown" data-panel="file" role="menu">
+      <button type="button" data-action="new-doc">New</button>
+      <button type="button" data-action="open-doc">Open…</button>
+      <button type="button" data-action="save-doc">Save</button>
+      <button type="button" data-action="save-as-doc">Save As…</button>
+      <div class="menu-sep"></div>
+      <button type="button" data-action="load-autosave">Load Autosave</button>
+    </div>
+    <div class="menu-dropdown" data-panel="export" role="menu">
+      <button type="button" data-action="export-bleed">Print with Bleed PDF</button>
+      <button type="button" data-action="export-trim">Print Trimmed PDF</button>
+      <div class="menu-sep"></div>
+      <button type="button" data-action="toggle-mirror">Toggle Mirrored Gutter</button>
+      <button type="button" data-action="toggle-printshop">Toggle Printshop Grid</button>
+    </div>
+    <div class="menu-dropdown" data-panel="edit" role="menu">
+      <button type="button" data-action="add-col-1">Add 1 Column Block</button>
+      <button type="button" data-action="add-col-2">Add 2 Column Block</button>
+      <button type="button" data-action="add-col-3">Add 3 Column Block</button>
+      <div class="menu-sep"></div>
+      <button type="button" data-action="add-text-frame">Add Text Frame</button>
+      <button type="button" data-action="add-image-frame">Add Image Frame</button>
+      <div class="menu-sep"></div>
+      <button type="button" data-action="new-page">New Page After Current</button>
+      <button type="button" data-action="duplicate-page">Duplicate Current Page</button>
+      <div class="menu-sep"></div>
+      <button type="button" data-action="toggle-guides">Toggle Guides</button>
+      <button type="button" data-action="toggle-crops">Toggle Marks</button>
+      <button type="button" data-action="toggle-colorbar">Toggle Color Bars</button>
+    </div>
+  </div>
 
-  <!-- ======= Windows 3.11 Toolbar ======= -->
-  <div id="ui" style="height:var(--ui-h)">
-    <div class="win-group">
+  <div id="ui">
+    <div class="win-group" id="navGroup">
       <button class="win-btn" id="firstBtn">|◀</button>
       <button class="win-btn" id="prevBtn">◀</button>
-      <span class="win-stat">Page <span id="cur">1</span> / <span id="tot">32</span></span>
-      <input type="number" id="goto" min="1" max="32" value="1" />
+      <span class="win-stat">Page <span id="cur">1</span> / <span id="tot">1</span></span>
+      <input type="number" id="goto" min="1" value="1" />
       <button class="win-btn" id="goBtn">Go</button>
       <button class="win-btn" id="nextBtn">▶</button>
       <button class="win-btn" id="lastBtn">▶|</button>
     </div>
-    <div class="win-group">
+    <div class="win-group" id="toggleGroup">
       <label class="win-check"><input type="checkbox" id="chkGuides" checked> Guides</label>
       <label class="win-check"><input type="checkbox" id="chkCrops" checked> Marks</label>
       <label class="win-check"><input type="checkbox" id="chkColor" checked> Color bars</label>
@@ -164,30 +268,722 @@
       <label class="win-check"><input type="checkbox" id="chkSafe"> Safe</label>
       <label class="win-check"><input type="checkbox" id="chkShop"> Printshop grid</label>
       <label class="win-check"><input type="checkbox" id="chkMirror"> Mirrored gutter (PDF)</label>
-      <label class="win-check">Preset:<select id="selColorPreset"><option value="std">Standard</option><option value="ugra">Ugra/Fogra 21</option></select></label>
+      <label class="win-check">Preset:
+        <select id="selColorPreset">
+          <option value="std">Standard</option>
+          <option value="ugra">Ugra/Fogra 21</option>
+        </select>
+      </label>
+    </div>
+    <div class="win-group" id="frameInspector">
+      <div class="ins-grid">
+        <label>X (mm)
+          <input type="number" id="framePosX" step="0.5" />
+        </label>
+        <label>Y (mm)
+          <input type="number" id="framePosY" step="0.5" />
+        </label>
+        <label>Width (mm)
+          <input type="number" id="frameWidth" step="0.5" min="10" />
+        </label>
+        <label>Height (mm)
+          <input type="number" id="frameHeight" step="0.5" min="10" />
+        </label>
+        <label>Wrap Mode
+          <select id="frameWrap">
+            <option value="overlay">Overlay (free)</option>
+            <option value="float-left">Float Left</option>
+            <option value="float-right">Float Right</option>
+            <option value="block">Block</option>
+          </select>
+        </label>
+        <label>Caption
+          <input type="text" id="frameCaption" />
+        </label>
+        <label id="frameImageUrlLabel">Image URL
+          <input type="text" id="frameImageUrl" placeholder="https://…" />
+        </label>
+      </div>
+      <small>Edit values to reposition or update the selected frame.</small>
     </div>
     <div class="spacer"></div>
     <div class="win-group">
-      <button class="win-btn" id="pdfBtn">PDF: bleed</button>
-      <button class="win-btn" id="pdfTrimBtn">PDF: A4</button>
-      <span class="win-stat" id="ver">v0.7.0</span>
+      <span class="win-stat" id="status">Ready.</span>
+      <span class="win-stat" id="ver">ProtoDesk Orbit v0.9.0 • DocuMonster 0.8.0</span>
     </div>
   </div>
 
-  <aside id="sidebar"><div id="thumbs"></div></aside>
+  <div id="rulerTop" aria-hidden="true">
+    <div class="ruler-labels cm"></div>
+    <div class="ruler-labels inch"></div>
+  </div>
+  <div id="rulerLeft" aria-hidden="true">
+    <div class="ruler-labels cm"></div>
+    <div class="ruler-labels inch"></div>
+  </div>
+
+  <aside id="sidebar">
+    <div id="releaseCard"></div>
+    <div id="thumbs"></div>
+  </aside>
   <div id="pages"></div>
+  <input type="file" id="openFileInput" accept="application/json" hidden />
 
 <script>
 (function(){
   'use strict';
-  const TOTAL = 32; const VERSION = '0.7.0';
+  const pxPerMm = 96/25.4;
+  const STORAGE_KEY = 'documonster-autosave-v0-9';
   const pagesEl = document.getElementById('pages');
-  const curEl = document.getElementById('cur'); const totEl = document.getElementById('tot'); const gotoEl = document.getElementById('goto');
-  const prevBtn = document.getElementById('prevBtn'); const nextBtn = document.getElementById('nextBtn'); const firstBtn = document.getElementById('firstBtn'); const lastBtn = document.getElementById('lastBtn'); const goBtn = document.getElementById('goBtn');
+  const releaseCardEl = document.getElementById('releaseCard');
+  const curEl = document.getElementById('cur');
+  const totEl = document.getElementById('tot');
+  const gotoEl = document.getElementById('goto');
+  const prevBtn = document.getElementById('prevBtn');
+  const nextBtn = document.getElementById('nextBtn');
+  const firstBtn = document.getElementById('firstBtn');
+  const lastBtn = document.getElementById('lastBtn');
+  const goBtn = document.getElementById('goBtn');
   const thumbsEl = document.getElementById('thumbs');
-  const pdfBtn = document.getElementById('pdfBtn'); const pdfTrimBtn = document.getElementById('pdfTrimBtn');
-  const chkGuides = document.getElementById('chkGuides'); const chkCrops = document.getElementById('chkCrops'); const chkColor = document.getElementById('chkColor'); const chkReg = document.getElementById('chkReg'); const chkSafe = document.getElementById('chkSafe'); const chkShop = document.getElementById('chkShop'); const chkMirror = document.getElementById('chkMirror'); const selColorPreset = document.getElementById('selColorPreset');
-  totEl.textContent = String(TOTAL); document.title = 'DocuMonster — A4 Studio (HTML Paged v'+VERSION+')';
+  const chkGuides = document.getElementById('chkGuides');
+  const chkCrops = document.getElementById('chkCrops');
+  const chkColor = document.getElementById('chkColor');
+  const chkReg = document.getElementById('chkReg');
+  const chkSafe = document.getElementById('chkSafe');
+  const chkShop = document.getElementById('chkShop');
+  const chkMirror = document.getElementById('chkMirror');
+  const selColorPreset = document.getElementById('selColorPreset');
+  const statusEl = document.getElementById('status');
+  const versionEl = document.getElementById('ver');
+  const menubar = document.getElementById('menubar');
+  const openFileInput = document.getElementById('openFileInput');
+  const frameInspector = document.getElementById('frameInspector');
+  const framePosX = document.getElementById('framePosX');
+  const framePosY = document.getElementById('framePosY');
+  const frameWidth = document.getElementById('frameWidth');
+  const frameHeight = document.getElementById('frameHeight');
+  const frameWrap = document.getElementById('frameWrap');
+  const frameCaption = document.getElementById('frameCaption');
+  const frameImageUrl = document.getElementById('frameImageUrl');
+  const frameImageUrlLabel = document.getElementById('frameImageUrlLabel');
+  const rulerTopCm = document.querySelector('#rulerTop .cm');
+  const rulerTopIn = document.querySelector('#rulerTop .inch');
+  const rulerLeftCm = document.querySelector('#rulerLeft .cm');
+  const rulerLeftIn = document.querySelector('#rulerLeft .inch');
+
+  let docModel = normalizeDocument(loadFromStorage() || defaultDocument());
+  let pages = [];
+  let obs = null;
+  let cur = 0;
+  let isDirty = false;
+  let menuOpen = null;
+  let selectedFrame = null;
+  let selectedFramePage = -1;
+  let selectedFrameIndex = -1;
+
+  function mmToPx(mm){ return mm * pxPerMm; }
+  function pxToMm(px){ return px / pxPerMm; }
+  function getTotalPages(){ return docModel.pages.length || 1; }
+
+  function defaultDocument(){
+    return {
+      version:'0.9.0',
+      docVersion:'0.8.0',
+      codename:'ProtoDesk Orbit',
+      releaseNotes:[
+        'Windows 3.11 inspired menubar with File/Export/Edit commands.',
+        'Dynamic columns, draggable overlay frames, and floating wraps.',
+        'Metric + imperial rulers for precision layout in the browser.',
+        'Autosave, JSON import/export, and PDF bleed/trim exports.'
+      ],
+      pages:[
+        {
+          title:'PROTO DESK LAUNCH DOSSIER',
+          subtitle:'DocuMonster Studio Editor 0.8.0',
+          deck:'A Windows 3.11 inspired layout lab for the browser-native creative desktop.',
+          elements:[
+            {
+              type:'columns', columns:2,
+              html:'<p>DocuMonster enters a quasi-operating-system era with ProtoDesk Orbit. This release introduces a polished menubar, autosave, and a true layout inspector that keeps your spreads fluid while remaining production ready.</p>'+
+                   '<p>Use the new Edit menu to mix single, double, or triple column grids inside a single spread. Add text or image frames, then choose whether they float alongside the story or overlay for poster-style compositions.</p>'+
+                   '<p>Versioning is now meaningful: the core editor is DocuMonster 0.8.0, bundled inside ProtoDesk Orbit v0.9.0—the codename for our browser-based creative desktop.</p>'+
+                   '<p>Guides, crop marks, and proofing toggles remain one click away. Save layouts locally or export press-ready PDFs straight from the Export menu.</p>'
+            },
+            {
+              type:'columns', columns:1,
+              html:'<h2 class="span-all">Release Highlights</h2>'+
+                   '<ul class="bullet"><li>Persistent rulers in centimetres and inches for accurate placement.</li>'+
+                   '<li>Frame inspector for millimetre-perfect positioning.</li>'+
+                   '<li>Autosave with local storage plus JSON import/export.</li>'+
+                   '<li>Mirrored gutter toggles, bleed proofing, and Ugra/Fogra colour bars.</li></ul>'
+            },
+            {
+              type:'frame', frameType:'text', mode:'overlay', x:118, y:58, width:62, height:40,
+              content:'<p class="quote">“Design for print, proof in the browser, and ship without leaving ProtoDesk.”</p><p class="attribution">— DocuMonster Team</p>',
+              caption:''
+            },
+            {
+              type:'frame', frameType:'image', mode:'float-right', x:110, y:120, width:70, height:50,
+              src:'', caption:'ProtoDesk shells the editor with a familiar Windows 3.11 style surface.'
+            }
+          ],
+          footerLeft:'DocuMonster ProtoDesk Orbit',
+          footerRight:'Page {{page}} / {{total}} — Build {{version}}'
+        },
+        {
+          title:'LAYOUT WORKSHOP',
+          subtitle:'Dynamic columns & intelligent flow',
+          deck:'Mix content structures per page for editorial rhythm.',
+          elements:[
+            {
+              type:'columns', columns:3,
+              html:'<p>Switch between one, two, and three column sets inside the same spread. Each block remains editable—type directly into place and DocuMonster will keep track for autosave.</p>'+
+                   '<p>Frame wrap controls let imagery ride alongside the story or float freely for poster art. Overlay frames honour millimetre coordinates; floats behave like magazine callouts.</p>'+
+                   '<p>Columns are contenteditable, so you can prototype copy or import drafted HTML snippets without leaving ProtoDesk.</p>'
+            },
+            {
+              type:'columns', columns:2,
+              html:'<h3 class="span-all">Workflow Tips</h3>'+
+                   '<p>Mix floats with overlay quotes for striking emphasis. Use the inspector to dial in the exact millimetre offsets while the rulers confirm alignment.</p>'+
+                   '<p>Activate mirrored gutters when you are prepping signatures, then disable them for single-sided reports.</p>'+
+                   '<p>Autosave keeps your progress safe between sessions—reload later with the File → Load Autosave command.</p>'
+            },
+            {
+              type:'frame', frameType:'text', mode:'float-left', x:32, y:70, width:55, height:45,
+              content:'<p class="callout">Add frames from the Edit menu, then select them to tune wrap, size, and coordinates with the inspector.</p>',
+              caption:''
+            },
+            {
+              type:'frame', frameType:'image', mode:'overlay', x:92, y:150, width:80, height:55,
+              src:'', caption:'Overlay frames support pixel-perfect placement alongside ruler guides.'
+            }
+          ],
+          footerLeft:'Workshop Series',
+          footerRight:'DocuMonster {{version}} • Page {{page}}'
+        },
+        {
+          title:'EXPORT & DELIVERY',
+          subtitle:'Bleed, trim, and PDF flows',
+          deck:'Control print outputs directly from the Export menu.',
+          elements:[
+            {
+              type:'columns', columns:2,
+              html:'<p>The Export menu collects bleed and trim print commands. Choose Print with Bleed for press-ready spreads or Print Trimmed for quick previews without crop marks.</p>'+
+                   '<p>Mirrored gutters are a single toggle away when you need perfect imposition, and the printshop grid offers extra confidence for production checks.</p>'
+            },
+            {
+              type:'columns', columns:1,
+              html:'<p>Use Save As to download a JSON snapshot of this publication. Share with collaborators or re-import to continue editing. Autosave keeps a local copy even if you forget.</p>'+
+                   '<p>The rulers and inspector stay active while printing, so you can verify alignment before hitting Export.</p>'
+            },
+            {
+              type:'frame', frameType:'text', mode:'block', x:40, y:120, width:100, height:35,
+              content:'<p class="note">ProtoDesk Orbit surfaces system status in the toolbar. Watch the autosave indicator whenever you make quick adjustments.</p>',
+              caption:''
+            }
+          ],
+          footerLeft:'Production Stack',
+          footerRight:'ProtoDesk Orbit — Page {{page}}/{{total}}'
+        },
+        {
+          title:'SYSTEM MANIFEST',
+          subtitle:'Browser-based Windows-like studio',
+          deck:'The ProtoDesk initiative blurs the line between OS shell and creative suite.',
+          elements:[
+            {
+              type:'columns', columns:2,
+              html:'<p>DocuMonster now ships with ProtoDesk Orbit, our browser-first desktop metaphor. The menubar mirrors Ami Pro on Windows 3.11, while the editing core stays modern and responsive.</p>'+
+                   '<p>This manifest tracks everything bundled in v0.9.0: rulers, menu commands, frame inspector, autosave, and more. Use it as a base template for your own newsroom workflows.</p>'
+            },
+            {
+              type:'columns', columns:2,
+              html:'<h3 class="span-all">Included Modules</h3>'+
+                   '<ul class="bullet"><li>DocuMonster Editor 0.8.0 (column engine, frames, PDF export).</li>'+
+                   '<li>ProtoDesk shell v0.9.0 (menubar, status HUD, OS release card).</li>'+
+                   '<li>Colour labs with Standard &amp; Ugra/Fogra presets.</li>'+
+                   '<li>Layout workshop library with editable spreads.</li></ul>'
+            },
+            {
+              type:'frame', frameType:'image', mode:'overlay', x:110, y:70, width:68, height:46,
+              src:'', caption:'Frames can be positioned freely or floated for magazine style wraps.'
+            }
+          ],
+          footerLeft:'ProtoDesk Release Card',
+          footerRight:'{{codename}} v{{version}} — Page {{page}}'
+        }
+      ]
+    };
+  }
+
+  function normalizeDocument(input){
+    const base = defaultDocument();
+    const doc = Object.assign({}, base, input || {});
+    doc.version = doc.version || base.version;
+    doc.docVersion = doc.docVersion || base.docVersion;
+    doc.codename = doc.codename || base.codename;
+    doc.releaseNotes = Array.isArray(doc.releaseNotes) && doc.releaseNotes.length ? doc.releaseNotes : base.releaseNotes.slice();
+    doc.pages = Array.isArray(doc.pages) && doc.pages.length ? doc.pages.map(normalizePage) : base.pages.slice().map(normalizePage);
+    return doc;
+  }
+
+  function normalizePage(page, idx){
+    const p = Object.assign({
+      title:'Untitled Page '+(idx+1),
+      subtitle:'',
+      deck:'',
+      elements:[],
+      footerLeft:'DocuMonster',
+      footerRight:'Page {{page}}'
+    }, page || {});
+    p.elements = Array.isArray(p.elements) ? p.elements.map(normalizeElement) : [];
+    return p;
+  }
+
+  function normalizeElement(el){
+    if(!el || !el.type){
+      return { type:'columns', columns:1, html:'<p>Edit me.</p>' };
+    }
+    if(el.type === 'columns'){
+      return {
+        type:'columns',
+        columns:Math.min(3, Math.max(1, parseInt(el.columns,10) || 1)),
+        html: typeof el.html === 'string' ? el.html : '<p>Edit me.</p>'
+      };
+    }
+    const mode = el.mode || 'overlay';
+    return {
+      type:'frame',
+      frameType: el.frameType === 'image' ? 'image' : 'text',
+      mode: mode,
+      x: typeof el.x === 'number' ? el.x : 30,
+      y: typeof el.y === 'number' ? el.y : 40,
+      width: typeof el.width === 'number' ? el.width : 60,
+      height: typeof el.height === 'number' ? el.height : 40,
+      content: typeof el.content === 'string' ? el.content : '<p>Frame content</p>',
+      src: typeof el.src === 'string' ? el.src : '',
+      caption: typeof el.caption === 'string' ? el.caption : ''
+    };
+  }
+
+  function loadFromStorage(){
+    try{
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if(!raw) return null;
+      return JSON.parse(raw);
+    }catch(err){
+      console.warn('Failed to load autosave', err);
+      return null;
+    }
+  }
+
+  function saveToStorage(){
+    try{
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(docModel));
+      markDirty(false);
+      setStatus('Saved to local storage.');
+    }catch(err){
+      console.error('Save failed', err);
+      setStatus('Save failed: '+err.message, false);
+    }
+  }
+
+  function markDirty(state = true){
+    isDirty = state;
+    document.body.classList.toggle('dirty', isDirty);
+    if(isDirty){
+      setStatus('Unsaved changes', false);
+    }
+  }
+
+  function setStatus(msg, transient = true){
+    statusEl.textContent = msg;
+    if(transient){
+      clearTimeout(setStatus._timer);
+      setStatus._timer = setTimeout(()=>{
+        statusEl.textContent = isDirty ? 'Unsaved changes' : 'Ready.';
+      }, 3200);
+    }
+  }
+
+  function updateVersionInfo(){
+    versionEl.textContent = docModel.codename+' v'+docModel.version+' • DocuMonster '+docModel.docVersion;
+    document.title = 'DocuMonster — '+docModel.codename+' v'+docModel.version;
+  }
+
+  function renderReleaseCard(){
+    const notes = (docModel.releaseNotes || []).map(note=>'<li>'+note+'</li>').join('');
+    releaseCardEl.innerHTML = '<h2>'+docModel.codename+' v'+docModel.version+'</h2>'+
+      '<p>DocuMonster Editor '+docModel.docVersion+' • ProtoDesk Orbit environment.</p>'+
+      '<ul>'+notes+'</ul>';
+  }
+
+  function createTrim(section){
+    const trim = document.createElement('div');
+    trim.className = 'trim';
+    ['tl','tr','bl','br'].forEach(pos=>{
+      const m = document.createElement('div');
+      m.className = 'crop '+pos;
+      trim.appendChild(m);
+    });
+    section.appendChild(trim);
+    return trim;
+  }
+
+  function addMarks(section, idx){
+    const marks = document.createElement('div');
+    marks.className = 'marks';
+    const bar = document.createElement('div');
+    bar.className = 'colorbar';
+    marks.appendChild(bar);
+    const info = document.createElement('div');
+    info.className = 'info';
+    info.textContent = docModel.codename+' v'+docModel.version+' — page '+(idx+1)+'/'+getTotalPages();
+    marks.appendChild(info);
+    ['tl','tr','bl','br'].forEach(pos=>{
+      const r = document.createElement('div');
+      r.className = 'reg '+pos;
+      marks.appendChild(r);
+    });
+    const safe = document.createElement('div');
+    safe.className = 'safe-area';
+    marks.appendChild(safe);
+    const slur = document.createElement('div');
+    slur.className = 'slur';
+    marks.appendChild(slur);
+    section.appendChild(marks);
+  }
+
+  function renderPage(page, idx){
+    const sheet = document.createElement('section');
+    sheet.className = 'sheet '+(idx%2 ? 'even' : 'odd');
+    sheet.dataset.index = String(idx);
+    const trim = createTrim(sheet);
+    const content = document.createElement('div');
+    content.className = 'content';
+    trim.appendChild(content);
+    addMarks(sheet, idx);
+
+    const head = document.createElement('header');
+    head.className = 'head';
+    const titleEl = document.createElement('h1');
+    titleEl.className = 'title';
+    titleEl.contentEditable = 'true';
+    titleEl.textContent = page.title;
+    titleEl.addEventListener('input', ()=>{ page.title = titleEl.textContent.trim(); markDirty(); });
+    head.appendChild(titleEl);
+
+    const sub = document.createElement('p');
+    sub.className = 'subtitle';
+    sub.contentEditable = 'true';
+    sub.textContent = page.subtitle || '';
+    sub.addEventListener('input', ()=>{ page.subtitle = sub.textContent.trim(); markDirty(); });
+    head.appendChild(sub);
+
+    const deck = document.createElement('p');
+    deck.className = 'deck';
+    deck.contentEditable = 'true';
+    deck.textContent = page.deck || '';
+    deck.addEventListener('input', ()=>{ page.deck = deck.textContent.trim(); markDirty(); });
+    head.appendChild(deck);
+    content.appendChild(head);
+
+    page.elements.forEach((el, elementIndex)=>{
+      if(el.type === 'columns'){
+        const block = document.createElement('div');
+        block.className = 'cols cols-'+el.columns+' split editable';
+        block.contentEditable = 'true';
+        block.dataset.pageIndex = String(idx);
+        block.dataset.elementIndex = String(elementIndex);
+        block.innerHTML = el.html;
+        block.addEventListener('input', ()=>{
+          el.html = block.innerHTML;
+          markDirty();
+        });
+        content.appendChild(block);
+      } else {
+        const frame = createFrameElement(el, idx, elementIndex);
+        content.appendChild(frame);
+      }
+    });
+
+    const foot = document.createElement('footer');
+    foot.className = 'foot';
+    const left = document.createElement('span');
+    left.contentEditable = 'true';
+    left.textContent = resolveFooter(page.footerLeft, idx);
+    left.addEventListener('input', ()=>{ page.footerLeft = left.textContent; markDirty(); });
+    const right = document.createElement('span');
+    right.contentEditable = 'true';
+    right.textContent = resolveFooter(page.footerRight, idx);
+    right.addEventListener('input', ()=>{ page.footerRight = right.textContent; markDirty(); });
+    foot.appendChild(left);
+    foot.appendChild(right);
+    content.appendChild(foot);
+    return sheet;
+  }
+
+  function resolveFooter(template, idx){
+    const total = getTotalPages();
+    return (template || '').replace(/{{page}}/g, String(idx+1))
+      .replace(/{{total}}/g, String(total))
+      .replace(/{{version}}/g, docModel.version)
+      .replace(/{{codename}}/g, docModel.codename);
+  }
+
+  function createFrameElement(el, pageIndex, elementIndex){
+    const frame = document.createElement('figure');
+    frame.className = 'frame frame-'+el.frameType;
+    frame.dataset.pageIndex = String(pageIndex);
+    frame.dataset.elementIndex = String(elementIndex);
+    frame.tabIndex = 0;
+
+    const contentWrap = document.createElement('div');
+    if(el.frameType === 'text'){
+      contentWrap.className = 'frame-content';
+      contentWrap.contentEditable = 'true';
+      contentWrap.innerHTML = el.content;
+      contentWrap.addEventListener('input', ()=>{ el.content = contentWrap.innerHTML; markDirty(); });
+    } else {
+      contentWrap.className = 'frame-image';
+      if(el.src){
+        contentWrap.dataset.src = el.src;
+        contentWrap.style.backgroundImage = 'url("'+el.src.replace(/"/g,'&quot;')+'")';
+      } else {
+        contentWrap.textContent = 'Set an image URL from the inspector.';
+      }
+    }
+    frame.appendChild(contentWrap);
+
+    const cap = document.createElement('figcaption');
+    cap.contentEditable = 'true';
+    cap.textContent = el.caption || '';
+    cap.addEventListener('input', ()=>{ el.caption = cap.textContent; markDirty(); });
+    frame.appendChild(cap);
+
+    ['se','e','s'].forEach(dir=>{
+      const handle = document.createElement('div');
+      handle.className = 'resize-handle '+dir;
+      frame.appendChild(handle);
+    });
+
+    frame.addEventListener('click', ev=>{
+      ev.stopPropagation();
+      selectFrame(frame, pageIndex, elementIndex);
+    });
+
+    frame.addEventListener('pointerdown', ev=>{
+      if(el.mode !== 'overlay') return;
+      if(ev.target.classList.contains('resize-handle')) return;
+      ev.preventDefault();
+      frame.setPointerCapture(ev.pointerId);
+      const startX = ev.clientX;
+      const startY = ev.clientY;
+      const startLeft = el.x;
+      const startTop = el.y;
+      const move = mv=>{
+        const dxMm = pxToMm(mv.clientX - startX);
+        const dyMm = pxToMm(mv.clientY - startY);
+        el.x = Math.max(0, startLeft + dxMm);
+        el.y = Math.max(0, startTop + dyMm);
+        applyFrameMode(frame, el);
+        if(isSelectedFrame(frame)) updateInspectorFields(el);
+        markDirty();
+      };
+      const up = ()=>{
+        frame.releasePointerCapture(ev.pointerId);
+        frame.removeEventListener('pointermove', move);
+        frame.removeEventListener('pointerup', up);
+      };
+      frame.addEventListener('pointermove', move);
+      frame.addEventListener('pointerup', up, { once:true });
+    });
+
+    ['se','e','s'].forEach(dir=>{
+      frame.querySelector('.resize-handle.'+dir).addEventListener('pointerdown', ev=>{
+        if(el.mode !== 'overlay') return;
+        ev.preventDefault();
+        ev.stopPropagation();
+        frame.setPointerCapture(ev.pointerId);
+        const startX = ev.clientX;
+        const startY = ev.clientY;
+        const startW = el.width;
+        const startH = el.height;
+        const move = mv=>{
+          const dxMm = pxToMm(mv.clientX - startX);
+          const dyMm = pxToMm(mv.clientY - startY);
+          if(dir.includes('e')) el.width = Math.max(20, startW + dxMm);
+          if(dir.includes('s')) el.height = Math.max(20, startH + dyMm);
+          applyFrameMode(frame, el);
+          if(isSelectedFrame(frame)) updateInspectorFields(el);
+          markDirty();
+        };
+        const up = ()=>{
+          frame.releasePointerCapture(ev.pointerId);
+          frame.removeEventListener('pointermove', move);
+          frame.removeEventListener('pointerup', up);
+        };
+        frame.addEventListener('pointermove', move);
+        frame.addEventListener('pointerup', up);
+      });
+    });
+
+    applyFrameMode(frame, el);
+    return frame;
+  }
+
+  function applyFrameMode(frame, el){
+    frame.classList.remove('mode-overlay','mode-float-left','mode-float-right','mode-block');
+    frame.classList.add('mode-'+el.mode);
+    frame.style.width = mmToPx(el.width)+'px';
+    frame.style.height = mmToPx(el.height)+'px';
+    if(el.mode === 'overlay'){
+      frame.style.position = 'absolute';
+      frame.style.left = mmToPx(el.x)+'px';
+      frame.style.top = mmToPx(el.y)+'px';
+      frame.style.float = 'none';
+      frame.style.margin = '0';
+    } else {
+      frame.style.position = 'relative';
+      frame.style.left = '';
+      frame.style.top = '';
+      if(el.mode === 'float-left'){
+        frame.style.float = 'left';
+        frame.style.margin = '0 4mm 3mm 0';
+      } else if(el.mode === 'float-right'){
+        frame.style.float = 'right';
+        frame.style.margin = '0 0 3mm 4mm';
+      } else {
+        frame.style.float = 'none';
+        frame.style.margin = '3mm auto';
+      }
+    }
+  }
+
+  function renderDocument(){
+    pagesEl.innerHTML = '';
+    docModel.pages.forEach((page, idx)=>{
+      const sheet = renderPage(page, idx);
+      pagesEl.appendChild(sheet);
+    });
+    pages = Array.from(document.querySelectorAll('.sheet'));
+    if(obs){ obs.disconnect(); }
+    obs = new IntersectionObserver(entries=>{
+      let topMost = null;
+      let topY = Infinity;
+      entries.forEach(entry=>{
+        if(entry.isIntersecting){
+          const rect = entry.target.getBoundingClientRect();
+          if(rect.top >= 0 && rect.top < topY){
+            topY = rect.top;
+            topMost = entry.target;
+          }
+        }
+      });
+      if(topMost){
+        const idx = pages.indexOf(topMost);
+        if(idx >= 0){
+          cur = idx;
+          updateNavigationState(true);
+        }
+      }
+    },{ root:null, rootMargin:'0px', threshold:[0.55] });
+    pages.forEach(p=>obs.observe(p));
+    refreshCounts();
+    renderReleaseCard();
+    buildRulers();
+    applyColorPreset();
+    buildThumbnails();
+    restoreFrameSelection();
+  }
+
+  function refreshCounts(){
+    const total = getTotalPages();
+    totEl.textContent = String(total);
+    gotoEl.max = total;
+    if(total === 0){
+      cur = 0;
+      curEl.textContent = '0';
+      gotoEl.value = '0';
+      updateNavigationButtons();
+      return;
+    }
+    cur = Math.min(cur, total-1);
+    curEl.textContent = String(cur+1);
+    gotoEl.value = String(cur+1);
+    updateNavigationButtons();
+  }
+
+  function updateNavigationButtons(){
+    const total = getTotalPages();
+    prevBtn.disabled = (cur === 0);
+    firstBtn.disabled = (cur === 0);
+    nextBtn.disabled = (cur >= total-1);
+    lastBtn.disabled = (cur >= total-1);
+  }
+
+  function updateNavigationState(skipScroll){
+    const total = getTotalPages();
+    cur = Math.max(0, Math.min(total-1, cur));
+    curEl.textContent = String(cur+1);
+    gotoEl.value = String(cur+1);
+    updateNavigationButtons();
+    setActiveThumb();
+    if(!skipScroll){
+      const target = pages[cur];
+      if(target){
+        target.scrollIntoView({ behavior:'smooth', block:'start' });
+      }
+    }
+  }
+
+  function snapTo(idx, instant = false){
+    const total = getTotalPages();
+    cur = Math.max(0, Math.min(total-1, idx));
+    const target = pages[cur];
+    if(target){
+      target.scrollIntoView({ behavior: instant ? 'auto' : 'smooth', block:'start' });
+    }
+    updateNavigationState(true);
+  }
+
+  function buildThumbnails(){
+    thumbsEl.innerHTML = '';
+    if(!pages.length) return;
+    const rect = pages[0].getBoundingClientRect();
+    const baseW = rect.width || pages[0].offsetWidth || 1000;
+    const baseH = rect.height || pages[0].offsetHeight || 1400;
+    pages.forEach((page, idx)=>{
+      const wrap = document.createElement('div');
+      wrap.className = 'thumb';
+      wrap.dataset.index = String(idx);
+      const mini = document.createElement('div');
+      mini.className = 'mini-wrap';
+      const clone = page.cloneNode(true);
+      clone.style.pointerEvents = 'none';
+      mini.appendChild(clone);
+      wrap.appendChild(mini);
+      const meta = document.createElement('div');
+      meta.className = 'mini-meta';
+      meta.textContent = 'Page '+(idx+1);
+      wrap.appendChild(meta);
+      wrap.addEventListener('click', ()=>{ snapTo(idx, false); });
+      thumbsEl.appendChild(wrap);
+      const availW = mini.clientWidth;
+      let scale = availW / baseW;
+      if(!isFinite(scale) || scale <= 0){ scale = 0.2; }
+      clone.style.transformOrigin = 'top left';
+      clone.style.transform = 'scale('+scale.toFixed(4)+')';
+      mini.style.height = (baseH*scale)+'px';
+    });
+    setActiveThumb();
+    applyColorPreset();
+  }
+
+  function setActiveThumb(){
+    document.querySelectorAll('#thumbs .thumb.active').forEach(el=>el.classList.remove('active'));
+    const active = thumbsEl.querySelector('.thumb[data-index="'+cur+'"]');
+    if(active) active.classList.add('active');
+  }
 
   function applyToggles(){
     document.body.classList.toggle('hide-guides', !chkGuides.checked);
@@ -197,73 +993,458 @@
     document.body.classList.toggle('hide-safe', !chkSafe.checked);
     document.body.classList.toggle('printshop', chkShop.checked);
   }
-  [chkGuides,chkCrops,chkColor,chkReg,chkSafe,chkShop].forEach(el=> el.addEventListener('change', applyToggles));
+  [chkGuides, chkCrops, chkColor, chkReg, chkSafe, chkShop].forEach(el=>el.addEventListener('change', applyToggles));
   applyToggles();
 
   function applyColorPreset(){
-    const preset = selColorPreset.value; const bars = document.querySelectorAll('.marks .colorbar');
-    bars.forEach(bar=>{ bar.innerHTML=''; let patches=[]; if(preset==='ugra'){ patches=['c','m','y','k']; for(let i=0;i<=20;i++){ const val=Math.round((i/20)*90); patches.push('g'+(val||'90')); } } else { patches=['c','m','y','k','r','g','b','w','g10','g20','g30','g40','g50','g60','g70','g80','g90']; } patches.forEach(p=>{ const d=document.createElement('div'); d.className='patch '+p; bar.appendChild(d); }); });
+    const preset = selColorPreset.value;
+    const bars = document.querySelectorAll('.marks .colorbar');
+    bars.forEach(bar=>{
+      bar.innerHTML = '';
+      let patches = [];
+      if(preset === 'ugra'){
+        patches = ['c','m','y','k'];
+        for(let i=0;i<=20;i++){
+          const val = Math.round((i/20)*90);
+          patches.push('g'+(val || '90'));
+        }
+      } else {
+        patches = ['c','m','y','k','r','g','b','w','g10','g20','g30','g40','g50','g60','g70','g80','g90'];
+      }
+      patches.forEach(p=>{
+        const d = document.createElement('div');
+        d.className = 'patch '+p;
+        bar.appendChild(d);
+      });
+    });
   }
   selColorPreset.addEventListener('change', applyColorPreset);
 
-  // Demo lorem
-  const patterns = [['2'],['3'],['1'],['2','3'],['3','2'],['1','2'],['2','1','3'],['3','1'],['2','2','3'],['3','3','1']];
-  const vocab=['DocuMonster layout','production pipeline','vector art','modern typography','baseline grid','ink density','preflight checklist','advanced master pages','PDF/X export','linked assets','footnote engine','multi-column flow','interactive elements','instant imposition'];
-  function loremSentence(){ const bits=['Capture ideas','Shape your narrative','Balance typography','Polish every column','Refine kerning','Streamline exports','Test print-ready spreads','Design without compromise','Deliver publication-grade PDFs','Stay in control','Automate routine tasks','Build reusable components']; const len=6+Math.floor(Math.random()*8); let out=[]; for(let i=0;i<len;i++) out.push(bits[Math.floor(Math.random()*bits.length)]); let s=out.join(' ')+'.'; return s.charAt(0).toUpperCase()+s.slice(1); }
-  function loremPara(){ const n=3+Math.floor(Math.random()*5); let p=[]; for(let i=0;i<n;i++) p.push(loremSentence()); return p.join(' '); }
-  function fig(h){ const hh=h||['h30','h40','h50','h60'][Math.floor(Math.random()*4)]; const spanAll=Math.random()<0.35; const f=document.createElement('figure'); if(spanAll) f.classList.add('span-all'); const img=document.createElement('div'); img.className='ph '+hh; const cap=document.createElement('figcaption'); cap.textContent= spanAll? 'Illustration: full spread preview' : 'Illustration: placeholder'; f.appendChild(img); f.appendChild(cap); return f; }
-  function para(t){ const p=document.createElement('p'); p.textContent=t||loremPara(); return p; }
-  function makeColsBlock(cc){ const b=document.createElement('div'); b.className='cols cols-'+cc+' split'; const parts=3+Math.floor(Math.random()*5); for(let i=0;i<parts;i++){ if(i>0 && i%3===0){ b.appendChild(fig()); } b.appendChild(para()); } if(Math.random()<0.25) b.appendChild(fig('h40')); return b; }
+  function buildRulers(){
+    const widthMm = 210;
+    const heightMm = 297;
+    const cmTopCount = Math.ceil(widthMm / 10);
+    const inTopCount = Math.ceil(widthMm / 25.4);
+    const cmLeftCount = Math.ceil(heightMm / 10);
+    const inLeftCount = Math.ceil(heightMm / 25.4);
+    rulerTopCm.innerHTML = '';
+    rulerTopIn.innerHTML = '';
+    rulerLeftCm.innerHTML = '';
+    rulerLeftIn.innerHTML = '';
+    for(let i=0;i<=cmTopCount;i++){
+      const span = document.createElement('span');
+      span.textContent = i;
+      span.style.left = mmToPx(i*10)+'px';
+      rulerTopCm.appendChild(span);
+    }
+    for(let i=0;i<=inTopCount;i++){
+      const span = document.createElement('span');
+      span.textContent = i+'"';
+      span.style.left = mmToPx(i*25.4)+'px';
+      rulerTopIn.appendChild(span);
+    }
+    for(let i=0;i<=cmLeftCount;i++){
+      const span = document.createElement('span');
+      span.textContent = i;
+      span.style.top = mmToPx(i*10)+'px';
+      rulerLeftCm.appendChild(span);
+    }
+    for(let i=0;i<=inLeftCount;i++){
+      const span = document.createElement('span');
+      span.textContent = i+'"';
+      span.style.top = mmToPx(i*25.4)+'px';
+      rulerLeftIn.appendChild(span);
+    }
+  }
 
-  function makeTrim(sheet){ const t=document.createElement('div'); t.className='trim'; for(const c of ['tl','tr','bl','br']){ const m=document.createElement('div'); m.className='crop '+c; t.appendChild(m);} sheet.appendChild(t); return t; }
-  function addMarks(sheet, idx){ const m=document.createElement('div'); m.className='marks'; const cb=document.createElement('div'); cb.className='colorbar'; m.appendChild(cb); const info=document.createElement('div'); info.className='info'; info.textContent='DocuMonster v'+VERSION+' — page '+(idx+1)+'/'+TOTAL; m.appendChild(info); ['tl','tr','bl','br'].forEach(pos=>{ const r=document.createElement('div'); r.className='reg '+pos; m.appendChild(r); }); const safe=document.createElement('div'); safe.className='safe-area'; m.appendChild(safe); const slur=document.createElement('div'); slur.className='slur'; m.appendChild(slur); sheet.appendChild(m); }
+  function selectFrame(frameEl, pageIndex, elementIndex){
+    document.querySelectorAll('.frame.selected').forEach(el=>el.classList.remove('selected'));
+    frameEl.classList.add('selected');
+    selectedFrame = frameEl;
+    selectedFramePage = pageIndex;
+    selectedFrameIndex = elementIndex;
+    frameInspector.classList.add('active');
+    updateInspectorFields(docModel.pages[pageIndex].elements[elementIndex]);
+  }
 
-  function pageSkeleton(title, idx){ const sheet=document.createElement('section'); sheet.className='sheet '+(idx%2?'even':'odd'); const trim=makeTrim(sheet); const content=document.createElement('div'); content.className='content'; trim.appendChild(content); addMarks(sheet, idx); const head=document.createElement('header'); head.className='head'; head.innerHTML='<h1 class="title">'+(title||'Publication blueprint')+'</h1>'; content.appendChild(head); return {sheet, content}; }
+  function restoreFrameSelection(){
+    if(selectedFramePage < 0 || selectedFrameIndex < 0) return;
+    const selector = '.frame[data-page-index="'+selectedFramePage+'"][data-element-index="'+selectedFrameIndex+'"]';
+    const frame = document.querySelector(selector);
+    if(frame){
+      selectFrame(frame, selectedFramePage, selectedFrameIndex);
+    } else {
+      clearFrameSelection();
+    }
+  }
 
-  function chapterOnePage(i){ const {sheet,content}=pageSkeleton('KICKOFF: PLAN THE ISSUE', i); const c2=document.createElement('div'); c2.className='cols cols-2 split'; c2.appendChild(para('Every DocuMonster project begins with intent. Define the story you want to tell, identify the assets you need, and decide which spreads should shine. This workspace keeps the full publication in view while you iterate.'));
-  c2.appendChild(para('Assign layout presets, import typography scales, and keep an eye on your bleed. Styles are responsive to the toggles above, so you can verify print marks, color bars, and gutter mirroring instantly.'));
-  c2.appendChild(para('Drag new sections into the outline, let automatic columns handle flow, and reserve space for photography or callouts. DocuMonster keeps your spreads balanced while the ideas are still fluid.'));
-  c2.appendChild(para('When you are ready to export, choose the bleed or trim preset and produce press-ready PDFs in seconds.')); c2.appendChild(para('The on-screen preview mimics production margins and demonstrates live imposition. Scroll through the sidebar thumbnails to navigate any page instantly.'));
-  content.appendChild(c2);
-  const cspan=document.createElement('div'); cspan.className='cols cols-2 split'; const h2=document.createElement('h2'); h2.className='span-all'; h2.textContent='CHECKLIST: BEFORE YOU EXPORT'; cspan.appendChild(h2); cspan.appendChild(para('☑ Validate linked assets and confirm resolution targets. ☑ Ensure baseline grid alignment across multi-column articles. ☑ Run your editorial workflow and confirm approvals.'));
-  cspan.appendChild(para('DocuMonster thrives on iteration. Duplicate spreads, shuffle modules, and test alternative covers without losing sight of your production specs.'));
-  content.appendChild(cspan);
-  const c3=document.createElement('div'); c3.className='cols cols-3 split'; c3.appendChild(para('Build with confidence.'));
-  c3.appendChild(para('Use mirrored gutters for print signatures or disable them for single-sided reports.')); c3.appendChild(para('Fine-tune grid densities and spot potential overflow with the safe area overlay.'));
-  c3.appendChild(para('The preview color bars can be switched to Ugra/Fogra references for quick proofing.'));
-  c3.appendChild(fig('h40'));
-  content.appendChild(c3);
-  const foot=document.createElement('footer'); foot.className='foot'; foot.innerHTML='<span>DocuMonster Studio</span><span>Page '+(i+1)+' / '+TOTAL+' - v'+VERSION+'</span>';
-  content.appendChild(foot);
-  return sheet; }
+  function isSelectedFrame(frameEl){
+    return selectedFrame && frameEl === selectedFrame;
+  }
 
-  function genericPage(i){ const {sheet,content}=pageSkeleton('Layout Study — Page '+(i+1), i); const pat=patterns[i%patterns.length]; for(const c of pat){ content.appendChild(makeColsBlock(c)); }
-  const foot=document.createElement('footer'); foot.className='foot'; foot.innerHTML='<span>DocuMonster Studio</span><span>Page '+(i+1)+' / '+TOTAL+' - v'+VERSION+'</span>';
-  content.appendChild(foot); return sheet; }
+  function updateInspectorFields(el){
+    if(el.mode === 'overlay'){
+      framePosX.disabled = false;
+      framePosY.disabled = false;
+      framePosX.value = el.x.toFixed(1);
+      framePosY.value = el.y.toFixed(1);
+    } else {
+      framePosX.disabled = true;
+      framePosY.disabled = true;
+      framePosX.value = '—';
+      framePosY.value = '—';
+    }
+    frameWidth.value = el.width.toFixed(1);
+    frameHeight.value = el.height.toFixed(1);
+    frameWrap.value = el.mode;
+    frameCaption.value = el.caption || '';
+    if(el.frameType === 'image'){
+      frameImageUrlLabel.style.display = '';
+      frameImageUrl.value = el.src || '';
+    } else {
+      frameImageUrlLabel.style.display = 'none';
+      frameImageUrl.value = '';
+    }
+  }
 
-  for(let i=0;i<TOTAL;i++){ const page=(i===0)? chapterOnePage(i) : genericPage(i); page.dataset.index=String(i); pagesEl.appendChild(page); }
+  function clearFrameSelection(){
+    document.querySelectorAll('.frame.selected').forEach(el=>el.classList.remove('selected'));
+    selectedFrame = null;
+    selectedFrameIndex = -1;
+    selectedFramePage = -1;
+    frameInspector.classList.remove('active');
+  }
 
-  const pages = Array.from(document.querySelectorAll('.sheet')); let cur=0;
-  function buildThumbnails(){ thumbsEl.innerHTML=''; const r=pages[0].getBoundingClientRect(); const baseW=r.width||pages[0].offsetWidth||1000; const baseH=r.height||pages[0].offsetHeight||1400; pages.forEach((p,idx)=>{ const wrap=document.createElement('div'); wrap.className='thumb'; wrap.dataset.index=String(idx); const mini=document.createElement('div'); mini.className='mini-wrap'; const clone=p.cloneNode(true); clone.style.pointerEvents='none'; mini.appendChild(clone); wrap.appendChild(mini); const meta=document.createElement('div'); meta.className='mini-meta'; meta.textContent='Page '+(idx+1); wrap.appendChild(meta); wrap.addEventListener('click',()=>snapTo(idx)); thumbsEl.appendChild(wrap); const availW=mini.clientWidth; let scale=availW/baseW; if(!isFinite(scale)||scale<=0){ scale=0.2; } clone.style.transformOrigin='top left'; clone.style.transform='scale('+scale.toFixed(4)+')'; mini.style.height=(baseH*scale)+'px'; }); setActiveThumb(); applyColorPreset(); }
-  function setActiveThumb(){ document.querySelectorAll('.thumb.active').forEach(e=>e.classList.remove('active')); const t=thumbsEl.querySelector('.thumb[data-index="'+cur+'"]'); if(t) t.classList.add('active'); }
-  function snapTo(idx){ cur=Math.max(0,Math.min(TOTAL-1,idx)); pages[cur].scrollIntoView({behavior:'smooth',block:'start'}); curEl.textContent=String(cur+1); gotoEl.value=String(cur+1); prevBtn.disabled=(cur===0); firstBtn.disabled=(cur===0); nextBtn.disabled=(cur===TOTAL-1); lastBtn.disabled=(cur===TOTAL-1); setActiveThumb(); }
+  document.addEventListener('click', ev=>{
+    if(!ev.target.closest('.frame') && !ev.target.closest('#frameInspector')){
+      clearFrameSelection();
+    }
+  });
 
-  prevBtn.addEventListener('click',()=>snapTo(cur-1)); nextBtn.addEventListener('click',()=>snapTo(cur+1)); firstBtn.addEventListener('click',()=>snapTo(0)); lastBtn.addEventListener('click',()=>snapTo(TOTAL-1)); goBtn.addEventListener('click',()=>{ const v=parseInt(gotoEl.value,10)||1; snapTo(v-1); }); gotoEl.addEventListener('keydown',e=>{ if(e.key==='Enter'){ const v=parseInt(gotoEl.value,10)||1; snapTo(v-1); }});
-  window.addEventListener('keydown',e=>{ if(e.target===gotoEl) return; if(e.key==='ArrowRight'||e.key==='PageDown') snapTo(cur+1); if(e.key==='ArrowLeft'||e.key==='PageUp') snapTo(cur-1); if(e.key==='Home') snapTo(0); if(e.key==='End') snapTo(TOTAL-1); });
+  framePosX.addEventListener('input', ()=>{
+    if(!selectedFrame) return;
+    const el = docModel.pages[selectedFramePage].elements[selectedFrameIndex];
+    if(el.mode !== 'overlay') return;
+    el.x = parseFloat(framePosX.value) || 0;
+    applyFrameMode(selectedFrame, el);
+    markDirty();
+  });
+  framePosY.addEventListener('input', ()=>{
+    if(!selectedFrame) return;
+    const el = docModel.pages[selectedFramePage].elements[selectedFrameIndex];
+    if(el.mode !== 'overlay') return;
+    el.y = parseFloat(framePosY.value) || 0;
+    applyFrameMode(selectedFrame, el);
+    markDirty();
+  });
+  frameWidth.addEventListener('input', ()=>{
+    if(!selectedFrame) return;
+    const el = docModel.pages[selectedFramePage].elements[selectedFrameIndex];
+    el.width = Math.max(20, parseFloat(frameWidth.value) || el.width);
+    applyFrameMode(selectedFrame, el);
+    markDirty();
+  });
+  frameHeight.addEventListener('input', ()=>{
+    if(!selectedFrame) return;
+    const el = docModel.pages[selectedFramePage].elements[selectedFrameIndex];
+    el.height = Math.max(20, parseFloat(frameHeight.value) || el.height);
+    applyFrameMode(selectedFrame, el);
+    markDirty();
+  });
+  frameWrap.addEventListener('change', ()=>{
+    if(!selectedFrame) return;
+    const el = docModel.pages[selectedFramePage].elements[selectedFrameIndex];
+    el.mode = frameWrap.value;
+    applyFrameMode(selectedFrame, el);
+    updateInspectorFields(el);
+    markDirty();
+  });
+  frameCaption.addEventListener('input', ()=>{
+    if(!selectedFrame) return;
+    const el = docModel.pages[selectedFramePage].elements[selectedFrameIndex];
+    el.caption = frameCaption.value;
+    const cap = selectedFrame.querySelector('figcaption');
+    if(cap) cap.textContent = el.caption;
+    markDirty();
+  });
+  frameImageUrl.addEventListener('change', ()=>{
+    if(!selectedFrame) return;
+    const el = docModel.pages[selectedFramePage].elements[selectedFrameIndex];
+    if(el.frameType !== 'image') return;
+    el.src = frameImageUrl.value.trim();
+    const wrap = selectedFrame.querySelector('.frame-image');
+    if(wrap){
+      if(el.src){
+        wrap.dataset.src = el.src;
+        wrap.style.backgroundImage = 'url("'+el.src.replace(/"/g,'&quot;')+'")';
+        wrap.textContent = '';
+      } else {
+        wrap.removeAttribute('data-src');
+        wrap.style.backgroundImage = '';
+        wrap.textContent = 'Set an image URL from the inspector.';
+      }
+    }
+    markDirty();
+  });
 
-  const obs=new IntersectionObserver(entries=>{ let topMost=null; let topY=Infinity; for(const e of entries){ if(e.isIntersecting){ const rr=e.target.getBoundingClientRect(); if(rr.top>=0 && rr.top<topY){ topY=rr.top; topMost=e.target; } } } if(topMost){ const idx=pages.indexOf(topMost); if(idx>=0){ cur=idx; curEl.textContent=String(cur+1); gotoEl.value=String(cur+1); setActiveThumb(); prevBtn.disabled=(cur===0); firstBtn.disabled=(cur===0); nextBtn.disabled=(cur===TOTAL-1); lastBtn.disabled=(cur===TOTAL-1); } } },{root:null,rootMargin:'0px',threshold:[0.6]});
-  pages.forEach(p=>obs.observe(p));
+  function addColumnsToCurrent(count){
+    const page = docModel.pages[cur];
+    if(!page) return;
+    page.elements.push({ type:'columns', columns:count, html:'<p>Type your story here.</p>' });
+    markDirty();
+    renderDocument();
+    snapTo(cur, true);
+  }
 
-  function injectPrintStyle(css){ let t=document.getElementById('print-style'); if(t) t.remove(); t=document.createElement('style'); t.id='print-style'; t.type='text/css'; t.appendChild(document.createTextNode(css)); document.head.appendChild(t); }
-  function prePrintCommon(){ applyToggles(); document.body.classList.toggle('pdf-mirror', !!chkMirror.checked); thumbsEl.innerHTML=''; window.scrollTo({top:0,behavior:'auto'}); }
-  function postPrint(){ const t=document.getElementById('print-style'); if(t) t.remove(); buildThumbnails(); }
+  function addFrameToCurrent(type){
+    const page = docModel.pages[cur];
+    if(!page) return;
+    const frame = {
+      type:'frame',
+      frameType:type,
+      mode:'overlay',
+      x:30,
+      y:40,
+      width:60,
+      height:40,
+      content: type === 'text' ? '<p>Double-click to edit frame text.</p>' : '',
+      src:'',
+      caption:''
+    };
+    page.elements.push(frame);
+    selectedFramePage = cur;
+    selectedFrameIndex = page.elements.length-1;
+    selectedFrame = null;
+    markDirty();
+    renderDocument();
+    snapTo(cur, true);
+  }
 
-  pdfBtn.addEventListener('click',()=>{ prePrintCommon(); injectPrintStyle('@page{size:216mm 303mm;margin:0} html,body{width:216mm;height:303mm;margin:0;padding:0} #pages{margin:0} .sheet{left:0;top:0;width:216mm!important;height:303mm!important;margin:0!important;position:relative!important} .trim{left:3mm!important;top:3mm!important;width:210mm!important;height:297mm!important} :root{--m-top:12mm;--m-bot:12mm;--m-in:12mm;--m-out:12mm}'); setTimeout(()=>window.print(),100); });
-  pdfTrimBtn.addEventListener('click',()=>{ const prev={crops:chkCrops.checked,color:chkColor.checked,reg:chkReg.checked}; chkCrops.checked=false; chkColor.checked=false; chkReg.checked=false; applyToggles(); prePrintCommon(); injectPrintStyle('@page{size:210mm 297mm;margin:0} html,body{width:210mm;height:297mm;margin:0;padding:0} #pages{margin:0} .sheet{left:0;top:0;width:210mm!important;height:297mm!important;margin:0!important;position:relative!important} .trim{left:0!important;top:0!important;width:210mm!important;height:297mm!important} :root{--m-top:12mm;--m-bot:12mm;--m-in:12mm;--m-out:12mm}'); setTimeout(()=>window.print(),100); window.addEventListener('afterprint',function r(){ chkCrops.checked=prev.crops; chkColor.checked=prev.color; chkReg.checked=prev.reg; applyToggles(); window.removeEventListener('afterprint',r); }); });
+  function addPage(afterIndex){
+    const base = { title:'Untitled Spread', subtitle:'', deck:'', elements:[{ type:'columns', columns:1, html:'<p>Start typing…</p>' }], footerLeft:'DocuMonster ProtoDesk', footerRight:'Page {{page}} / {{total}}' };
+    docModel.pages.splice(afterIndex+1, 0, base);
+    markDirty();
+    renderDocument();
+    snapTo(afterIndex+1, true);
+  }
+
+  function duplicateCurrentPage(){
+    const page = docModel.pages[cur];
+    if(!page) return;
+    const clone = JSON.parse(JSON.stringify(page));
+    docModel.pages.splice(cur+1, 0, clone);
+    markDirty();
+    renderDocument();
+    snapTo(cur+1, true);
+  }
+
+  function newDocument(){
+    if(isDirty && !confirm('Discard current changes and create a new document?')) return;
+    docModel = normalizeDocument(defaultDocument());
+    markDirty(false);
+    updateVersionInfo();
+    renderDocument();
+    snapTo(0, true);
+    setStatus('New document ready.');
+  }
+
+  function openDocumentFile(){
+    openFileInput.value = '';
+    openFileInput.click();
+  }
+
+  openFileInput.addEventListener('change', ()=>{
+    const file = openFileInput.files && openFileInput.files[0];
+    if(!file) return;
+    const reader = new FileReader();
+    reader.onload = ()=>{
+      try{
+        const data = JSON.parse(reader.result);
+        docModel = normalizeDocument(data);
+        markDirty(false);
+        updateVersionInfo();
+        renderDocument();
+        snapTo(0, true);
+        setStatus('Document loaded.');
+      }catch(err){
+        console.error(err);
+        setStatus('Failed to open file: '+err.message, false);
+      }
+    };
+    reader.readAsText(file);
+  });
+
+  function loadAutosave(){
+    const saved = loadFromStorage();
+    if(!saved){
+      setStatus('No autosave found.', true);
+      return;
+    }
+    docModel = normalizeDocument(saved);
+    markDirty(false);
+    updateVersionInfo();
+    renderDocument();
+    snapTo(0, true);
+    setStatus('Autosave restored.');
+  }
+
+  function saveAsDocument(){
+    const blob = new Blob([JSON.stringify(docModel, null, 2)], { type:'application/json' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'documonster-protodesk-'+Date.now()+'.json';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(a.href);
+    markDirty(false);
+    setStatus('JSON downloaded.');
+  }
+
+  function openMenu(id, anchor){
+    closeMenus();
+    const panel = document.querySelector('.menu-dropdown[data-panel="'+id+'"]');
+    if(!panel) return;
+    const rect = anchor.getBoundingClientRect();
+    panel.style.left = rect.left+'px';
+    panel.style.top = (rect.bottom)+'px';
+    panel.classList.add('open');
+    anchor.classList.add('open');
+    menuOpen = { id, anchor, panel };
+  }
+
+  function closeMenus(){
+    document.querySelectorAll('.menu-dropdown.open').forEach(el=>el.classList.remove('open'));
+    document.querySelectorAll('.menu-root.open').forEach(el=>el.classList.remove('open'));
+    menuOpen = null;
+  }
+
+  menubar.addEventListener('click', ev=>{
+    const root = ev.target.closest('.menu-root');
+    if(root){
+      const id = root.dataset.menu;
+      if(menuOpen && menuOpen.id === id){
+        closeMenus();
+      } else {
+        openMenu(id, root);
+      }
+    }
+    const action = ev.target.closest('.menu-dropdown button');
+    if(action){
+      handleMenuAction(action.dataset.action);
+      closeMenus();
+    }
+  });
+
+  document.addEventListener('keydown', ev=>{
+    if(ev.key === 'Escape') closeMenus();
+  });
+
+  document.addEventListener('click', ev=>{
+    if(!ev.target.closest('#menubar')) closeMenus();
+  });
+
+  function handleMenuAction(action){
+    switch(action){
+      case 'new-doc': return newDocument();
+      case 'open-doc': return openDocumentFile();
+      case 'save-doc': return saveToStorage();
+      case 'save-as-doc': return saveAsDocument();
+      case 'load-autosave': return loadAutosave();
+      case 'export-bleed': return exportPdfBleed();
+      case 'export-trim': return exportPdfTrim();
+      case 'toggle-mirror': chkMirror.checked = !chkMirror.checked; return;
+      case 'toggle-printshop': chkShop.checked = !chkShop.checked; applyToggles(); return;
+      case 'add-col-1': return addColumnsToCurrent(1);
+      case 'add-col-2': return addColumnsToCurrent(2);
+      case 'add-col-3': return addColumnsToCurrent(3);
+      case 'add-text-frame': return addFrameToCurrent('text');
+      case 'add-image-frame': return addFrameToCurrent('image');
+      case 'new-page': return addPage(cur);
+      case 'duplicate-page': return duplicateCurrentPage();
+      case 'toggle-guides': chkGuides.checked = !chkGuides.checked; applyToggles(); return;
+      case 'toggle-crops': chkCrops.checked = !chkCrops.checked; applyToggles(); return;
+      case 'toggle-colorbar': chkColor.checked = !chkColor.checked; applyToggles(); return;
+      default: return;
+    }
+  }
+
+  function injectPrintStyle(css){
+    let t = document.getElementById('print-style');
+    if(t) t.remove();
+    t = document.createElement('style');
+    t.id = 'print-style';
+    t.type = 'text/css';
+    t.appendChild(document.createTextNode(css));
+    document.head.appendChild(t);
+  }
+
+  function prePrintCommon(){
+    applyToggles();
+    document.body.classList.toggle('pdf-mirror', !!chkMirror.checked);
+    thumbsEl.innerHTML = '';
+    window.scrollTo({ top:0, behavior:'auto' });
+  }
+
+  function postPrint(){
+    const t = document.getElementById('print-style');
+    if(t) t.remove();
+    buildThumbnails();
+  }
+
+  function exportPdfBleed(){
+    prePrintCommon();
+    injectPrintStyle('@page{size:216mm 303mm;margin:0} html,body{width:216mm;height:303mm;margin:0;padding:0} #pages{margin:0} .sheet{left:0;top:0;width:216mm!important;height:303mm!important;margin:0!important;position:relative!important} .trim{left:3mm!important;top:3mm!important;width:210mm!important;height:297mm!important} :root{--m-top:12mm;--m-bot:12mm;--m-in:12mm;--m-out:12mm}');
+    setTimeout(()=>window.print(), 120);
+  }
+
+  function exportPdfTrim(){
+    const prev = { crops:chkCrops.checked, color:chkColor.checked, reg:chkReg.checked };
+    chkCrops.checked = false;
+    chkColor.checked = false;
+    chkReg.checked = false;
+    applyToggles();
+    prePrintCommon();
+    injectPrintStyle('@page{size:210mm 297mm;margin:0} html,body{width:210mm;height:297mm;margin:0;padding:0} #pages{margin:0} .sheet{left:0;top:0;width:210mm!important;height:297mm!important;margin:0!important;position:relative!important} .trim{left:0!important;top:0!important;width:210mm!important;height:297mm!important} :root{--m-top:12mm;--m-bot:12mm;--m-in:12mm;--m-out:12mm}');
+    setTimeout(()=>window.print(), 120);
+    window.addEventListener('afterprint', function restore(){
+      chkCrops.checked = prev.crops;
+      chkColor.checked = prev.color;
+      chkReg.checked = prev.reg;
+      applyToggles();
+      window.removeEventListener('afterprint', restore);
+    });
+  }
+
+  prevBtn.addEventListener('click', ()=>snapTo(cur-1, false));
+  nextBtn.addEventListener('click', ()=>snapTo(cur+1, false));
+  firstBtn.addEventListener('click', ()=>snapTo(0, false));
+  lastBtn.addEventListener('click', ()=>snapTo(getTotalPages()-1, false));
+  goBtn.addEventListener('click', ()=>{ const v = parseInt(gotoEl.value,10)||1; snapTo(v-1, false); });
+  gotoEl.addEventListener('keydown', ev=>{ if(ev.key === 'Enter'){ const v = parseInt(gotoEl.value,10)||1; snapTo(v-1, false); }});
+
+  window.addEventListener('keydown', ev=>{
+    if(ev.target === gotoEl) return;
+    if(ev.key === 'ArrowRight' || ev.key === 'PageDown') snapTo(cur+1, false);
+    if(ev.key === 'ArrowLeft' || ev.key === 'PageUp') snapTo(cur-1, false);
+    if(ev.key === 'Home') snapTo(0, false);
+    if(ev.key === 'End') snapTo(getTotalPages()-1, false);
+  });
+
   window.addEventListener('afterprint', postPrint);
+  window.addEventListener('beforeunload', ev=>{
+    if(isDirty){
+      ev.preventDefault();
+      ev.returnValue = '';
+    }
+  });
 
-  window.addEventListener('load',()=>{ buildThumbnails(); applyColorPreset(); }); window.addEventListener('resize', buildThumbnails);
-  snapTo(0);
+  renderDocument();
+  updateVersionInfo();
+  snapTo(0, true);
+  setStatus('Ready.', false);
+  window.addEventListener('resize', buildThumbnails);
+
 })();
 </script>
 </body>
