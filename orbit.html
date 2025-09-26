@@ -1,0 +1,573 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Orbit OS — Minimal Flight Deck</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --white: #ffffff;
+      --orange: #ff8a3d;
+      --paris-blue: #4f86f7;
+      --dark-navy: #07162c;
+      --black: #000000;
+      --sand-10: #f5efe4;
+      --sand-30: #e4d4b8;
+      --sand-60: #c7a874;
+      --sand-90: #8a6a36;
+      font-family: "Space Grotesk", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: radial-gradient(circle at 20% 20%, rgba(79, 134, 247, 0.18), transparent 45%),
+        radial-gradient(circle at 80% 10%, rgba(255, 138, 61, 0.12), transparent 50%),
+        linear-gradient(160deg, var(--dark-navy), var(--black));
+      color: var(--white);
+      display: flex;
+      flex-direction: column;
+    }
+
+    .top-bar {
+      height: 56px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 28px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      background: rgba(7, 22, 44, 0.72);
+      backdrop-filter: blur(18px);
+    }
+
+    .top-bar h1 {
+      font-size: 1rem;
+      font-weight: 500;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      margin: 0;
+      color: var(--sand-10);
+    }
+
+    .status-indicators {
+      display: flex;
+      align-items: center;
+      gap: 18px;
+      font-size: 0.85rem;
+      color: var(--sand-30);
+    }
+
+    .status-indicators span {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 999px;
+      background: var(--orange);
+      box-shadow: 0 0 12px rgba(255, 138, 61, 0.6);
+    }
+
+    .desktop {
+      flex: 1;
+      position: relative;
+      overflow: hidden;
+      padding: clamp(16px, 3vw, 36px);
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+      gap: clamp(16px, 3vw, 32px);
+      align-content: flex-start;
+    }
+
+    .icon-card {
+      background: rgba(7, 22, 44, 0.58);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 18px;
+      padding: 18px;
+      min-height: 120px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      cursor: pointer;
+      transition: transform 0.18s ease, border-color 0.18s ease, background 0.18s ease;
+      position: relative;
+      isolation: isolate;
+    }
+
+    .icon-card::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      border-radius: 18px;
+      background: linear-gradient(140deg, rgba(255, 138, 61, 0.16), rgba(79, 134, 247, 0.24));
+      opacity: 0;
+      transition: opacity 0.2s ease;
+      z-index: -1;
+    }
+
+    .icon-card:hover {
+      transform: translateY(-4px);
+      border-color: rgba(255, 255, 255, 0.18);
+    }
+
+    .icon-card:hover::after {
+      opacity: 1;
+    }
+
+    .icon-figure {
+      width: 48px;
+      height: 48px;
+      border-radius: 14px;
+      background: linear-gradient(135deg, var(--paris-blue), rgba(79, 134, 247, 0.42));
+      display: grid;
+      place-items: center;
+      color: var(--white);
+      font-size: 1.35rem;
+      margin-bottom: 14px;
+    }
+
+    .icon-title {
+      font-size: 0.95rem;
+      font-weight: 500;
+      color: var(--sand-10);
+      letter-spacing: 0.04em;
+    }
+
+    .icon-subtitle {
+      font-size: 0.75rem;
+      color: var(--sand-30);
+      line-height: 1.4;
+    }
+
+    .window {
+      position: absolute;
+      top: 20%;
+      left: 20%;
+      min-width: 260px;
+      max-width: min(480px, 85vw);
+      background: rgba(7, 22, 44, 0.88);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 18px;
+      backdrop-filter: blur(16px);
+      box-shadow: 0 24px 60px rgba(0, 0, 0, 0.45);
+      display: flex;
+      flex-direction: column;
+      animation: scale-in 220ms ease;
+    }
+
+    @keyframes scale-in {
+      from {
+        transform: scale(0.92) translateY(12px);
+        opacity: 0;
+      }
+      to {
+        transform: scale(1) translateY(0);
+        opacity: 1;
+      }
+    }
+
+    .window-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 20px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      cursor: grab;
+      gap: 12px;
+    }
+
+    .window-header:active {
+      cursor: grabbing;
+    }
+
+    .window-title {
+      font-size: 0.95rem;
+      font-weight: 500;
+      color: var(--white);
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .window-actions button {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      border: none;
+      background: rgba(255, 138, 61, 0.16);
+      color: var(--orange);
+      display: grid;
+      place-items: center;
+      cursor: pointer;
+      transition: background 0.18s ease, color 0.18s ease;
+    }
+
+    .window-actions button:hover {
+      background: var(--orange);
+      color: var(--black);
+    }
+
+    .window-body {
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      color: var(--sand-10);
+      font-size: 0.95rem;
+      line-height: 1.6;
+    }
+
+    .window-body h2 {
+      margin: 0;
+      font-size: 1rem;
+      font-weight: 600;
+      color: var(--white);
+    }
+
+    .window-body p,
+    .window-body li {
+      color: var(--sand-10);
+    }
+
+    .window-body ul {
+      margin: 0;
+      padding-left: 20px;
+      display: grid;
+      gap: 6px;
+    }
+
+    .window-body strong {
+      color: var(--white);
+    }
+
+    .note-area {
+      width: 100%;
+      min-height: 160px;
+      background: rgba(245, 239, 228, 0.08);
+      border: 1px solid rgba(245, 239, 228, 0.18);
+      border-radius: 12px;
+      color: var(--sand-10);
+      padding: 16px;
+      font-size: 0.95rem;
+      font-family: "Space Grotesk", sans-serif;
+      resize: vertical;
+    }
+
+    .clock-face {
+      font-size: 2.4rem;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      color: var(--white);
+      text-align: center;
+    }
+
+    .clock-subline {
+      text-align: center;
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      letter-spacing: 0.2em;
+      color: var(--sand-30);
+    }
+
+    .palette-grid {
+      display: grid;
+      gap: 12px;
+    }
+
+    .swatch {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 16px;
+      border-radius: 12px;
+      color: var(--black);
+      font-weight: 500;
+    }
+
+    .swatch:nth-child(1) {
+      background: var(--sand-10);
+    }
+
+    .swatch:nth-child(2) {
+      background: var(--sand-30);
+    }
+
+    .swatch:nth-child(3) {
+      background: var(--sand-60);
+      color: var(--white);
+    }
+
+    .swatch:nth-child(4) {
+      background: var(--sand-90);
+      color: var(--white);
+    }
+
+    .mini-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.75rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--sand-30);
+    }
+
+    .mini-tag::before {
+      content: "";
+      width: 22px;
+      height: 1px;
+      background: rgba(255, 255, 255, 0.16);
+    }
+
+    @media (max-width: 720px) {
+      .top-bar {
+        padding: 0 18px;
+      }
+
+      .desktop {
+        grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      }
+
+      .window {
+        left: 50%;
+        transform: translateX(-50%);
+        width: min(90vw, 420px);
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .icon-card,
+      .window {
+        transition: none;
+        animation: none;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header class="top-bar">
+    <h1>Orbit OS Minimal Deck</h1>
+    <div class="status-indicators">
+      <span><span class="status-dot" aria-hidden="true"></span>Systems nominal</span>
+      <span id="deck-clock" aria-live="polite">00:00</span>
+    </div>
+  </header>
+  <main class="desktop" aria-label="Orbit desktop">
+    <article class="icon-card" data-app="mission" tabindex="0">
+      <div>
+        <div class="icon-figure" aria-hidden="true">🛰️</div>
+        <h2 class="icon-title">Mission Brief</h2>
+        <p class="icon-subtitle">Deep analysis of the legacy Orbit OS stack.</p>
+      </div>
+      <span class="mini-tag">intel</span>
+    </article>
+    <article class="icon-card" data-app="notes" tabindex="0">
+      <div>
+        <div class="icon-figure" aria-hidden="true">🗒️</div>
+        <h2 class="icon-title">Field Notes</h2>
+        <p class="icon-subtitle">Jot orbit observations. Persists locally.</p>
+      </div>
+      <span class="mini-tag">memory</span>
+    </article>
+    <article class="icon-card" data-app="clock" tabindex="0">
+      <div>
+        <div class="icon-figure" aria-hidden="true">⏱️</div>
+        <h2 class="icon-title">Chronometer</h2>
+        <p class="icon-subtitle">Synchronized mission time feed.</p>
+      </div>
+      <span class="mini-tag">time</span>
+    </article>
+    <article class="icon-card" data-app="palette" tabindex="0">
+      <div>
+        <div class="icon-figure" aria-hidden="true">🎨</div>
+        <h2 class="icon-title">Palette Map</h2>
+        <p class="icon-subtitle">Orbit tones with four sand-inspired shades.</p>
+      </div>
+      <span class="mini-tag">visual</span>
+    </article>
+  </main>
+  <template id="window-template">
+    <section class="window" role="dialog" aria-modal="false">
+      <div class="window-header">
+        <span class="window-title"></span>
+        <div class="window-actions">
+          <button type="button" class="window-close" aria-label="Close window">×</button>
+        </div>
+      </div>
+      <div class="window-body"></div>
+    </section>
+  </template>
+  <script>
+    const desktop = document.querySelector('.desktop');
+    const windowTemplate = document.getElementById('window-template');
+    let focusIndex = 8;
+
+    const apps = {
+      mission: {
+        title: 'Mission Brief',
+        render() {
+          const wrapper = document.createElement('div');
+          wrapper.innerHTML = `
+            <h2>Orbit OS (app1) — capability audit</h2>
+            <p>The original desktop blends CRT nostalgia with data-driven tooling. Highlights from the stack include:</p>
+            <ul>
+              <li><strong>Immersive chrome:</strong> <code>app-index.html</code> layers scanlines, curvature, and neon gradients across the desktop shell.</li>
+              <li><strong>Declarative workspace:</strong> <code>app-data/app1.json</code> drives menus, window defaults, and bundled utilities such as the terminal, notes, and Docu Monster Studio Pro.</li>
+              <li><strong>Modular apps:</strong> each tool is lazy-loaded through <code>app-js/gui-api.js</code>, activating bespoke controllers (calculator, calendar, puzzle, jokes, activity feed, and more).</li>
+              <li><strong>Rich iframe integrations:</strong> dedicated canvases expose authoring studios (<code>html-studio.html</code>, <code>documonster.html</code>, <code>cloud-storage.html</code>, <code>retro-list.html</code>) inside resizable Orbit windows.</li>
+              <li><strong>Accessibility hooks:</strong> theme toggles (retro vs. futuristic) and persistence flags ensure Orbit remembers sessions and adapts its visual language.</li>
+            </ul>
+            <p>This pared-down deck focuses on situational awareness, while the legacy build remains ideal for full creative production.</p>
+          `;
+          return wrapper;
+        }
+      },
+      notes: {
+        title: 'Field Notes',
+        render() {
+          const wrapper = document.createElement('div');
+          wrapper.innerHTML = `
+            <p>Notes sync to local storage so drafts survive refreshes.</p>
+            <textarea class="note-area" placeholder="Type mission notes here…"></textarea>
+          `;
+          const textarea = wrapper.querySelector('textarea');
+          const STORAGE_KEY = 'orbit-minimal-notes';
+          textarea.value = localStorage.getItem(STORAGE_KEY) || '';
+          textarea.addEventListener('input', () => {
+            localStorage.setItem(STORAGE_KEY, textarea.value);
+          });
+          return wrapper;
+        }
+      },
+      clock: {
+        title: 'Chronometer',
+        render() {
+          const wrapper = document.createElement('div');
+          wrapper.innerHTML = `
+            <div class="clock-face" data-clock>00:00:00</div>
+            <div class="clock-subline" data-clock-date>0000-00-00</div>
+          `;
+          const clockEl = wrapper.querySelector('[data-clock]');
+          const dateEl = wrapper.querySelector('[data-clock-date]');
+          const update = () => {
+            const now = new Date();
+            clockEl.textContent = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+            dateEl.textContent = now.toLocaleDateString(undefined, { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' });
+          };
+          update();
+          const timer = setInterval(update, 1000);
+          wrapper.addEventListener('removed', () => clearInterval(timer));
+          return wrapper;
+        }
+      },
+      palette: {
+        title: 'Palette Map',
+        render() {
+          const wrapper = document.createElement('div');
+          wrapper.innerHTML = `
+            <p>Five primaries anchor the interface. Sand tones add a grounded analogue bridge between the cool blues and energetic orange.</p>
+            <div class="palette-grid">
+              <div class="swatch">Sand 10<span>#F5EFE4</span></div>
+              <div class="swatch">Sand 30<span>#E4D4B8</span></div>
+              <div class="swatch">Sand 60<span>#C7A874</span></div>
+              <div class="swatch">Sand 90<span>#8A6A36</span></div>
+            </div>
+          `;
+          return wrapper;
+        }
+      }
+    };
+
+    function openWindow(appKey) {
+      const app = apps[appKey];
+      if (!app) return;
+      const node = windowTemplate.content.firstElementChild.cloneNode(true);
+      const body = node.querySelector('.window-body');
+      node.querySelector('.window-title').textContent = app.title;
+      const view = app.render();
+      body.appendChild(view);
+      desktop.appendChild(node);
+      const left = Math.max(24, Math.min(window.innerWidth - 360, 80 + Math.random() * 160));
+      const top = Math.max(24, Math.min(window.innerHeight - 320, 80 + Math.random() * 140));
+      node.style.left = `${left}px`;
+      node.style.top = `${top}px`;
+      focusWindow(node);
+      enableDrag(node);
+      node.addEventListener('pointerdown', () => focusWindow(node));
+      node.querySelector('.window-close').addEventListener('click', () => closeWindow(node));
+    }
+
+    function focusWindow(node) {
+      focusIndex += 1;
+      node.style.zIndex = focusIndex;
+    }
+
+    function closeWindow(node) {
+      node.dispatchEvent(new Event('removed', { bubbles: true }));
+      node.remove();
+    }
+
+    function enableDrag(node) {
+      const header = node.querySelector('.window-header');
+      let offsetX = 0;
+      let offsetY = 0;
+      function pointerDown(event) {
+        if (event.button !== 0) return;
+        const rect = node.getBoundingClientRect();
+        offsetX = event.clientX - rect.left;
+        offsetY = event.clientY - rect.top;
+        node.setPointerCapture(event.pointerId);
+        node.style.transition = 'none';
+        focusIndex += 1;
+        node.style.zIndex = focusIndex;
+        header.addEventListener('pointermove', pointerMove);
+        header.addEventListener('pointerup', pointerUp, { once: true });
+      }
+      function pointerMove(event) {
+        const x = event.clientX - offsetX;
+        const y = event.clientY - offsetY;
+        node.style.left = `${x}px`;
+        node.style.top = `${y}px`;
+      }
+      function pointerUp(event) {
+        header.removeEventListener('pointermove', pointerMove);
+        node.releasePointerCapture(event.pointerId);
+      }
+      header.addEventListener('pointerdown', pointerDown);
+    }
+
+    desktop.addEventListener('click', (event) => {
+      const card = event.target.closest('.icon-card');
+      if (!card) return;
+      openWindow(card.dataset.app);
+    });
+
+    desktop.addEventListener('keydown', (event) => {
+      if (event.key === 'Enter' || event.key === ' ') {
+        const card = event.target.closest('.icon-card');
+        if (!card) return;
+        event.preventDefault();
+        openWindow(card.dataset.app);
+      }
+    });
+
+    function tickClock() {
+      const clock = document.getElementById('deck-clock');
+      const now = new Date();
+      clock.textContent = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    }
+
+    tickClock();
+    setInterval(tickClock, 1000);
+  </script>
+</body>
+</html>
