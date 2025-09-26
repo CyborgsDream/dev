@@ -695,8 +695,17 @@
       gap: 10px;
     }
     #console-dock .console-status {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 22px;
+      height: 22px;
       color: rgba(255, 255, 255, 0.72);
-      letter-spacing: 0.12em;
+    }
+    #console-dock .console-status svg {
+      width: 16px;
+      height: 16px;
+      display: block;
     }
     #console-fold-btn {
       display: inline-flex;
@@ -782,7 +791,7 @@
         </span>
         <span>Games Mode</span>
       </h2>
-        <button id="ui-fold-btn" type="button" aria-label="Collapse control panel" aria-expanded="true" aria-controls="ui-foldable">
+        <button id="ui-fold-btn" type="button" aria-label="Hide control panel" aria-expanded="true" aria-controls="ui-foldable">
           <span class="fold-icon" aria-hidden="true">
             <svg viewBox="0 0 16 16" role="presentation" focusable="false">
               <path d="M4.2 2.8a1 1 0 0 1 1.6 0l4 5a1 1 0 0 1 0 1.2l-4 5a1 1 0 0 1-1.6-1.2L7.7 8 4.2 4a1 1 0 0 1 0-1.2z"></path>
@@ -838,8 +847,12 @@
     <div class="console-headline">
       <span class="console-title">Signal Log</span>
       <div class="console-actions">
-        <span id="console-status" class="console-status">Expanded</span>
-        <button id="console-fold-btn" type="button" aria-label="Collapse signal log" aria-expanded="true" aria-controls="console-log">
+        <span id="console-status" class="console-status" aria-live="polite" aria-label="Signal log visible">
+          <svg viewBox="0 0 16 16" role="presentation" aria-hidden="true" focusable="false">
+            <path d="M8 1.5a6.5 6.5 0 1 1-6.5 6.5A6.51 6.51 0 0 1 8 1.5zm0 1.5a5 5 0 1 0 5 5 5 5 0 0 0-5-5zm2.35 3.15a.75.75 0 0 1 0 1.06L7.8 9.76a.75.75 0 0 1-1.06 0L5.65 8.67a.75.75 0 0 1 1.06-1.06l.66.66 1.96-1.96a.75.75 0 0 1 1.06 0z"></path>
+          </svg>
+        </span>
+        <button id="console-fold-btn" type="button" aria-label="Hide signal log" aria-expanded="true" aria-controls="console-log">
           <span class="fold-icon" aria-hidden="true">
             <svg viewBox="0 0 16 16" role="presentation" focusable="false">
               <path d="M4.2 2.8a1 1 0 0 1 1.6 0l4 5a1 1 0 0 1 0 1.2l-4 5a1 1 0 0 1-1.6-1.2L7.7 8 4.2 4a1 1 0 0 1 0-1.2z"></path>
@@ -881,23 +894,45 @@
   const consoleDock = document.getElementById('console-dock');
   const consoleFoldBtn = document.getElementById('console-fold-btn');
   const consoleStatus = document.getElementById('console-status');
+  const consoleStatusIcons = Object.freeze({
+    open: `
+      <svg viewBox="0 0 16 16" role="presentation" aria-hidden="true" focusable="false">
+        <path d="M8 1.5a6.5 6.5 0 1 1-6.5 6.5A6.51 6.51 0 0 1 8 1.5zm0 1.5a5 5 0 1 0 5 5 5 5 0 0 0-5-5zm2.35 3.15a.75.75 0 0 1 0 1.06L7.8 9.76a.75.75 0 0 1-1.06 0L5.65 8.67a.75.75 0 0 1 1.06-1.06l.66.66 1.96-1.96a.75.75 0 0 1 1.06 0z"></path>
+      </svg>
+    `.trim(),
+    closed: `
+      <svg viewBox="0 0 16 16" role="presentation" aria-hidden="true" focusable="false">
+        <path d="M8 1.5a6.5 6.5 0 1 1-6.5 6.5A6.51 6.51 0 0 1 8 1.5zm0 1.5a5 5 0 1 0 5 5 5 5 0 0 0-5-5zm-2.75 4.75a.75.75 0 0 1 0-1.5h5.5a.75.75 0 0 1 0 1.5z"></path>
+      </svg>
+    `.trim()
+  });
+  const consoleStatusLabels = {
+    open: 'Signal log visible',
+    closed: 'Signal log hidden'
+  };
 
   initConsoleLogs({ container: consoleLogEl, removeAfter: null });
-  console.log('Console dock expanded for extended diagnostics.');
+  console.log('Console dock opened for extended diagnostics.');
 
   if (consoleFoldBtn && consoleDock) {
     const updateConsoleFold = (folded) => {
       if (consoleStatus) {
-        consoleStatus.textContent = folded ? 'Folded' : 'Expanded';
+        const state = folded ? 'closed' : 'open';
+        consoleStatus.innerHTML = consoleStatusIcons[state];
+        consoleStatus.dataset.state = state;
+        const label = consoleStatusLabels[state];
+        consoleStatus.setAttribute('aria-label', label);
+        consoleStatus.setAttribute('title', label);
       }
-      const label = folded ? 'Expand signal log' : 'Collapse signal log';
+      const label = folded ? 'Show signal log' : 'Hide signal log';
       consoleFoldBtn.setAttribute('aria-label', label);
+      consoleFoldBtn.setAttribute('title', label);
     };
     consoleFoldBtn.addEventListener('click', () => {
       const isFolded = consoleDock.classList.toggle('folded');
       consoleFoldBtn.setAttribute('aria-expanded', String(!isFolded));
       updateConsoleFold(isFolded);
-      console.log(`Signal log ${isFolded ? 'folded' : 'expanded'}.`);
+      console.log(`Signal log ${isFolded ? 'hidden' : 'visible'}.`);
     });
     updateConsoleFold(consoleDock.classList.contains('folded'));
   }
@@ -1261,6 +1296,39 @@
   }
   refreshTerrain(terrainState.offsetX, terrainState.offsetZ);
   const terrainMesh = new THREE.Mesh(terrain, new THREE.MeshStandardMaterial({ color:0x2a8a4b, flatShading:true, metalness:0, roughness:1 }));
+  const terrainFadeNear = cellSize * 12;
+  const terrainFadeFar = cellSize * 24;
+  terrainMesh.material.onBeforeCompile = (shader) => {
+    shader.uniforms.fadeStart = { value: terrainFadeNear };
+    shader.uniforms.fadeEnd = { value: terrainFadeFar };
+    shader.vertexShader = `
+      varying vec3 vWorldPosition;
+    ` + shader.vertexShader.replace(
+      '#include <worldpos_vertex>',
+      '#include <worldpos_vertex>\n  vWorldPosition = worldPosition.xyz;'
+    );
+    shader.fragmentShader = `
+      uniform float fadeStart;
+      uniform float fadeEnd;
+      varying vec3 vWorldPosition;
+    ` + shader.fragmentShader;
+    shader.fragmentShader = shader.fragmentShader.replace(
+      'gl_FragColor = vec4( outgoingLight, diffuseColor.a );',
+      `
+        float horizontalDistance = length(vWorldPosition.xz - cameraPosition.xz);
+        float fadeFactor = smoothstep(fadeStart, fadeEnd, horizontalDistance);
+        float brightness = mix(1.0, 0.35, fadeFactor);
+        vec3 fadeColor = vec3(0.02, 0.08, 0.23);
+        #ifdef USE_FOG
+          fadeColor = fogColor;
+        #endif
+        vec3 shadedLight = outgoingLight * brightness;
+        vec3 mistedLight = mix(shadedLight, fadeColor, fadeFactor);
+        gl_FragColor = vec4( mistedLight, diffuseColor.a );
+      `
+    );
+  };
+  terrainMesh.material.needsUpdate = true;
   terrainMesh.position.set(terrainState.offsetX, 0, terrainState.offsetZ);
   scene.add(terrainMesh);
   defaultTerrainColor = terrainMesh.material.color.clone();
@@ -1476,14 +1544,15 @@
 
   if (foldBtn) {
     const updateFoldState = (folded) => {
-      const label = folded ? 'Expand control panel' : 'Collapse control panel';
+      const label = folded ? 'Show control panel' : 'Hide control panel';
       foldBtn.setAttribute('aria-label', label);
+      foldBtn.setAttribute('title', label);
     };
     foldBtn.addEventListener('click', () => {
       const isFolded = controlUi.classList.toggle('folded');
       foldBtn.setAttribute('aria-expanded', String(!isFolded));
       updateFoldState(isFolded);
-      console.log(`Control interface ${isFolded ? 'folded' : 'expanded'}.`);
+      console.log(`Control interface ${isFolded ? 'hidden' : 'visible'}.`);
     });
     updateFoldState(controlUi.classList.contains('folded'));
     console.log('Control interface initialised with animated fold icon.');
