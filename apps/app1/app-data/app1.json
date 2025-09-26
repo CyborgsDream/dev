@@ -114,10 +114,10 @@
   ],
   "status": "Ready.",
   "welcome": {
-    "title": "WebGUI 0.1.1",
+    "title": "WebGUI 1.9.1",
     "lines": [
       "Welcome to WebGUI - Web browser based windows GUI",
-      "Version 0.1.1",
+      "Version 1.9.1",
       "(c) 2025 CyborgsDream"
     ],
     "button": "OK"
@@ -198,7 +198,7 @@
   "windows": {
     "system-info": {
       "title": "System Information",
-      "content": "<h2>WebGUI Demo Machine</h2><p>Motorola 68030 @ 25MHz</p><p>2MB Chip RAM + 8MB Fast RAM</p><p>Kickstart 2.04</p><p>WebGUI 0.1.1</p><p>Display: 640x512 (ECS)</p><p>Floppy: 880KB 3.5\"</p><p>HD: 120MB SCSI</p><div style=\"margin-top: 20px; text-align: center;\"><div style=\"display: inline-block; padding: 10px; background: #0000aa; color: white;\">Power Without the Price</div></div>",
+      "content": "<h2>WebGUI Demo Machine</h2><p>Motorola 68030 @ 25MHz</p><p>2MB Chip RAM + 8MB Fast RAM</p><p>Kickstart 2.04</p><p>WebGUI 1.9.1</p><p>Display: 640x512 (ECS)</p><p>Floppy: 880KB 3.5\"</p><p>HD: 120MB SCSI</p><div style=\"margin-top: 20px; text-align: center;\"><div style=\"display: inline-block; padding: 10px; background: #0000aa; color: white;\">Power Without the Price</div></div>",
       "width": 320,
       "height": 300
     },
@@ -210,7 +210,7 @@
     },
     "text-editor": {
         "title": "Text Editor",
-        "content": "<div class=\"text-editor\" style=\"display:flex;flex-direction:column;height:100%\"><div style=\"text-align:right;margin-bottom:5px;\"><button id=\"text-editor-export\" style=\"font-size:16px;\">Export PDF</button></div><textarea id=\"text-editor-area\" style=\"flex:1;background:#fff;border:1px solid #aaa;padding:5px;font-family:monospace;font-size:18px;\">Welcome to WebGUI 0.1.1!\n\nThe icon issue has been fixed!\n• All desktop icons are now fully functional\n• Click any icon to open an application\n• The wallpaper no longer blocks clicks\n\nTry clicking on any icon to open its application.\n\nWebGUI continues to push the boundaries of personal computing!</textarea></div>",
+        "content": "<div class=\"text-editor\" style=\"display:flex;flex-direction:column;height:100%\"><div style=\"text-align:right;margin-bottom:5px;\"><button id=\"text-editor-export\" style=\"font-size:16px;\">Export PDF</button></div><textarea id=\"text-editor-area\" style=\"flex:1;background:#fff;border:1px solid #aaa;padding:5px;font-family:monospace;font-size:18px;\">Welcome to WebGUI 1.9.1!\n\nThe icon issue has been fixed!\n• All desktop icons are now fully functional\n• Click any icon to open an application\n• The wallpaper no longer blocks clicks\n\nTry clicking on any icon to open its application.\n\nWebGUI continues to push the boundaries of personal computing!</textarea></div>",
         "width": 500,
         "height": 350
       },
