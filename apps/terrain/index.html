@@ -120,122 +120,77 @@
     }
     #loader .loader-logo {
       position: relative;
-      width: min(140px, 30vw);
+      width: min(180px, 38vw);
       aspect-ratio: 1 / 1;
       display: grid;
       place-items: center;
-      filter: drop-shadow(0 18px 28px rgba(0, 0, 0, 0.45));
-      perspective: 900px;
+      padding: 22px;
+      border-radius: 28px;
+      background:
+        radial-gradient(circle at 30% 25%, rgba(255, 139, 47, 0.35), transparent 60%),
+        radial-gradient(circle at 70% 75%, rgba(111, 208, 255, 0.32), transparent 58%),
+        rgba(7, 17, 39, 0.85);
+      filter: drop-shadow(0 22px 36px rgba(0, 0, 0, 0.55));
+      overflow: hidden;
+    }
+    #loader .loader-logo::before {
+      content: '';
+      position: absolute;
+      inset: 12px;
+      border-radius: 22px;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      background:
+        radial-gradient(circle, rgba(255, 255, 255, 0.05), transparent 65%),
+        radial-gradient(circle at 22% 18%, rgba(255, 139, 47, 0.25), transparent 55%),
+        radial-gradient(circle at 80% 70%, rgba(111, 208, 255, 0.25), transparent 60%),
+        rgba(2, 8, 23, 0.75);
+      pointer-events: none;
+      mix-blend-mode: screen;
     }
     #loader .loader-logo::after {
       content: '';
       position: absolute;
-      bottom: -22px;
-      width: 60%;
-      height: 16%;
-      border-radius: 50%;
-      background: radial-gradient(circle, rgba(0, 0, 0, 0.4), transparent 70%);
-      filter: blur(10px);
-      opacity: 0.8;
-      transform: translateZ(-80px);
+      inset: 0;
+      border-radius: 28px;
+      background: radial-gradient(circle, rgba(255, 255, 255, 0.12), transparent 70%);
+      opacity: 0.35;
       pointer-events: none;
     }
-    #loader .loader-spinner {
-      position: relative;
+    #loader-canvas {
       width: 100%;
       height: 100%;
-      display: grid;
-      place-items: center;
-      transform-style: preserve-3d;
-      border-radius: 50%;
-      box-shadow: inset 0 0 40px rgba(255, 139, 47, 0.32), inset 0 0 80px rgba(111, 208, 255, 0.24);
-      animation: loader-orbit 2.4s linear infinite;
-    }
-    #loader .loader-spinner::after {
-      content: '';
-      position: absolute;
-      inset: 16%;
-      border-radius: 50%;
-      background: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.85), rgba(255, 139, 47, 0.25) 55%, rgba(7, 17, 39, 0.9));
-      box-shadow: 0 0 24px rgba(255, 139, 47, 0.4);
-      transform: translateZ(-60px);
-      opacity: 0.9;
-    }
-    #loader .loader-ring {
-      position: absolute;
-      inset: 0;
-      border-radius: 50%;
-      border: 4px solid transparent;
-      mix-blend-mode: screen;
-    }
-    #loader .loader-ring--front {
-      border-top-color: var(--accent-orange);
-      border-right-color: rgba(111, 208, 255, 0.88);
-      transform: rotateX(62deg) rotateZ(0deg);
-      animation: loader-ring-front 2.4s ease-in-out infinite;
-      filter: drop-shadow(0 0 22px rgba(255, 139, 47, 0.45));
-    }
-    #loader .loader-ring--back {
-      border-left-color: rgba(111, 208, 255, 0.75);
-      border-bottom-color: rgba(255, 139, 47, 0.6);
-      transform: rotateY(62deg) rotateZ(0deg);
-      animation: loader-ring-back 2.4s ease-in-out infinite;
-      filter: drop-shadow(0 0 18px rgba(111, 208, 255, 0.4));
-    }
-    #loader .loader-ring--halo {
-      inset: 10%;
-      border: none;
+      border-radius: 18px;
+      position: relative;
+      z-index: 1;
       background:
-        radial-gradient(circle, rgba(111, 208, 255, 0.32), transparent 65%),
-        conic-gradient(from 0deg, rgba(255, 139, 47, 0.5), rgba(111, 208, 255, 0.4), rgba(255, 139, 47, 0.5));
-      opacity: 0.75;
-      transform: rotateX(78deg);
-      animation: loader-halo-spin 3.2s linear infinite;
-      filter: blur(0.3px);
+        radial-gradient(circle at 40% 35%, rgba(255, 255, 255, 0.18), transparent 55%),
+        radial-gradient(circle at 70% 70%, rgba(111, 208, 255, 0.28), transparent 60%),
+        rgba(2, 8, 23, 0.9);
+      box-shadow: inset 0 0 40px rgba(255, 139, 47, 0.18), inset 0 0 70px rgba(111, 208, 255, 0.25);
     }
-    #loader .loader-core {
+    #loader .loader-halo {
       position: absolute;
-      width: 38%;
-      height: 38%;
+      inset: 10%;
       border-radius: 50%;
-      background: radial-gradient(circle at 30% 25%, rgba(255, 255, 255, 0.92), rgba(111, 208, 255, 0.45) 50%, rgba(7, 17, 39, 0.85));
-      box-shadow: 0 0 22px rgba(111, 208, 255, 0.45), 0 0 38px rgba(255, 139, 47, 0.35);
-      animation: loader-core-pulse 1.6s ease-in-out infinite;
-      transform: translateZ(24px);
+      border: 2px solid rgba(255, 255, 255, 0.16);
+      box-shadow: 0 0 32px rgba(111, 208, 255, 0.35);
+      animation: loader-halo-shift 3.6s ease-in-out infinite;
+      pointer-events: none;
+      z-index: 0;
+    }
+    @keyframes loader-halo-shift {
+      0%, 100% { transform: scale(0.92) rotate(0deg); opacity: 0.65; }
+      40% { transform: scale(1.05) rotate(8deg); opacity: 0.9; }
+      70% { transform: scale(1.08) rotate(-6deg); opacity: 0.75; }
     }
     #loader .loader-meta {
       font-size: 0.38em;
       letter-spacing: 0.32em;
       color: rgba(255, 255, 255, 0.72);
     }
-    @keyframes loader-orbit {
-      0% { transform: rotateX(18deg) rotateY(26deg) rotateZ(0deg); }
-      50% { transform: rotateX(18deg) rotateY(26deg) rotateZ(180deg); }
-      100% { transform: rotateX(18deg) rotateY(26deg) rotateZ(360deg); }
-    }
-    @keyframes loader-ring-front {
-      0%, 100% { transform: rotateX(62deg) rotateZ(0deg); }
-      50% { transform: rotateX(68deg) rotateZ(18deg); }
-    }
-    @keyframes loader-ring-back {
-      0%, 100% { transform: rotateY(62deg) rotateZ(0deg); }
-      50% { transform: rotateY(68deg) rotateZ(-18deg); }
-    }
-    @keyframes loader-halo-spin {
-      from { transform: rotateX(78deg) rotateZ(0deg); }
-      to { transform: rotateX(78deg) rotateZ(-360deg); }
-    }
-    @keyframes loader-core-pulse {
-      0%, 100% { transform: translateZ(24px) scale(0.96); opacity: 0.85; }
-      50% { transform: translateZ(24px) scale(1.05); opacity: 1; }
-    }
     @media (prefers-reduced-motion: reduce) {
-      #loader .loader-spinner,
-      #loader .loader-ring--front,
-      #loader .loader-ring--back,
-      #loader .loader-ring--halo,
-      #loader .loader-core {
-        animation-duration: 4s !important;
+      #loader .loader-halo {
+        animation-duration: 6s !important;
       }
     }
     #loader #progress {
@@ -1047,12 +1002,8 @@
     <div class="loader-content">
       <div class="loader-text">Loading <span id="progress">0%</span></div>
       <div class="loader-logo" aria-hidden="true">
-        <div class="loader-spinner" role="presentation">
-          <span class="loader-ring loader-ring--front"></span>
-          <span class="loader-ring loader-ring--back"></span>
-          <span class="loader-ring loader-ring--halo"></span>
-          <span class="loader-core"></span>
-        </div>
+        <div class="loader-halo"></div>
+        <canvas id="loader-canvas" width="220" height="220" aria-hidden="true"></canvas>
       </div>
       <div class="loader-meta">© 2025 Cyborgs Dream</div>
     </div>
@@ -1119,9 +1070,130 @@
     { label: '2160p', width: 3840, height: 2160 }
   ];
 
+  function initLoaderVisualizer(canvas) {
+    const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+    renderer.outputColorSpace = THREE.SRGBColorSpace;
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(32, 1, 0.1, 100);
+    camera.position.set(0, 0, 8.5);
+
+    const group = new THREE.Group();
+    scene.add(group);
+
+    const shellGeometry = new THREE.IcosahedronGeometry(2.6, 1);
+    const faceMaterial = new THREE.MeshPhongMaterial({
+      color: 0x1480c3,
+      emissive: 0x07162b,
+      specular: 0x7ad1ff,
+      shininess: 46,
+      transparent: true,
+      opacity: 0.68,
+      side: THREE.DoubleSide,
+      depthWrite: false
+    });
+    faceMaterial.onBeforeCompile = (shader) => {
+      shader.vertexShader = shader.vertexShader
+        .replace('#include <common>', `#include <common>\nvarying vec3 vLoaderNormal;`)
+        .replace('#include <beginnormal_vertex>', `#include <beginnormal_vertex>\n  vLoaderNormal = normalize( normalMatrix * objectNormal );`);
+      shader.fragmentShader = shader.fragmentShader
+        .replace('#include <common>', `#include <common>\nvarying vec3 vLoaderNormal;`)
+        .replace('#include <dithering_fragment>', `#include <dithering_fragment>\n  vec3 viewDir = normalize(vViewPosition);\n  float fresnel = pow(1.0 - abs(dot(normalize(vLoaderNormal), viewDir)), 1.4);\n  gl_FragColor.rgb = mix(gl_FragColor.rgb, vec3(0.92, 0.98, 1.0), fresnel * 0.45);`);
+    };
+    const shellMesh = new THREE.Mesh(shellGeometry, faceMaterial);
+    group.add(shellMesh);
+
+    const wireMaterial = new THREE.LineBasicMaterial({
+      color: 0xffb86b,
+      transparent: true,
+      opacity: 0.82
+    });
+    const wire = new THREE.LineSegments(new THREE.WireframeGeometry(shellGeometry), wireMaterial);
+    wire.renderOrder = 1;
+    group.add(wire);
+
+    const coreGeometry = new THREE.IcosahedronGeometry(1.35, 0);
+    const coreMaterial = new THREE.MeshBasicMaterial({
+      color: 0x0b2748,
+      transparent: true,
+      opacity: 0.45
+    });
+    const core = new THREE.Mesh(coreGeometry, coreMaterial);
+    group.add(core);
+
+    const ambient = new THREE.AmbientLight(0x1a2744, 0.85);
+    scene.add(ambient);
+    const keyLight = new THREE.DirectionalLight(0xf0f7ff, 1.25);
+    keyLight.position.set(4, 5, 6);
+    scene.add(keyLight);
+    const fillLight = new THREE.DirectionalLight(0x3fa8ff, 0.55);
+    fillLight.position.set(-3, -4, -5);
+    scene.add(fillLight);
+
+    const clock = new THREE.Clock();
+    let rafId = null;
+    let running = true;
+    const baseColor = new THREE.Color(0x1480c3);
+    const accentColor = new THREE.Color(0xffcba4);
+
+    const resizeIfNeeded = () => {
+      const width = canvas.clientWidth;
+      const height = canvas.clientHeight;
+      if (width === 0 || height === 0) return;
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      if (canvas.width !== Math.round(width * dpr) || canvas.height !== Math.round(height * dpr)) {
+        renderer.setPixelRatio(dpr);
+        renderer.setSize(width, height, false);
+        camera.aspect = width / height;
+        camera.updateProjectionMatrix();
+      }
+    };
+
+    const render = () => {
+      if (!running) return;
+      rafId = requestAnimationFrame(render);
+      resizeIfNeeded();
+      const t = clock.getElapsedTime();
+      group.rotation.x = t * 0.52;
+      group.rotation.y = t * 0.68;
+      group.rotation.z = Math.sin(t * 0.37) * 0.4;
+
+      const pulse = (Math.sin(t * 1.6) + 1) * 0.5;
+      const mixStrength = 0.25 + pulse * 0.35;
+      shellMesh.material.opacity = 0.52 + pulse * 0.2;
+      wireMaterial.opacity = 0.7 + pulse * 0.2;
+      core.scale.setScalar(0.92 + pulse * 0.08);
+      core.material.opacity = 0.35 + pulse * 0.25;
+      shellMesh.material.color.copy(baseColor).lerp(accentColor, mixStrength * 0.4);
+
+      renderer.render(scene, camera);
+    };
+    render();
+
+    const handleResize = () => resizeIfNeeded();
+    window.addEventListener('resize', handleResize);
+
+    return () => {
+      running = false;
+      if (rafId) cancelAnimationFrame(rafId);
+      window.removeEventListener('resize', handleResize);
+      shellGeometry.dispose();
+      coreGeometry.dispose();
+      faceMaterial.dispose();
+      wireMaterial.dispose();
+      coreMaterial.dispose();
+      renderer.dispose();
+    };
+  }
+
   const loaderEl = document.getElementById('loader');
   const progressEl = document.getElementById('progress');
   function setProgress(p){ progressEl.textContent = Math.round(p) + '%'; }
+  const loaderCanvas = document.getElementById('loader-canvas');
+  let disposeLoaderVisual = () => {};
+  if (loaderCanvas) {
+    disposeLoaderVisual = initLoaderVisualizer(loaderCanvas);
+  }
 
   const fpsHolder = document.getElementById('fps');
 
@@ -1289,6 +1361,10 @@
   const sunLight = new THREE.DirectionalLight(0xffffff, 1.2);
   sunLight.position.set(260, 220, -500);
   scene.add(sunLight);
+  scene.add(sunLight.target);
+  const sunLightOffset = new THREE.Vector3(260, 220, -500);
+  const sunLightDesired = new THREE.Vector3();
+  const sunLightTargetDesired = new THREE.Vector3();
 
   function createSkyTexture(){
     const skyCanvas = document.createElement('canvas');
@@ -1340,12 +1416,40 @@
     return texture;
   }
 
+  function createSkyCeilingTexture() {
+    const canvas = document.createElement('canvas');
+    canvas.width = 128;
+    canvas.height = 128;
+    const ctx = canvas.getContext('2d');
+    const gradient = ctx.createRadialGradient(64, 64, 12, 64, 64, 70);
+    gradient.addColorStop(0, 'rgba(156, 200, 255, 0.55)');
+    gradient.addColorStop(0.45, 'rgba(82, 126, 190, 0.7)');
+    gradient.addColorStop(1, 'rgba(24, 46, 82, 0.9)');
+    ctx.fillStyle = gradient;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    const texture = new THREE.CanvasTexture(canvas);
+    texture.generateMipmaps = false;
+    texture.magFilter = THREE.LinearFilter;
+    texture.minFilter = THREE.LinearFilter;
+    texture.wrapS = THREE.ClampToEdgeWrapping;
+    texture.wrapT = THREE.ClampToEdgeWrapping;
+    return texture;
+  }
+
   const skyTexture = createSkyTexture();
-  const skyMaterial = new THREE.MeshBasicMaterial({ map: skyTexture, depthWrite: false, depthTest: false });
+  const skyMaterial = new THREE.MeshBasicMaterial({ map: skyTexture, depthWrite: false, depthTest: false, transparent: true, opacity: 0.96 });
   const skyGeometry = new THREE.PlaneGeometry(2200, 900, 1, 1);
   const skyMesh = new THREE.Mesh(skyGeometry, skyMaterial);
   skyMesh.position.set(0, 160, -900);
   scene.add(skyMesh);
+
+  const skyCeilingTexture = createSkyCeilingTexture();
+  const skyCeilingMaterial = new THREE.MeshBasicMaterial({ map: skyCeilingTexture, transparent: true, opacity: 0.85, side: THREE.DoubleSide, depthWrite: false, depthTest: false });
+  const skyCeilingGeometry = new THREE.PlaneGeometry(2600, 2600, 1, 1);
+  const skyCeiling = new THREE.Mesh(skyCeilingGeometry, skyCeilingMaterial);
+  skyCeiling.rotation.x = -Math.PI / 2;
+  skyCeiling.position.set(0, 420, 0);
+  scene.add(skyCeiling);
 
   const camera = new THREE.PerspectiveCamera(50, 16 / 9, 0.1, 3000);
   const controls = {
@@ -1630,7 +1734,9 @@
       }
     }
     setProgress(100);
-    loaderEl.remove();
+    disposeLoaderVisual();
+    disposeLoaderVisual = () => {};
+    if (loaderEl) loaderEl.remove();
     console.log(`Terrain populated with ${count} blocks.`);
   }
 
@@ -1665,12 +1771,36 @@
     camera.lookAt(lookTargetScratch);
   }
 
-  function updateSky(){
+  function updateSky(time, dt){
     const skyDistance = 1600;
     skyTarget.copy(camera.position).addScaledVector(lookVector, skyDistance);
     skyTarget.y = camera.position.y + 120;
-    skyMesh.position.lerp(skyTarget, 0.1);
+    skyMesh.position.lerp(skyTarget, 0.08);
     skyMesh.lookAt(camera.position.x, camera.position.y + 40, camera.position.z);
+
+    const desiredHeight = camera.position.y + 320;
+    skyCeiling.position.x = camera.position.x;
+    skyCeiling.position.z = camera.position.z;
+    skyCeiling.position.y = THREE.MathUtils.damp(skyCeiling.position.y, desiredHeight, 4.2, dt);
+    skyCeiling.rotation.z = Math.sin(time * 0.18) * 0.08;
+    const ceilingOpacity = 0.7 + (Math.sin(time * 0.35) + 1) * 0.12;
+    skyCeilingMaterial.opacity = THREE.MathUtils.damp(skyCeilingMaterial.opacity, ceilingOpacity, 2.5, dt);
+  }
+
+  function updateLighting(dt, time, isMoving) {
+    sunLightDesired.copy(camera.position).add(sunLightOffset);
+    sunLightDesired.x += Math.sin(time * 0.18) * 90;
+    sunLightDesired.z += Math.cos(time * 0.16) * 110;
+    const lerpFactor = THREE.MathUtils.clamp(dt * 3.6, 0, 1);
+    sunLight.position.lerp(sunLightDesired, lerpFactor);
+
+    sunLightTargetDesired.copy(camera.position).addScaledVector(lookVector, 60);
+    sunLight.target.position.lerp(sunLightTargetDesired, lerpFactor);
+    sunLight.target.updateMatrixWorld();
+
+    const baseIntensity = 1.05 + Math.sin(time * 0.24) * 0.08;
+    const targetIntensity = baseIntensity + (isMoving ? 0.18 : 0);
+    sunLight.intensity = THREE.MathUtils.damp(sunLight.intensity, targetIntensity, 3.2, dt);
   }
 
   function updateTerrainFollow() {
@@ -1736,10 +1866,12 @@
     const dt = Math.min(0.05, (now - last) / 1000);
     last = now;
     updateControls(dt);
+    const isCameraMoving = moveVector.lengthSq() > 1e-6 || currentSpeed > 0.5;
     updateTerrainFollow();
     updateHud();
     updateBlocks(dt, now / 1000);
-    updateSky();
+    updateSky(now / 1000, dt);
+    updateLighting(dt, now / 1000, isCameraMoving);
     renderer.render(scene, camera);
     fpsMonitor.end();
     requestAnimationFrame(animate);
