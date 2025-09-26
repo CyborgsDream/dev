@@ -1073,68 +1073,60 @@
   function initLoaderVisualizer(canvas) {
     const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
     renderer.outputColorSpace = THREE.SRGBColorSpace;
+    renderer.setClearColor(0x000000, 0);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
     const scene = new THREE.Scene();
     const camera = new THREE.PerspectiveCamera(32, 1, 0.1, 100);
     camera.position.set(0, 0, 8.5);
 
-    const group = new THREE.Group();
-    scene.add(group);
+    const root = new THREE.Group();
+    scene.add(root);
 
-    const shellGeometry = new THREE.IcosahedronGeometry(2.6, 1);
-    const faceMaterial = new THREE.MeshPhongMaterial({
-      color: 0x1480c3,
-      emissive: 0x07162b,
-      specular: 0x7ad1ff,
-      shininess: 46,
-      transparent: true,
-      opacity: 0.68,
-      side: THREE.DoubleSide,
-      depthWrite: false
+    const ringGeometry = new THREE.TorusGeometry(3.3, 0.32, 28, 160);
+    const ringMaterial = new THREE.MeshStandardMaterial({
+      color: 0x2d9dff,
+      emissive: 0x052238,
+      metalness: 0.45,
+      roughness: 0.28
     });
-    faceMaterial.onBeforeCompile = (shader) => {
-      shader.vertexShader = shader.vertexShader
-        .replace('#include <common>', `#include <common>\nvarying vec3 vLoaderNormal;`)
-        .replace('#include <beginnormal_vertex>', `#include <beginnormal_vertex>\n  vLoaderNormal = normalize( normalMatrix * objectNormal );`);
-      shader.fragmentShader = shader.fragmentShader
-        .replace('#include <common>', `#include <common>\nvarying vec3 vLoaderNormal;`)
-        .replace('#include <dithering_fragment>', `#include <dithering_fragment>\n  vec3 viewDir = normalize(vViewPosition);\n  float fresnel = pow(1.0 - abs(dot(normalize(vLoaderNormal), viewDir)), 1.4);\n  gl_FragColor.rgb = mix(gl_FragColor.rgb, vec3(0.92, 0.98, 1.0), fresnel * 0.45);`);
-    };
-    const shellMesh = new THREE.Mesh(shellGeometry, faceMaterial);
-    group.add(shellMesh);
+    const ring = new THREE.Mesh(ringGeometry, ringMaterial);
+    ring.rotation.x = Math.PI / 2;
+    root.add(ring);
 
-    const wireMaterial = new THREE.LineBasicMaterial({
-      color: 0xffb86b,
+    const innerGeometry = new THREE.SphereGeometry(1.4, 28, 28);
+    const innerMaterial = new THREE.MeshStandardMaterial({
+      color: 0x0d2c4a,
+      emissive: 0x081a2d,
+      metalness: 0.1,
+      roughness: 0.6,
       transparent: true,
-      opacity: 0.82
+      opacity: 0.55
     });
-    const wire = new THREE.LineSegments(new THREE.WireframeGeometry(shellGeometry), wireMaterial);
-    wire.renderOrder = 1;
-    group.add(wire);
+    const inner = new THREE.Mesh(innerGeometry, innerMaterial);
+    root.add(inner);
 
-    const coreGeometry = new THREE.IcosahedronGeometry(1.35, 0);
-    const coreMaterial = new THREE.MeshBasicMaterial({
-      color: 0x0b2748,
-      transparent: true,
-      opacity: 0.45
+    const orbGeometry = new THREE.SphereGeometry(0.55, 32, 32);
+    const orbMaterial = new THREE.MeshStandardMaterial({
+      color: 0xff8b2f,
+      emissive: 0x311403,
+      metalness: 0.5,
+      roughness: 0.35
     });
-    const core = new THREE.Mesh(coreGeometry, coreMaterial);
-    group.add(core);
+    const orb = new THREE.Mesh(orbGeometry, orbMaterial);
+    root.add(orb);
 
-    const ambient = new THREE.AmbientLight(0x1a2744, 0.85);
+    const ambient = new THREE.AmbientLight(0x0d233b, 0.9);
     scene.add(ambient);
-    const keyLight = new THREE.DirectionalLight(0xf0f7ff, 1.25);
-    keyLight.position.set(4, 5, 6);
+    const keyLight = new THREE.PointLight(0xffffff, 1.4, 0, 2);
+    keyLight.position.set(6, 6, 10);
     scene.add(keyLight);
-    const fillLight = new THREE.DirectionalLight(0x3fa8ff, 0.55);
-    fillLight.position.set(-3, -4, -5);
-    scene.add(fillLight);
+    const rimLight = new THREE.PointLight(0x2d9dff, 1.1, 0, 2);
+    rimLight.position.set(-5, -4, -6);
+    scene.add(rimLight);
 
     const clock = new THREE.Clock();
     let rafId = null;
     let running = true;
-    const baseColor = new THREE.Color(0x1480c3);
-    const accentColor = new THREE.Color(0xffcba4);
 
     const resizeIfNeeded = () => {
       const width = canvas.clientWidth;
@@ -1153,19 +1145,19 @@
       if (!running) return;
       rafId = requestAnimationFrame(render);
       resizeIfNeeded();
-      const t = clock.getElapsedTime();
-      group.rotation.x = t * 0.52;
-      group.rotation.y = t * 0.68;
-      group.rotation.z = Math.sin(t * 0.37) * 0.4;
-
-      const pulse = (Math.sin(t * 1.6) + 1) * 0.5;
-      const mixStrength = 0.25 + pulse * 0.35;
-      shellMesh.material.opacity = 0.52 + pulse * 0.2;
-      wireMaterial.opacity = 0.7 + pulse * 0.2;
-      core.scale.setScalar(0.92 + pulse * 0.08);
-      core.material.opacity = 0.35 + pulse * 0.25;
-      shellMesh.material.color.copy(baseColor).lerp(accentColor, mixStrength * 0.4);
-
+      const elapsed = clock.getElapsedTime();
+      root.rotation.y = elapsed * 0.9;
+      ring.rotation.z = elapsed * 0.35;
+      inner.rotation.y = elapsed * 1.1;
+      inner.rotation.x = Math.sin(elapsed * 0.8) * 0.35;
+      const orbitRadius = 3.3;
+      const orbitSpeed = 1.4;
+      orb.position.set(
+        Math.cos(elapsed * orbitSpeed) * orbitRadius,
+        Math.sin(elapsed * orbitSpeed * 0.75) * 0.8,
+        Math.sin(elapsed * orbitSpeed) * orbitRadius * 0.6
+      );
+      orb.rotation.y = elapsed * 2.2;
       renderer.render(scene, camera);
     };
     render();
@@ -1177,14 +1169,16 @@
       running = false;
       if (rafId) cancelAnimationFrame(rafId);
       window.removeEventListener('resize', handleResize);
-      shellGeometry.dispose();
-      coreGeometry.dispose();
-      faceMaterial.dispose();
-      wireMaterial.dispose();
-      coreMaterial.dispose();
+      ringGeometry.dispose();
+      innerGeometry.dispose();
+      orbGeometry.dispose();
+      ringMaterial.dispose();
+      innerMaterial.dispose();
+      orbMaterial.dispose();
       renderer.dispose();
     };
   }
+
 
   const loaderEl = document.getElementById('loader');
   const progressEl = document.getElementById('progress');
@@ -1621,6 +1615,11 @@
     }
     pos.needsUpdate = true;
     terrain.computeVertexNormals();
+    if (terrain.attributes.normal) {
+      terrain.attributes.normal.needsUpdate = true;
+    }
+    terrain.computeBoundingSphere();
+    terrain.computeBoundingBox();
   }
   refreshTerrain(terrainState.offsetX, terrainState.offsetZ);
   const terrainMaterial = new THREE.MeshStandardMaterial({
