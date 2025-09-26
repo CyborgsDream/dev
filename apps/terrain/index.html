@@ -5,10 +5,12 @@
   <title>Terrain</title>
   <style>
     :root {
-      --navy: #04112a;
-      --panel-bg: rgba(5, 24, 45, 0.82);
-      --panel-border: rgba(157, 190, 255, 0.2);
-      --accent: #69c0ff;
+      --navy: #000b33;
+      --panel-bg: rgba(0, 0, 0, 0.88);
+      --panel-border: #ffffff;
+      --accent: #00ffd0;
+      --accent-2: #ff006c;
+      --accent-3: #ffe600;
     }
     html, body {
       margin: 0;
@@ -28,12 +30,9 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      padding: clamp(24px, 6vh, 72px) clamp(16px, 5vw, 64px);
+      padding: 0;
       pointer-events: none;
       box-sizing: border-box;
-    }
-    body.is-fullscreen #scene-shell {
-      padding: clamp(48px, 14vh, 160px) clamp(24px, 8vw, 96px);
     }
     #canvas-wrap {
       position: relative;
@@ -41,16 +40,17 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      max-width: 100%;
-      max-height: 100%;
+      width: 100%;
+      height: 100%;
     }
     canvas {
       display: block;
-      border-radius: 12px;
-      background: radial-gradient(circle at top, rgba(8, 24, 41, 0.95), #030712 85%);
-      box-shadow: 0 24px 48px rgba(0, 0, 0, 0.55);
+      border-radius: 0;
+      background: #000;
+      box-shadow: none;
       max-width: 100%;
       max-height: 100%;
+      image-rendering: pixelated;
     }
     #loader {
       position: fixed;
@@ -69,75 +69,63 @@
     }
     #fps {
       position: fixed;
-      top: 14px;
-      left: 14px;
+      top: 16px;
+      left: 16px;
       z-index: 40;
       pointer-events: none;
     }
     #fps-monitor {
-      display: grid;
-      row-gap: 6px;
-      padding: 8px 10px;
-      background: rgba(5, 18, 40, 0.78);
-      border: 1px solid rgba(80, 115, 176, 0.55);
-      border-radius: 12px;
-      width: 160px;
-      box-shadow: 0 12px 24px rgba(0, 0, 0, 0.35);
-      font-family: "JetBrains Mono", "Fira Mono", monospace;
+      display: inline-flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 14px;
+      background: #000;
+      border: 2px solid var(--panel-border);
+      color: #fff;
+      font-family: "Courier New", Courier, monospace;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
     }
     #fps-monitor .fps-label {
-      font-size: 11px;
-      text-transform: uppercase;
-      letter-spacing: 0.16em;
-      color: rgba(255, 255, 255, 0.52);
+      font-size: 0.75rem;
+      color: var(--accent-3);
     }
     #fps-monitor .fps-value {
-      font-size: 20px;
-      font-weight: 600;
-      color: #fdfdff;
-      letter-spacing: 0.04em;
-    }
-    #fps-monitor canvas {
-      width: 100%;
-      height: 42px;
-      border-radius: 8px;
-      background: rgba(3, 12, 26, 0.9);
-      image-rendering: pixelated;
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--accent);
+      min-width: 4.5em;
     }
     #control-ui {
       position: fixed;
-      top: 18px;
-      right: 18px;
-      background: rgba(5, 18, 40, 0.78);
-      border: 1px solid rgba(82, 118, 180, 0.55);
-      border-radius: 12px;
-      padding: 10px 12px 12px;
+      top: 16px;
+      right: 16px;
+      background: #000;
+      border: 2px solid var(--panel-border);
+      padding: 12px 14px;
       display: grid;
-      row-gap: 6px;
-      width: min(200px, 78vw);
-      backdrop-filter: blur(10px);
-      box-shadow: 0 14px 28px rgba(0, 0, 0, 0.35);
+      row-gap: 10px;
+      width: min(220px, 78vw);
       z-index: 30;
-      font-family: "JetBrains Mono", "Fira Mono", monospace;
+      font-family: "Courier New", Courier, monospace;
+      color: #fff;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      box-shadow: none;
     }
     #control-ui h2 {
       margin: 0;
-      font-size: 11px;
-      text-transform: uppercase;
-      letter-spacing: 0.18em;
-      color: rgba(255, 255, 255, 0.55);
+      font-size: 0.75rem;
+      color: var(--accent-2);
     }
     #resolution-display {
-      font-size: 14px;
-      font-weight: 600;
-      color: #f5f8ff;
-      letter-spacing: 0.04em;
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: var(--accent);
     }
     label[for="resolution-select"] {
-      font-size: 11px;
-      color: rgba(255, 255, 255, 0.52);
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
+      font-size: 0.7rem;
+      color: var(--accent-3);
     }
     .select-wrap {
       position: relative;
@@ -147,31 +135,29 @@
       position: absolute;
       top: 50%;
       right: 10px;
-      width: 8px;
-      height: 8px;
-      border-right: 1px solid rgba(205, 220, 255, 0.8);
-      border-bottom: 1px solid rgba(205, 220, 255, 0.8);
-      transform: translateY(-60%) rotate(45deg);
+      width: 6px;
+      height: 6px;
+      border-right: 2px solid var(--accent-2);
+      border-bottom: 2px solid var(--accent-2);
+      transform: translateY(-50%) rotate(45deg);
       pointer-events: none;
-      opacity: 0.7;
     }
     #resolution-select {
       width: 100%;
-      padding: 6px 28px 6px 8px;
-      border-radius: 8px;
-      border: 1px solid rgba(72, 102, 155, 0.8);
-      background: rgba(7, 22, 43, 0.88);
-      color: #dfe9ff;
-      font-size: 12px;
-      font-weight: 500;
-      letter-spacing: 0.04em;
+      padding: 8px 26px 8px 10px;
+      border-radius: 0;
+      border: 2px solid var(--panel-border);
+      background: #001a36;
+      color: var(--accent);
+      font-size: 0.75rem;
+      font-weight: 700;
+      letter-spacing: 0.06em;
       appearance: none;
       outline: none;
-      transition: border-color 0.15s ease, box-shadow 0.15s ease;
+      box-shadow: none;
     }
     #resolution-select:focus {
-      border-color: rgba(122, 168, 255, 0.95);
-      box-shadow: 0 0 0 2px rgba(68, 120, 214, 0.35);
+      border-color: var(--accent-2);
     }
     #fullscreen-btn {
       position: fixed;
@@ -245,10 +231,10 @@
         height: 46px;
       }
       #control-ui {
-        right: 10px;
-        top: 10px;
-        padding: 8px 10px 10px;
-        width: min(180px, 75vw);
+        right: 12px;
+        top: 12px;
+        padding: 10px 12px;
+        width: min(200px, 82vw);
       }
     }
   </style>
@@ -258,7 +244,7 @@
     <div id="canvas-wrap"></div>
   </div>
   <div id="control-ui">
-    <h2>Viewport</h2>
+    <h2>Games Mode</h2>
     <div id="resolution-display">—</div>
     <label for="resolution-select">Resolution</label>
     <div class="select-wrap">
@@ -318,20 +304,12 @@
 
       this.labelEl = document.createElement('div');
       this.labelEl.className = 'fps-label';
-      this.labelEl.textContent = 'Frame rate';
+      this.labelEl.textContent = 'fps';
 
       this.valueEl = document.createElement('div');
       this.valueEl.className = 'fps-value';
-      this.valueEl.textContent = '0';
+      this.valueEl.textContent = '000';
 
-      this.canvas = document.createElement('canvas');
-      this.canvas.width = 140;
-      this.canvas.height = 42;
-      this.ctx = this.canvas.getContext('2d');
-      this.ctx.imageSmoothingEnabled = false;
-
-      this.history = Array.from({ length: 60 }, () => 0);
-      this.maxFps = 60;
       this.sampleWindow = 250;
       this.frameCount = 0;
       this.lastSample = performance.now();
@@ -339,9 +317,7 @@
 
       this.dom.appendChild(this.labelEl);
       this.dom.appendChild(this.valueEl);
-      this.dom.appendChild(this.canvas);
       container.appendChild(this.dom);
-      this.drawGraph();
     }
 
     begin() {}
@@ -360,44 +336,9 @@
 
     update(rawFps) {
       const fps = Math.max(0, rawFps);
-      this.smoothed = this.smoothed === 0 ? fps : (this.smoothed * 0.8 + fps * 0.2);
-      const rounded = Math.round(this.smoothed);
-      this.valueEl.textContent = `${rounded} fps`;
-      this.history.push(Math.min(fps, this.maxFps));
-      if (this.history.length > 60) {
-        this.history.shift();
-      }
-      this.drawGraph();
-    }
-
-    drawGraph() {
-      const ctx = this.ctx;
-      const { width, height } = this.canvas;
-      ctx.clearRect(0, 0, width, height);
-      const values = this.history;
-      const step = width / values.length;
-      values.forEach((value, index) => {
-        const clamped = Math.min(value, this.maxFps);
-        const barHeight = (clamped / this.maxFps) * height;
-        ctx.fillStyle = this.getColor(value);
-        const x = index * step;
-        ctx.fillRect(Math.floor(x), height - barHeight, Math.ceil(step), barHeight);
-      });
-
-      // draw baseline markers for 20 and 40 fps
-      ctx.fillStyle = 'rgba(255, 255, 255, 0.12)';
-      const marks = [20, 40, 60];
-      marks.forEach(mark => {
-        const y = height - (Math.min(mark, this.maxFps) / this.maxFps) * height;
-        ctx.fillRect(0, Math.round(y), width, 1);
-      });
-    }
-
-    getColor(value) {
-      if (value >= 60) return '#ff8c1a';
-      if (value >= 40) return '#3ddc97';
-      if (value >= 20) return '#f2c94c';
-      return '#ff4d4f';
+      this.smoothed = this.smoothed === 0 ? fps : (this.smoothed * 0.7 + fps * 0.3);
+      const rounded = Math.max(0, Math.round(this.smoothed));
+      this.valueEl.textContent = `${rounded.toString().padStart(3, '0')}`;
     }
   }
 
@@ -651,31 +592,18 @@
     return RESOLUTIONS.find(r => r.width === w && r.height === h) || RESOLUTIONS[0];
   }
 
-  const sceneShell = document.getElementById('scene-shell');
-
   function updateCanvasLayout() {
     const aspect = currentResolution.width / currentResolution.height;
-    const styles = getComputedStyle(sceneShell);
-    const toNumber = value => Number.parseFloat(value) || 0;
-    const availableWidth = Math.max(100, window.innerWidth - toNumber(styles.paddingLeft) - toNumber(styles.paddingRight));
-    const availableHeight = Math.max(100, window.innerHeight - toNumber(styles.paddingTop) - toNumber(styles.paddingBottom));
+    const availableWidth = Math.max(100, window.innerWidth);
+    const availableHeight = Math.max(100, window.innerHeight);
+
     let displayWidth = availableWidth;
     let displayHeight = displayWidth / aspect;
-    if (displayHeight > availableHeight) {
-      displayHeight = availableHeight;
-      displayWidth = displayHeight * aspect;
-    }
 
-    if (isFullscreenActive()) {
-      const maxFullscreenHeight = availableHeight * 0.88;
-      if (displayHeight > maxFullscreenHeight) {
-        displayHeight = maxFullscreenHeight;
-        displayWidth = displayHeight * aspect;
-      }
-      if (displayWidth > availableWidth) {
-        displayWidth = availableWidth;
-        displayHeight = displayWidth / aspect;
-      }
+    if (displayHeight > availableHeight) {
+      const scale = availableHeight / displayHeight;
+      displayWidth = Math.floor(displayWidth * scale);
+      displayHeight = availableHeight;
     }
 
     renderer.domElement.style.width = `${displayWidth}px`;
