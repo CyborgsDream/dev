@@ -212,6 +212,29 @@
   #zoomControls button:active{ border:2px solid #000; border-right-color:#fff; border-bottom-color:#fff; }
   #zoomDisplay{ font:12px var(--font-ui); background:#fff; border:2px solid #000; border-right-color:#fff; border-bottom-color:#fff; padding:2px 10px; min-width:56px; text-align:center; }
 
+  /* Full page preview */
+  body.preview-open{ overflow:hidden; }
+  #pagePreviewModal{ position:fixed; inset:0; display:none; align-items:center; justify-content:center; padding:32px; background:rgba(8,12,22,0.82); z-index:3200; }
+  #pagePreviewModal.open{ display:flex; }
+  #pagePreviewModal .page-preview-card{ width:min(1100px, 100%); height:min(90vh, 760px); background:#0f1626; border:3px solid #0a4d9c; border-right-color:#58a6ff; border-bottom-color:#58a6ff; box-shadow:0 18px 48px rgba(0,0,0,0.55); display:flex; flex-direction:column; }
+  .page-preview-bar{ display:flex; align-items:center; justify-content:space-between; gap:18px; padding:14px 18px; background:linear-gradient(135deg,#15213b,#0d1628); color:#f5f9ff; font:13px var(--font-ui); text-transform:uppercase; letter-spacing:0.08em; }
+  .page-preview-heading{ display:flex; flex-direction:column; gap:6px; font-size:12px; text-transform:none; letter-spacing:normal; }
+  .page-preview-heading strong{ font-size:15px; text-transform:uppercase; letter-spacing:0.12em; }
+  .page-preview-controls{ display:flex; align-items:center; gap:10px; }
+  .page-preview-controls button{ padding:4px 12px; font:12px var(--font-ui); background:#1e2c45; color:#f5f9ff; border:2px solid #0a4d9c; border-right-color:#58a6ff; border-bottom-color:#58a6ff; cursor:pointer; }
+  .page-preview-controls button:disabled{ opacity:0.45; cursor:not-allowed; }
+  .page-preview-controls button:active{ border-color:#58a6ff; border-right-color:#0a4d9c; border-bottom-color:#0a4d9c; }
+  .page-preview-controls input[type="range"]{ accent-color:#58a6ff; width:160px; }
+  .page-preview-body{ flex:1; display:flex; align-items:center; gap:18px; padding:18px; background:#0a111f; }
+  .page-preview-viewport{ flex:1; height:100%; overflow:auto; background:rgba(12,20,34,0.6); border:2px solid rgba(72,118,181,0.45); border-radius:14px; padding:18px 24px; display:flex; justify-content:center; align-items:flex-start; }
+  .page-preview-viewport::-webkit-scrollbar{ width:10px; height:10px; }
+  .page-preview-viewport::-webkit-scrollbar-thumb{ background:rgba(88,166,255,0.35); border-radius:8px; }
+  .page-preview-sheet{ min-width:0; display:flex; justify-content:center; }
+  .page-preview-sheet .sheet{ transform-origin:top center; pointer-events:none; margin:0 auto; box-shadow:0 16px 40px rgba(0,0,0,0.45); }
+  .page-preview-nav{ width:44px; height:44px; border-radius:50%; border:2px solid #58a6ff; background:#14203a; color:#f5f9ff; font-size:20px; display:flex; align-items:center; justify-content:center; cursor:pointer; }
+  .page-preview-nav:disabled{ opacity:0.35; cursor:not-allowed; }
+  .page-preview-nav:active{ border-color:#0a4d9c; }
+
   /* Template modal */
   #templateModal{ position:fixed; inset:0; background:rgba(0,0,0,0.55); z-index:2000; display:none; align-items:center; justify-content:center; padding:24px; }
   #templateModal.open{ display:flex; }
@@ -321,6 +344,7 @@
       <button class="win-btn" id="zoomInBtn">+</button>
       <button class="win-btn" id="zoomResetBtn">Reset</button>
       <button class="win-btn" id="zoomFullBtn">Fit Page</button>
+      <button class="win-btn" id="openPreviewBtn">Full Page View</button>
       <span id="zoomDisplay">100%</span>
     </div>
     <div class="win-group" id="styleControls">
@@ -405,6 +429,31 @@
   <div id="pageViewport">
     <div id="pages"></div>
   </div>
+  <div id="pagePreviewModal" role="dialog" aria-modal="true" aria-labelledby="pagePreviewHeading" tabindex="-1" aria-hidden="true">
+    <div class="page-preview-card">
+      <div class="page-preview-bar">
+        <div class="page-preview-heading" id="pagePreviewHeading">
+          <strong>Page Preview</strong>
+          <span>Page 1 of 1</span>
+        </div>
+        <div class="page-preview-controls">
+          <button type="button" id="pagePreviewZoomOut">−</button>
+          <input type="range" id="pagePreviewZoomRange" min="40" max="200" value="100" />
+          <span id="pagePreviewZoomDisplay">100%</span>
+          <button type="button" id="pagePreviewZoomIn">+</button>
+          <button type="button" id="pagePreviewZoomFit">Fit</button>
+          <button type="button" id="pagePreviewClose">Close</button>
+        </div>
+      </div>
+      <div class="page-preview-body">
+        <button type="button" class="page-preview-nav" id="pagePreviewPrev" aria-label="Previous page">◀</button>
+        <div class="page-preview-viewport" id="pagePreviewViewport">
+          <div class="page-preview-sheet" id="pagePreviewSheet"></div>
+        </div>
+        <button type="button" class="page-preview-nav" id="pagePreviewNext" aria-label="Next page">▶</button>
+      </div>
+    </div>
+  </div>
   <div id="templateModal" role="dialog" aria-modal="true" aria-labelledby="templateModalTitle" tabindex="-1">
     <div class="template-modal-card">
       <div class="template-modal-header" id="templateModalTitle">New Document Templates</div>
@@ -472,9 +521,22 @@
   const zoomResetBtn = document.getElementById('zoomResetBtn');
   const zoomFullBtn = document.getElementById('zoomFullBtn');
   const zoomDisplay = document.getElementById('zoomDisplay');
+  const openPreviewBtn = document.getElementById('openPreviewBtn');
   const templateModal = document.getElementById('templateModal');
   const templateList = document.getElementById('templateList');
   const templateCancel = document.getElementById('templateCancel');
+  const pagePreviewModal = document.getElementById('pagePreviewModal');
+  const pagePreviewViewport = document.getElementById('pagePreviewViewport');
+  const pagePreviewSheet = document.getElementById('pagePreviewSheet');
+  const pagePreviewClose = document.getElementById('pagePreviewClose');
+  const pagePreviewZoomRange = document.getElementById('pagePreviewZoomRange');
+  const pagePreviewZoomDisplay = document.getElementById('pagePreviewZoomDisplay');
+  const pagePreviewZoomIn = document.getElementById('pagePreviewZoomIn');
+  const pagePreviewZoomOutBtn = document.getElementById('pagePreviewZoomOut');
+  const pagePreviewZoomFit = document.getElementById('pagePreviewZoomFit');
+  const pagePreviewPrev = document.getElementById('pagePreviewPrev');
+  const pagePreviewNext = document.getElementById('pagePreviewNext');
+  const pagePreviewHeading = document.getElementById('pagePreviewHeading');
 
   let docModel = null;
   let pages = [];
@@ -491,6 +553,10 @@
   let styledSelection = { type:null, pageIndex:-1, elementIndex:-1 };
   let currentStyleOptionType = null;
   let zoomLevel = 1;
+  let previewPageIndex = 0;
+  let previewZoomLevel = 1;
+  let previewShouldRefit = false;
+  let previewSyncFromSnap = false;
   let columnDragState = null;
 
   const PAGE_THEMES = ['standard','newsprint','midnight'];
@@ -514,7 +580,7 @@
     ]
   };
 
-  const DEFAULT_TEMPLATE_ID = 'orbit-launch';
+  const DEFAULT_TEMPLATE_ID = 'velocity-feature';
 
   function createColumnElement(columns, windows, style = 'standard', layout = []){
     const count = Math.min(4, Math.max(1, parseInt(columns, 10) || 1));
@@ -559,149 +625,311 @@
     }, data || {});
   }
 
-  function orbitLaunchTemplate(){
+  function velocityFeatureTemplate(){
     return {
-      version:'0.1.0',
-      docVersion:'0.1.0',
-      codename:'Orbit OS',
+      version:'1.2.0',
+      docVersion:'1.2.0',
+      codename:'Velocity Feature',
       docName:'Docu Monster Studio Pro',
       releaseNotes:[
-        'Orbit OS v 0.1.0 desktop shell refreshed with renamed menus and inspector tools.',
-        'Docu Monster Studio Pro 0.1.0 editing engine with multi-column layouts and floating frames.',
-        'Guides, rulers, and print marks aligned with Docu Monster Studio Pro terminology.',
-        'Docu Monster Studio Pro PDF exports with bleed and trim presets ready for press.'
+        'Wired-inspired feature grid with neon accent banding and modular hero art.',
+        'Pre-styled callouts and stat blocks for technology reporting.',
+        'Midnight studio theme tuned for high-contrast photography and white type.'
       ],
       pages:[
         {
-          title:'ORBIT OS LAUNCH DOSSIER',
-          subtitle:'Docu Monster Studio Pro 0.1.0',
-          deck:'Orbit OS v 0.1.0 introduces Docu Monster Studio Pro, a desktop publishing lab for the browser.',
-          theme:'standard',
+          title:'VELOCITY MAGAZINE',
+          subtitle:'THE FUTURE OF URBAN MOBILITY',
+          deck:'An immersive feature package in the spirit of WIRED with asymmetric image anchors and modular columns.',
+          theme:'midnight',
           elements:[
+            createFrameModel({
+              frameType:'image',
+              mode:'block',
+              width:150,
+              height:90,
+              caption:'Swap in a hero image to anchor the feature opener. The layout reserves space for headline overlays.',
+              style:'shadow'
+            }),
             createColumnElement(2,[
-              '<p>Docu Monster Studio Pro debuts alongside Orbit OS v 0.1.0. The refreshed shell keeps the retro desktop look while focusing entirely on print production.</p>'+
-              '<p>Swap between one, two, or three column grids from the Edit menu. Add text or image frames, set them to overlay or float, and fine-tune them with the inspector.</p>',
-              '<p>All terminology now aligns with Orbit OS and Docu Monster Studio Pro, making it clear which layer handles the interface and which powers layout.</p>'+
-              '<p>Guides, crop marks, and colour bars are still a click away, so exporting from Docu Monster Studio Pro feels just like working in a print studio.</p>'
-            ], 'standard', [ { width:90, height:120 }, { width:90, height:120 } ]),
-            createColumnElement(1,[
-              '<h2 class="span-all">Release Highlights</h2>'+
-              '<ul class="bullet"><li>Persistent centimetre and inch rulers for exact placement.</li>'+
-              '<li>Frame inspector with millimetre precision controls.</li>'+
-              '<li>Autosave with local storage plus JSON import and export.</li>'+
-              '<li>Mirrored gutter toggles, bleed proofing, and Docu Monster Studio Pro colour bars.</li></ul>'
-            ]),
+              '<p>Electric grids, edge computing, and autonomous systems converge in cities worldwide. Velocity traces the code that keeps night routes glowing and safe.</p>'+
+              '<p>From Seoul to San Francisco, transit directors are shipping beta firmware to bus depots like clockwork.</p>',
+              '<p>Use this spread to narrate the main story. Neon dividers and uppercase subheads evoke the velocity of printed tech monthlies.</p>'+
+              '<p>Drop quotes or stats into the overlay frames to punctuate your reporting.</p>'
+            ], 'inverse', [ { width:90, height:120 }, { width:90, height:120 } ]),
             createFrameModel({
               frameType:'text',
               mode:'overlay',
               x:118,
-              y:58,
-              width:62,
-              height:40,
-              content:'<p class="quote">“Design for print, proof in the browser, and ship straight from Docu Monster Studio Pro.”</p><p class="attribution">— Orbit OS Team</p>'
+              y:45,
+              width:60,
+              height:32,
+              content:'<p class="callout">Key stat: 68% of commuters will ride autonomous shuttles by 2032, according to the Velocity Index.</p>',
+              style:'banner'
             }),
-            createFrameModel({
-              frameType:'image',
-              mode:'float-right',
-              width:70,
-              height:50,
-              caption:'Orbit OS wraps the editor with a familiar desktop-style workspace.'
-            })
+            createColumnElement(3,[
+              '<h3 class="span-all">Signal Boost</h3><p>Map out the partners accelerating this rollout—from chipset designers to city halls.</p>',
+              '<p>Short blocks like these mimic Wired’s modular briefs. Keep entries sharp and data-rich.</p>',
+              '<p>Pair each card with icons or mini graphics by converting the frame style to accent mode.</p>'
+            ], 'accent', [ { width:55, height:90 }, { width:55, height:90 }, { width:55, height:90 } ])
           ],
-          footerLeft:'Docu Monster Studio Pro • Orbit OS',
-          footerRight:'Page {{page}} / {{total}} — Build {{version}}'
+          footerLeft:'Velocity Magazine • Tech Futures',
+          footerRight:'Feature Package • Page {{page}}/{{total}}'
         },
         {
-          title:'LAYOUT WORKSHOP',
-          subtitle:'Dynamic columns & intelligent flow',
-          deck:'Mix content structures per page for editorial rhythm.',
-          theme:'standard',
+          title:'VELOCITY LAB',
+          subtitle:'Prototypes, pilots, and platform bets',
+          deck:'A modular lab page for deep dives and annotated diagrams.',
+          theme:'midnight',
           elements:[
             createColumnElement(3,[
-              '<p>Switch between one, two, and three column sets inside the same spread. Each block remains editable—type directly into place and Docu Monster Studio Pro keeps autosave running.</p>',
-              '<p>Frame wrap controls let imagery ride alongside the story or float freely for poster art. Overlay frames honour millimetre coordinates; floats behave like magazine callouts.</p>',
-              '<p>Columns are contenteditable, so you can prototype copy or import drafted HTML snippets without leaving Orbit OS.</p>'
-            ], 'standard', [ { width:55, height:120 }, { width:55, height:120 }, { width:55, height:120 } ]),
-            createColumnElement(2,[
-              '<h3 class="span-all">Workflow Tips</h3>'+
-              '<p>Mix floats with overlay quotes for emphasis. Use the inspector to dial in millimetre offsets while the rulers confirm alignment.</p>',
-              '<p>Activate mirrored gutters when you are prepping signatures, then disable them for single-sided reports.</p>'+
-              '<p>Autosave keeps progress safe between sessions—reload later with File → Load Autosave.</p>'
-            ], 'note', [ { width:85, height:110 }, { width:85, height:110 } ]),
-            createFrameModel({
-              frameType:'text',
-              mode:'float-left',
-              width:55,
-              height:45,
-              content:'<p class="callout">Add frames from the Edit menu, then select them to tune wrap, size, and coordinates with the inspector.</p>'
-            }),
+              '<p><strong>Prototype Watch.</strong> Catalog the hardware labs refining lidar, solid-state batteries, and curbside hubs.</p>',
+              '<p><strong>Policy Shift.</strong> Summarize the latest legislation that keeps micromobility lanes funded.</p>',
+              '<p><strong>Platform Notes.</strong> Break down the API updates your engineering desk should watch.</p>'
+            ], 'standard', [ { width:58, height:120 }, { width:58, height:120 }, { width:58, height:120 } ]),
             createFrameModel({
               frameType:'image',
               mode:'overlay',
               x:92,
-              y:150,
-              width:80,
-              height:55,
-              caption:'Overlay frames support pixel-perfect placement alongside ruler guides.'
-            })
-          ],
-          footerLeft:'Workshop Series',
-          footerRight:'Docu Monster Studio Pro {{version}} • Page {{page}}'
-        },
-        {
-          title:'EXPORT & DELIVERY',
-          subtitle:'Bleed, trim, and PDF flows',
-          deck:'Control print outputs directly from the Export menu.',
-          theme:'standard',
-          elements:[
-            createColumnElement(2,[
-              '<p>The Export menu collects bleed and trim print commands. Choose Print with Bleed for press-ready spreads or Print Trimmed for quick previews without crop marks.</p>',
-              '<p>Mirrored gutters are a single toggle away when you need perfect imposition, and the printshop grid offers extra confidence for production checks.</p>'
-            ], 'standard', [ { width:90, height:100 }, { width:90, height:100 } ]),
-            createColumnElement(1,[
-              '<p>Use Save As to download a JSON snapshot of this publication. Share with collaborators or re-import to continue editing. Autosave keeps a local copy even if you forget.</p>'+
-              '<p>The rulers and inspector stay active while printing, so you can verify alignment before exporting from Docu Monster Studio Pro.</p>'
-            ]),
+              y:132,
+              width:78,
+              height:58,
+              caption:'Overlay a system diagram or product render to mirror the iconic Wired lab sections.',
+              style:'outline'
+            }),
             createFrameModel({
               frameType:'text',
-              mode:'block',
-              width:100,
-              height:35,
-              content:'<p class="note">Orbit OS surfaces system status in the toolbar. Watch the autosave indicator whenever you make adjustments.</p>'
+              mode:'float-right',
+              width:60,
+              height:45,
+              content:'<p class="note">Edit the inspector to switch this card to accent or inverse styling. Perfect for listing specs or upcoming release dates.</p>',
+              style:'shadow'
             })
           ],
-          footerLeft:'Production Stack',
-          footerRight:'Orbit OS — Page {{page}}/{{total}}'
+          footerLeft:'Velocity Lab Notes',
+          footerRight:'Docu Monster Studio Pro • Page {{page}}'
         },
         {
-          title:'SYSTEM MANIFEST',
-          subtitle:'Browser-based studio platform',
-          deck:'Orbit OS frames the creative suite powered by Docu Monster Studio Pro.',
-          theme:'standard',
+          title:'DATA STUDIO',
+          subtitle:'Urban metrics decoded',
+          deck:'Use this closer to visualise metrics and highlight reporter notes.',
+          theme:'midnight',
           elements:[
             createColumnElement(2,[
-              '<p>Docu Monster Studio Pro now ships with Orbit OS v 0.1.0, our browser-first desktop metaphor. The menubar nods to classic environments while the editor remains fast and modern.</p>',
-              '<p>This manifest tracks everything bundled in v0.1.0: rulers, menu commands, the frame inspector, autosave, and more. Use it as a base template for newsroom workflows.</p>'
-            ], 'standard', [ { width:90, height:100 }, { width:90, height:100 } ]),
-            createColumnElement(2,[
-              '<h3 class="span-all">Included Modules</h3>'+
-              '<ul class="bullet"><li>Docu Monster Studio Pro 0.1.0 (column engine, frames, PDF export).</li>'+
-              '<li>Orbit OS shell v 0.1.0 (menubar, status HUD, OS release card).</li>'+
-              '<li>Colour labs with Standard &amp; Ugra/Fogra presets.</li>'+
-              '<li>Layout workshop library with editable spreads.</li></ul>'
-            ], 'accent', [ { width:85, height:100 }, { width:85, height:100 } ]),
+              '<h3 class="span-all">Timeline: Autonomy Arrives</h3><p>Build a milestone timeline inside these windows. Mix bold numerals with short descriptors to emulate print infographics.</p>',
+              '<p>Pair the second column with insight cards or analyst commentary. Swap styles for quick emphasis.</p>'
+            ], 'accent', [ { width:88, height:110 }, { width:88, height:110 } ]),
+            createFrameModel({
+              frameType:'text',
+              mode:'overlay',
+              x:25,
+              y:140,
+              width:70,
+              height:40,
+              content:'<p class="quote">“Street-level autonomy is no longer a lab experiment—it’s live code in need of constant tuning.”</p><p class="attribution">— Velocity Magazine</p>',
+              style:'banner'
+            }),
+            createFrameModel({
+              frameType:'image',
+              mode:'block',
+              width:120,
+              height:60,
+              caption:'Use this block for heat maps or city grid composites that stretch across both columns.',
+              style:'shadow'
+            })
+          ],
+          footerLeft:'Velocity • Data Studio',
+          footerRight:'{{codename}} {{version}} • Page {{page}}/{{total}}'
+        }
+      ]
+    };
+  }
+
+  function metropolisBriefingTemplate(){
+    return {
+      version:'1.2.0',
+      docVersion:'1.2.0',
+      codename:'Metropolis Briefing',
+      docName:'Docu Monster Studio Pro',
+      releaseNotes:[
+        'Broadsheet front page inspired by The New York Times with balanced serif typography.',
+        'Built-in opinion column and skyline photo frame with print-style captions.',
+        'Mirrored gutter-friendly layout tuned for broadsheet exports.'
+      ],
+      pages:[
+        {
+          title:'METROPOLIS MORNING TIMES',
+          subtitle:'National Edition • Founded 1896',
+          deck:'A restrained broadsheet composition echoing The New York Times front page with measured columns and hierarchy.',
+          theme:'newsprint',
+          elements:[
+            createColumnElement(4,[
+              '<p><strong>Lead Story.</strong> Set the tone with measured sentences, classic serif styling, and paragraph spacing that mirrors print.</p>',
+              '<p>Use the second column for continuation or a secondary report. Crossheads and italics capture the voice of the paper.</p>',
+              '<p>Third column holds analytical graf or data note. Keep sentences crisp to preserve the broadsheet rhythm.</p>',
+              '<p>Reserve the fourth column for quick reactions, background, or explainer boxes.</p>'
+            ], 'standard', [ { width:40, height:140 }, { width:40, height:140 }, { width:40, height:140 }, { width:40, height:140 } ]),
             createFrameModel({
               frameType:'image',
               mode:'overlay',
-              x:110,
-              y:70,
-              width:68,
-              height:46,
-              caption:'Frames can be positioned freely or floated for magazine style wraps.'
+              x:60,
+              y:60,
+              width:88,
+              height:60,
+              caption:'Classic skyline photo box with italicised caption, sized for broadsheet above-the-fold imagery.',
+              style:'outline'
+            }),
+            createColumnElement(2,[
+              '<h3 class="span-all">Editorial Board</h3><p>The left window is ideal for a lead editorial or analysis column.</p>',
+              '<p>Use the right window for an op-ed or letters to the editor. Swap to inverse styling for weekend editions.</p>'
+            ], 'note', [ { width:85, height:90 }, { width:85, height:90 } ])
+          ],
+          footerLeft:'Metropolis Morning Times',
+          footerRight:'City Desk • Page {{page}} of {{total}}'
+        },
+        {
+          title:'IN FOCUS',
+          subtitle:'Investigations & Culture',
+          deck:'A second spread for investigative packages, arts coverage, and long-form features.',
+          theme:'newsprint',
+          elements:[
+            createColumnElement(3,[
+              '<p><strong>Long Read.</strong> Continue the main package with considered columns and generous pull quotes.</p>',
+              '<p>Middle column can host timeline sidebars or fact boxes with drop caps.</p>',
+              '<p>Third column supports arts, book reviews, or metro briefs just like the Sunday section.</p>'
+            ], 'standard', [ { width:55, height:130 }, { width:55, height:130 }, { width:55, height:130 } ]),
+            createFrameModel({
+              frameType:'text',
+              mode:'float-left',
+              width:50,
+              height:45,
+              content:'<p class="quote">“Metropolitan reporting demands nuance. Pair this pull quote with investigative highlights.”</p>',
+              style:'banner'
+            }),
+            createFrameModel({
+              frameType:'image',
+              mode:'float-right',
+              width:60,
+              height:55,
+              caption:'Use this portrait frame for reporters, sources, or archival photography.',
+              style:'shadow'
             })
           ],
-          footerLeft:'Orbit OS Release Card',
-          footerRight:'{{codename}} v {{version}} — Page {{page}}'
+          footerLeft:'Metropolis Culture',
+          footerRight:'Edition {{version}} • Page {{page}}'
+        }
+      ]
+    };
+  }
+
+  function atlasExpeditionTemplate(){
+    return {
+      version:'1.2.0',
+      docVersion:'1.2.0',
+      codename:'Atlas Expedition',
+      docName:'Docu Monster Studio Pro',
+      releaseNotes:[
+        'Travel feature modeled after National Geographic spreads with immersive photography.',
+        'Caption-ready floating frames and story windows for field notes.',
+        'Adventure log cards and expedition timeline styled for magazine production.'
+      ],
+      pages:[
+        {
+          title:'ATLAS EXPEDITION REPORT',
+          subtitle:'Into the Karakoram',
+          deck:'A National Geographic-inspired opener with sweeping imagery, rich serif deck, and editorial annotations.',
+          theme:'standard',
+          elements:[
+            createFrameModel({
+              frameType:'image',
+              mode:'overlay',
+              x:26,
+              y:40,
+              width:160,
+              height:95,
+              caption:'Replace with your hero landscape. The frame spans the spread for cinematic impact.',
+              style:'shadow'
+            }),
+            createColumnElement(2,[
+              '<p>Begin with a narrative lede and descriptive language. This column is tuned for NatGeo-style storytelling with immersive detail.</p>',
+              '<p>Use the right-hand column for context: expedition logistics, altitude stats, and the science behind the journey.</p>'
+            ], 'accent', [ { width:80, height:110 }, { width:80, height:110 } ]),
+            createFrameModel({
+              frameType:'text',
+              mode:'overlay',
+              x:150,
+              y:120,
+              width:60,
+              height:38,
+              content:'<p class="note">Field Note: Record GPS coordinates, elevation, and weather to mimic real expedition captions.</p>',
+              style:'banner'
+            })
+          ],
+          footerLeft:'Atlas Expedition • Field Journal',
+          footerRight:'Page {{page}} • {{codename}} {{version}}'
+        },
+        {
+          title:'FIELD JOURNAL',
+          subtitle:'Voices from the trail',
+          deck:'Layer quotes, sidebars, and equipment callouts as seen in premium travel magazines.',
+          theme:'standard',
+          elements:[
+            createColumnElement(3,[
+              '<p><strong>Journal Entry.</strong> Chronicle day-by-day impressions with italic standfirsts and generous margins.</p>',
+              '<p><strong>Research Log.</strong> Summarise the scientific mission, sample data, or interview highlights.</p>',
+              '<p><strong>Logistics.</strong> Detail access routes, permit requirements, and gear lists for fellow explorers.</p>'
+            ], 'standard', [ { width:55, height:120 }, { width:55, height:120 }, { width:55, height:120 } ]),
+            createFrameModel({
+              frameType:'image',
+              mode:'float-right',
+              width:70,
+              height:60,
+              caption:'Drop in portraiture or macro shots to echo National Geographic photo essays.',
+              style:'outline'
+            }),
+            createFrameModel({
+              frameType:'text',
+              mode:'float-left',
+              width:60,
+              height:45,
+              content:'<p class="callout">Gear Locker: list essential equipment, camera settings, or survival tips in this card.</p>',
+              style:'shadow'
+            })
+          ],
+          footerLeft:'Atlas Expedition Notes',
+          footerRight:'Field Journal • Page {{page}}/{{total}}'
+        },
+        {
+          title:'EXPEDITION DATA',
+          subtitle:'Elevation, routes, and observations',
+          deck:'A closing spread dedicated to annotated maps and specimen logs.',
+          theme:'standard',
+          elements:[
+            createColumnElement(2,[
+              '<h3 class="span-all">Route Timeline</h3><p>Plot the trek from base camp to summit. Break each stage into digestible paragraphs for clarity.</p>',
+              '<p>Pair the second column with measurements, species lists, or glaciology insights to mirror NatGeo research pages.</p>'
+            ], 'accent', [ { width:85, height:110 }, { width:85, height:110 } ]),
+            createFrameModel({
+              frameType:'image',
+              mode:'block',
+              width:120,
+              height:65,
+              caption:'Use this space for a locator map, drone mosaic, or geological cross-section.',
+              style:'shadow'
+            }),
+            createFrameModel({
+              frameType:'text',
+              mode:'overlay',
+              x:30,
+              y:140,
+              width:65,
+              height:36,
+              content:'<p class="note">Checklist: Document species observed, weather anomalies, or cultural insights.</p>',
+              style:'banner'
+            })
+          ],
+          footerLeft:'Atlas Expedition Research',
+          footerRight:'Docu Monster • Page {{page}}/{{total}}'
         }
       ]
     };
@@ -709,18 +937,30 @@
 
   function blankTemplate(){
     return {
-      version:'0.1.0',
-      docVersion:'0.1.0',
-      codename:'Blank Canvas',
+      version:'1.2.0',
+      docVersion:'1.2.0',
+      codename:'Studio Blank',
       docName:'Docu Monster Studio Pro',
-      releaseNotes:['Start from scratch with an empty two-page spread ready for newsroom experimentation.'],
+      releaseNotes:['An empty grid with guides and a neutral theme for building bespoke spreads.'],
       pages:[
         {
-          title:'UNTITLED SPREAD',
+          title:'UNTITLED FEATURE',
           subtitle:'',
           deck:'',
           theme:'standard',
-          elements:[createColumnElement(2,['<p>Start typing…</p>','<p>…and add another column.</p>'])],
+          elements:[
+            createColumnElement(2,['<p>Start typing…</p>','<p>Duplicate or delete blocks to suit your brief.</p>']),
+            createFrameModel({
+              frameType:'image',
+              mode:'overlay',
+              x:90,
+              y:70,
+              width:80,
+              height:55,
+              caption:'Drop an image or chart here when planning your layout.',
+              style:'outline'
+            })
+          ],
           footerLeft:'Docu Monster Studio Pro',
           footerRight:'Page {{page}} / {{total}}'
         }
@@ -728,100 +968,11 @@
     };
   }
 
-  function bildTemplate(){
-    return {
-      version:'0.2.0',
-      docVersion:'0.2.0',
-      codename:'Redline',
-      docName:'Docu Monster Studio Pro',
-      releaseNotes:[
-        'Die Build-inspired splash layout with bold headlines and kicker bands.',
-        'Preset column widths tuned for aggressive tabloid pacing.',
-        'Hero photo frame configured for instant wrap experimentation.'
-      ],
-      pages:[
-        {
-          title:'DIE BUILD MORGEN',
-          subtitle:'Riesen-Schlagzeile des Tages',
-          deck:'Stadt im Ausnahmezustand – alles, was Sie wissen müssen.',
-          theme:'newsprint',
-          elements:[
-            createColumnElement(3,[
-              '<p><strong>EXTRA!</strong> Noch in der Nacht überschlugen sich die Ereignisse im Herzen der Stadt. Rettungswagen, Reporter und Leserreporter standen Schulter an Schulter.</p>',
-              '<p>Die Build bündelt alle Stimmen: Feuerwehrkommandanten, Augenzeugen und Politiker liefern im Minutentakt neue Zitate.</p>',
-              '<p>Nutzen Sie die roten Eilmeldungs-Bänder, um dramatische Fakten mit Bildern zu koppeln – genau wie in der Redaktion.</p>'
-            ], 'accent', [ { width:58, height:115 }, { width:58, height:115 }, { width:58, height:115 } ]),
-            createFrameModel({
-              frameType:'image',
-              mode:'overlay',
-              x:68,
-              y:90,
-              width:110,
-              height:70,
-              caption:'Bild-typischer Aufmacher: kräftiger Rand, Platz für Schock-Headline.'
-            }),
-            createColumnElement(2,[
-              '<h3 class="span-all">Fakten im Schnellcheck</h3>'+
-              '<ul class="bullet"><li>Breaking-Boxen für jede Stunde der Nacht.</li>'+
-              '<li>Großzügige Typografie mit fetten Zwischentiteln.</li>'+
-              '<li>Bildplatzierungen, die Textfluss dramatisch schneiden.</li></ul>',
-              '<p>Mit Docu Monster können Sie die Fenster neu ordnen, Höhen ziehen und Headlines vergrößern – genau wie auf der echten Build-Titelseite.</p>'
-            ], 'note', [ { width:88, height:80 }, { width:88, height:80 } ])
-          ],
-          footerLeft:'Die Build Sonderausgabe',
-          footerRight:'Stadt-Desk • Seite {{page}}'
-        }
-      ]
-    };
-  }
-
-  function frankfurterTemplate(){
-    return {
-      version:'0.2.0',
-      docVersion:'0.2.0',
-      codename:'Feuilleton',
-      docName:'Docu Monster Studio Pro',
-      releaseNotes:[
-        'Frankfurter Allgemeine inspirierte Broadsheet-Typografie mit großzügigen Kolumnen.',
-        'Seriöse Titelleiste, dezente Deckzeile und Platz für Leitartikel.',
-        'Mehrspaltige Kommentare und Infokästen für klassische Tageszeitungsoptik.'
-      ],
-      pages:[
-        {
-          title:'FRANKFURTER ALLGEMEINE EDITION',
-          subtitle:'Zeitung für Deutschland',
-          deck:'Leitartikel, Analyse, Feuilleton und Kommentare im großformatigen Blatt.',
-          theme:'standard',
-          elements:[
-            createColumnElement(3,[
-              '<p>Mit breiter Schulter und ruhiger Typografie beginnt das Leitstück des Tages. Längere Absätze, dezente Initialen und klare Gliederung prägen das Blatt.</p>',
-              '<p>Jede Kolumne lässt sich wie ein eigenes Fenster skalieren. So entsteht der typische Blocksatz, der Lesern Orientierung bietet.</p>',
-              '<p>Ein Feuilleton-Kasten kann direkt daneben schweben – samt Serifenschrift und klassischer Zwischenzeile.</p>'
-            ], 'standard', [ { width:60, height:140 }, { width:60, height:140 }, { width:60, height:140 } ]),
-            createColumnElement(1,[
-              '<h3 class="span-all">Kommentar</h3>'+
-              '<p>Die Frankfurter Allgemeine lebt von pointierten Meinungen. Nutzen Sie das eigenständige Kommentar-Fenster, um Stimmen aus Politik und Wirtschaft zu platzieren.</p>'
-            ], 'inverse', [ { width:182, height:70 } ]),
-            createFrameModel({
-              frameType:'text',
-              mode:'block',
-              width:120,
-              height:50,
-              content:'<p class="note">Setzen Sie Zitate mit langen Gedankenstrichen, nutzen Sie ruhige Zeilenabstände und viel Weißraum für das hochwertige Erscheinungsbild.</p>'
-            })
-          ],
-          footerLeft:'Frankfurter Allgemeine',
-          footerRight:'Ausgabe {{page}} / {{total}}'
-        }
-      ]
-    };
-  }
-
   const DOCUMENT_TEMPLATES = [
-    { id:'orbit-launch', label:'Orbit Launch Dossier', description:'Das klassische Docu Monster Studio Pro Startlayout.', create:orbitLaunchTemplate },
-    { id:'bild-bulletin', label:'Die Build Morgen', description:'Tabloid-Power mit rotem Aufmacherfenster.', create:bildTemplate },
-    { id:'frankfurter-report', label:'Frankfurter Allgemeine', description:'Elegante Broadsheet-Komposition für Leitartikel.', create:frankfurterTemplate },
-    { id:'blank-spread', label:'Blanko Spread', description:'Leeres Raster für individuelle Produktionen.', create:blankTemplate }
+    { id:'velocity-feature', label:'Velocity Magazine Feature', description:'Wired-inspired technology feature with neon accents.', create:velocityFeatureTemplate },
+    { id:'metropolis-briefing', label:'Metropolis Morning Briefing', description:'New York Times-style broadsheet front page.', create:metropolisBriefingTemplate },
+    { id:'atlas-expedition', label:'Atlas Expedition Report', description:'National Geographic-inspired travel narrative.', create:atlasExpeditionTemplate },
+    { id:'blank-spread', label:'Blank Studio Spread', description:'Neutral grid ready for bespoke layouts.', create:blankTemplate }
   ];
 
   const TEMPLATE_MAP = new Map(DOCUMENT_TEMPLATES.map(t=>[t.id, t]));
@@ -834,7 +985,7 @@
 
   function defaultDocument(){
     const entry = TEMPLATE_MAP.get(DEFAULT_TEMPLATE_ID);
-    return entry ? entry.create() : orbitLaunchTemplate();
+    return entry ? entry.create() : velocityFeatureTemplate();
   }
 
   function normalizeDocument(input){
@@ -1405,6 +1556,10 @@
     updatePageThemeControl();
     refreshElementStyleControl();
     applyZoom();
+    if(isPreviewOpen()){
+      previewShouldRefit = true;
+      renderPagePreview();
+    }
   }
 
   function handleColumnReorder(pageIndex, elementIndex, fromIndex, toIndex){
@@ -1536,6 +1691,145 @@
   if(zoomResetBtn) zoomResetBtn.addEventListener('click', zoomReset);
   if(zoomFullBtn) zoomFullBtn.addEventListener('click', zoomFit);
 
+  function isPreviewOpen(){
+    return !!(pagePreviewModal && pagePreviewModal.classList.contains('open'));
+  }
+
+  function clampPreviewZoom(value){
+    return Math.min(3, Math.max(0.3, value));
+  }
+
+  function applyPreviewZoom(){
+    if(!pagePreviewSheet) return;
+    const sheet = pagePreviewSheet.querySelector('.sheet');
+    if(sheet){
+      sheet.style.transform = 'scale('+previewZoomLevel.toFixed(3)+')';
+    }
+    if(pagePreviewZoomDisplay){
+      pagePreviewZoomDisplay.textContent = Math.round(previewZoomLevel*100)+'%';
+    }
+    if(pagePreviewZoomRange){
+      const sliderValue = Math.round(previewZoomLevel*100);
+      const min = parseInt(pagePreviewZoomRange.min, 10) || 40;
+      const max = parseInt(pagePreviewZoomRange.max, 10) || 200;
+      const clamped = Math.max(min, Math.min(max, sliderValue));
+      pagePreviewZoomRange.value = String(clamped);
+    }
+  }
+
+  function computePreviewFit(sheet){
+    if(!sheet || !pagePreviewViewport) return clampPreviewZoom(1);
+    const sheetRect = sheet.getBoundingClientRect();
+    if(!sheetRect.width || !sheetRect.height) return clampPreviewZoom(1);
+    const viewportRect = pagePreviewViewport.getBoundingClientRect();
+    const availableWidth = Math.max(140, viewportRect.width - 40);
+    const availableHeight = Math.max(140, viewportRect.height - 40);
+    const rawScale = Math.min(availableWidth / sheetRect.width, availableHeight / sheetRect.height);
+    if(!Number.isFinite(rawScale) || rawScale <= 0) return clampPreviewZoom(1);
+    return clampPreviewZoom(rawScale);
+  }
+
+  function updatePreviewHeading(){
+    if(!pagePreviewHeading) return;
+    const total = getTotalPages();
+    const page = docModel.pages[previewPageIndex];
+    const suffix = page && page.title ? ' — '+page.title : '';
+    pagePreviewHeading.innerHTML = '<strong>Page Preview</strong><span>Page '+(previewPageIndex+1)+' of '+total+suffix+'</span>';
+  }
+
+  function updatePreviewNavButtons(){
+    if(pagePreviewPrev){
+      pagePreviewPrev.disabled = (previewPageIndex <= 0);
+    }
+    if(pagePreviewNext){
+      pagePreviewNext.disabled = (previewPageIndex >= getTotalPages()-1);
+    }
+  }
+
+  function renderPagePreview(){
+    if(!isPreviewOpen() || !pagePreviewSheet) return;
+    const source = pages[previewPageIndex];
+    pagePreviewSheet.innerHTML = '';
+    if(!source){
+      const empty = document.createElement('div');
+      empty.style.color = '#fff';
+      empty.style.font = '14px var(--font-ui)';
+      empty.style.padding = '16px';
+      empty.textContent = 'No page available.';
+      pagePreviewSheet.appendChild(empty);
+      updatePreviewHeading();
+      updatePreviewNavButtons();
+      return;
+    }
+    const clone = source.cloneNode(true);
+    clone.style.transform = '';
+    clone.style.transformOrigin = 'top center';
+    pagePreviewSheet.appendChild(clone);
+    if(previewShouldRefit){
+      previewZoomLevel = computePreviewFit(clone);
+      previewShouldRefit = false;
+    }
+    applyPreviewZoom();
+    updatePreviewHeading();
+    updatePreviewNavButtons();
+  }
+
+  function openPagePreview(index){
+    if(!pagePreviewModal) return;
+    const total = getTotalPages();
+    const target = Number.isFinite(index) ? index : cur;
+    previewPageIndex = Math.max(0, Math.min(total-1, target));
+    previewShouldRefit = true;
+    pagePreviewModal.classList.add('open');
+    pagePreviewModal.setAttribute('aria-hidden', 'false');
+    document.body.classList.add('preview-open');
+    renderPagePreview();
+    setTimeout(()=>{ try{ pagePreviewModal.focus({ preventScroll:true }); } catch(err){ pagePreviewModal.focus(); } }, 0);
+  }
+
+  function closePagePreview(){
+    if(!pagePreviewModal) return;
+    pagePreviewModal.classList.remove('open');
+    pagePreviewModal.setAttribute('aria-hidden', 'true');
+    document.body.classList.remove('preview-open');
+  }
+
+  function goToPreviewPage(index, resetZoom = false){
+    const total = getTotalPages();
+    const target = Math.max(0, Math.min(total-1, index));
+    previewShouldRefit = resetZoom;
+    if(target !== previewPageIndex){
+      previewSyncFromSnap = true;
+      previewPageIndex = target;
+      snapTo(target, false);
+      previewSyncFromSnap = false;
+    } else {
+      renderPagePreview();
+    }
+  }
+
+  function previewZoomTo(value){
+    previewZoomLevel = clampPreviewZoom(value);
+    applyPreviewZoom();
+  }
+
+  function previewZoomBy(step){
+    previewZoomTo(previewZoomLevel + step);
+  }
+
+  function previewZoomFit(){
+    previewShouldRefit = true;
+    renderPagePreview();
+  }
+
+  function handlePreviewWheelZoom(ev){
+    if(!(ev.ctrlKey || ev.metaKey)) return;
+    ev.preventDefault();
+    const delta = ev.deltaY;
+    if(!Number.isFinite(delta) || delta === 0) return;
+    previewZoomBy(delta < 0 ? 0.1 : -0.1);
+  }
+
   function handleWheelZoom(ev){
     if(!(ev.ctrlKey || ev.metaKey)) return;
     ev.preventDefault();
@@ -1547,6 +1841,53 @@
 
   if(pageViewport){
     pageViewport.addEventListener('wheel', handleWheelZoom, { passive:false });
+  }
+
+  if(openPreviewBtn){
+    openPreviewBtn.addEventListener('click', ()=>openPagePreview(cur));
+  }
+  if(pagePreviewModal){
+    pagePreviewModal.addEventListener('click', ev=>{
+      if(ev.target === pagePreviewModal) closePagePreview();
+    });
+  }
+  if(pagePreviewClose){
+    pagePreviewClose.addEventListener('click', closePagePreview);
+  }
+  if(pagePreviewZoomRange){
+    pagePreviewZoomRange.addEventListener('input', ()=>{
+      const value = parseInt(pagePreviewZoomRange.value, 10) || 100;
+      previewZoomTo(value / 100);
+    });
+  }
+  if(pagePreviewZoomIn){
+    pagePreviewZoomIn.addEventListener('click', ()=>previewZoomBy(0.1));
+  }
+  if(pagePreviewZoomOutBtn){
+    pagePreviewZoomOutBtn.addEventListener('click', ()=>previewZoomBy(-0.1));
+  }
+  if(pagePreviewZoomFit){
+    pagePreviewZoomFit.addEventListener('click', previewZoomFit);
+  }
+  if(pagePreviewPrev){
+    pagePreviewPrev.addEventListener('click', ()=>goToPreviewPage(previewPageIndex-1));
+  }
+  if(pagePreviewNext){
+    pagePreviewNext.addEventListener('click', ()=>goToPreviewPage(previewPageIndex+1));
+  }
+  if(pagePreviewViewport){
+    pagePreviewViewport.addEventListener('wheel', handlePreviewWheelZoom, { passive:false });
+  }
+  if(pagesEl){
+    pagesEl.addEventListener('dblclick', ev=>{
+      if(ev.target.closest('[contenteditable="true"]')) return;
+      const sheet = ev.target.closest('.sheet');
+      if(!sheet) return;
+      const idx = pages.indexOf(sheet);
+      if(idx >= 0){
+        openPagePreview(idx);
+      }
+    });
   }
 
   function refreshCounts(){
@@ -1605,6 +1946,12 @@
       scrollPageIntoView(target, instant ? 'auto' : 'smooth');
     }
     updateNavigationState(true);
+    if(isPreviewOpen()){
+      if(!previewSyncFromSnap){
+        previewPageIndex = cur;
+      }
+      renderPagePreview();
+    }
   }
 
   function buildThumbnails(){
@@ -2155,6 +2502,10 @@
 
   document.addEventListener('keydown', ev=>{
     if(ev.key === 'Escape'){
+      if(isPreviewOpen()){
+        closePagePreview();
+        return;
+      }
       if(templateModal && templateModal.classList.contains('open')){
         closeTemplateChooser();
       } else {
@@ -2284,6 +2635,50 @@
   });
 
   window.addEventListener('keydown', ev=>{
+    if(isPreviewOpen()){
+      if(ev.ctrlKey || ev.metaKey){
+        if(ev.key === '=' || ev.key === '+'){
+          ev.preventDefault();
+          previewZoomBy(0.1);
+          return;
+        }
+        if(ev.key === '-'){
+          ev.preventDefault();
+          previewZoomBy(-0.1);
+          return;
+        }
+        if(ev.key === '0'){
+          ev.preventDefault();
+          previewZoomFit();
+          return;
+        }
+      }
+      if(ev.key === 'ArrowRight' || ev.key === 'PageDown'){
+        ev.preventDefault();
+        goToPreviewPage(previewPageIndex+1);
+        return;
+      }
+      if(ev.key === 'ArrowLeft' || ev.key === 'PageUp'){
+        ev.preventDefault();
+        goToPreviewPage(previewPageIndex-1);
+        return;
+      }
+      if(ev.key === 'Home'){
+        ev.preventDefault();
+        goToPreviewPage(0, true);
+        return;
+      }
+      if(ev.key === 'End'){
+        ev.preventDefault();
+        goToPreviewPage(getTotalPages()-1, true);
+        return;
+      }
+      if(ev.key === 'Enter' && !ev.ctrlKey && !ev.metaKey){
+        ev.preventDefault();
+        closePagePreview();
+        return;
+      }
+    }
     if(ev.ctrlKey || ev.metaKey){
       if(ev.key === '=' || ev.key === '+'){
         ev.preventDefault();
@@ -2323,6 +2718,10 @@
   window.addEventListener('resize', ()=>{
     buildThumbnails();
     applyZoom();
+    if(isPreviewOpen()){
+      previewShouldRefit = true;
+      renderPagePreview();
+    }
   });
 
 })();
