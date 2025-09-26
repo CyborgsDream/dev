@@ -50,6 +50,37 @@
       justify-content: center;
       width: 100%;
       height: 100%;
+      overflow: hidden;
+    }
+    #canvas-wrap::before,
+    #canvas-wrap::after {
+      content: '';
+      position: absolute;
+      inset: -4%;
+      opacity: 0;
+      pointer-events: none;
+    }
+    #canvas-wrap.vhs-glitch {
+      animation: vhs-warp 0.6s ease-out;
+      filter: saturate(1.2) contrast(1.1);
+    }
+    #canvas-wrap.vhs-glitch::before {
+      background:
+        repeating-linear-gradient(
+          to bottom,
+          rgba(255, 139, 47, 0.2) 0px,
+          rgba(255, 139, 47, 0.2) 2px,
+          transparent 2px,
+          transparent 4px
+        ),
+        linear-gradient(90deg, rgba(255, 0, 90, 0.18), rgba(0, 240, 255, 0.18));
+      mix-blend-mode: screen;
+      animation: vhs-noise 0.6s ease-out forwards;
+    }
+    #canvas-wrap.vhs-glitch::after {
+      background: linear-gradient(0deg, rgba(255, 255, 255, 0.06), transparent 60%);
+      mix-blend-mode: lighten;
+      animation: vhs-color 0.6s ease-out forwards;
     }
     canvas {
       display: block;
@@ -272,9 +303,6 @@
     #control-ui.folded #ui-fold-btn .fold-icon svg {
       transform: rotate(-90deg);
     }
-    #ui-fold-btn .fold-label {
-      letter-spacing: 0.12em;
-    }
     .fold-body {
       display: grid;
       row-gap: 10px;
@@ -310,6 +338,26 @@
     @keyframes fold-pulse {
       0%, 100% { opacity: 0.8; transform: scale(1); }
       50% { opacity: 1; transform: scale(1.12); }
+    }
+    @keyframes vhs-warp {
+      0% { transform: translate3d(0, 0, 0) skewX(0deg); filter: saturate(1.1) contrast(1.05); }
+      20% { transform: translate3d(-4px, 0, 0) skewX(-1.5deg); filter: saturate(1.4) contrast(1.25); }
+      45% { transform: translate3d(3px, 0, 0) skewX(1deg); filter: saturate(1.25) contrast(1.18); }
+      70% { transform: translate3d(-2px, 0, 0) skewX(-0.6deg); filter: saturate(1.15) contrast(1.12); }
+      100% { transform: translate3d(0, 0, 0) skewX(0deg); filter: saturate(1.1) contrast(1.05); }
+    }
+    @keyframes vhs-noise {
+      0% { opacity: 0.55; transform: translate3d(-8px, 0, 0); }
+      25% { opacity: 0.7; transform: translate3d(6px, 0, 0); }
+      50% { opacity: 0.45; transform: translate3d(-3px, 0, 0); }
+      75% { opacity: 0.35; transform: translate3d(2px, 0, 0); }
+      100% { opacity: 0; transform: translate3d(0, 0, 0); }
+    }
+    @keyframes vhs-color {
+      0% { opacity: 0.45; transform: translate3d(2px, 0, 0); }
+      30% { opacity: 0.35; transform: translate3d(-3px, 0, 0); }
+      60% { opacity: 0.2; transform: translate3d(2px, 0, 0); }
+      100% { opacity: 0; transform: translate3d(0, 0, 0); }
     }
     #resolution-display {
       font-size: 0.74rem;
@@ -448,7 +496,7 @@
       left: 50%;
       transform: translateX(-50%);
       display: grid;
-      gap: 4px;
+      gap: 6px;
       padding: 12px 16px;
       background: rgba(2, 8, 23, 0.42);
       border: 1px solid rgba(255, 255, 255, 0.16);
@@ -461,12 +509,55 @@
       min-width: min(320px, 90vw);
       z-index: 42;
       backdrop-filter: blur(12px);
-      pointer-events: none;
+      pointer-events: auto;
     }
     #hud-overlay .hud-title {
+      display: grid;
+      gap: 2px;
       color: var(--accent-orange);
       letter-spacing: 0.18em;
       font-size: 0.6rem;
+      text-align: center;
+      pointer-events: none;
+    }
+    #hud-overlay .hud-title span:last-child {
+      color: rgba(255, 255, 255, 0.78);
+      letter-spacing: 0.16em;
+    }
+    #hud-overlay .hud-line {
+      pointer-events: none;
+    }
+    .hud-render-modes {
+      display: grid;
+      grid-auto-flow: column;
+      gap: 8px;
+      justify-content: center;
+      pointer-events: auto;
+    }
+    .hud-render-modes button {
+      padding: 6px 10px;
+      background: rgba(2, 8, 23, 0.55);
+      border: 1px solid rgba(255, 255, 255, 0.24);
+      color: rgba(255, 255, 255, 0.82);
+      font-family: 'Lucida Console', 'Courier New', monospace;
+      font-size: 0.56rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: border-color 0.2s ease, background 0.2s ease, color 0.2s ease;
+    }
+    .hud-render-modes button:hover {
+      border-color: var(--accent-orange);
+    }
+    .hud-render-modes button:focus-visible {
+      outline: 2px solid var(--accent-orange);
+      outline-offset: 2px;
+    }
+    .hud-render-modes button.is-active {
+      border-color: var(--accent-orange);
+      background: rgba(255, 139, 47, 0.25);
+      color: var(--text-white);
+      text-shadow: 0 0 8px rgba(255, 139, 47, 0.35);
     }
     #hud-overlay .hud-line {
       display: flex;
@@ -553,9 +644,6 @@
       transform-origin: center;
       transition: transform 0.35s ease;
     }
-    #console-fold-btn .fold-label {
-      letter-spacing: 0.1em;
-    }
     #console-dock.folded #console-fold-btn .fold-icon svg {
       transform: rotate(-90deg);
     }
@@ -602,13 +690,12 @@
         </span>
         <span>Games Mode</span>
       </h2>
-        <button id="ui-fold-btn" type="button" aria-expanded="true" aria-controls="ui-foldable">
+        <button id="ui-fold-btn" type="button" aria-label="Collapse control panel" aria-expanded="true" aria-controls="ui-foldable">
           <span class="fold-icon" aria-hidden="true">
             <svg viewBox="0 0 16 16" role="presentation" focusable="false">
               <path d="M4.2 2.8a1 1 0 0 1 1.6 0l4 5a1 1 0 0 1 0 1.2l-4 5a1 1 0 0 1-1.6-1.2L7.7 8 4.2 4a1 1 0 0 1 0-1.2z"></path>
             </svg>
           </span>
-          <span class="fold-label">Fold Panel</span>
         </button>
     </div>
     <div id="ui-foldable" class="fold-body">
@@ -641,7 +728,14 @@
     <span></span>
   </div>
   <div id="hud-overlay" aria-live="polite">
-    <div class="hud-title">Terrain Telemetry</div>
+    <div class="hud-title">
+      <span>Terrain Telemetry Uplink // Horizon Sweep</span>
+      <span>Orbital Metrics Stream — Vectors Locked</span>
+    </div>
+    <div class="hud-render-modes" role="group" aria-label="Rendering mode">
+      <button type="button" class="render-mode-btn is-active" data-render-mode="default">Default</button>
+      <button type="button" class="render-mode-btn" data-render-mode="wire">Wired Vectors</button>
+    </div>
     <div class="hud-line"><span>Position</span><span class="hud-value" data-hud="position">0, 0, 0</span></div>
     <div class="hud-line"><span>Heading</span><span class="hud-value" data-hud="heading">0° / 0°</span></div>
     <div class="hud-line"><span>Chunk</span><span class="hud-value" data-hud="chunk">0, 0</span></div>
@@ -653,13 +747,12 @@
       <span class="console-title">Signal Log</span>
       <div class="console-actions">
         <span id="console-status" class="console-status">Expanded</span>
-        <button id="console-fold-btn" type="button" aria-expanded="true" aria-controls="console-log">
+        <button id="console-fold-btn" type="button" aria-label="Collapse signal log" aria-expanded="true" aria-controls="console-log">
           <span class="fold-icon" aria-hidden="true">
             <svg viewBox="0 0 16 16" role="presentation" focusable="false">
               <path d="M4.2 2.8a1 1 0 0 1 1.6 0l4 5a1 1 0 0 1 0 1.2l-4 5a1 1 0 0 1-1.6-1.2L7.7 8 4.2 4a1 1 0 0 1 0-1.2z"></path>
             </svg>
           </span>
-          <span class="fold-label">Fold Log</span>
         </button>
       </div>
     </div>
@@ -696,7 +789,6 @@
   const consoleDock = document.getElementById('console-dock');
   const consoleFoldBtn = document.getElementById('console-fold-btn');
   const consoleStatus = document.getElementById('console-status');
-  const consoleFoldLabel = consoleFoldBtn?.querySelector('.fold-label');
 
   initConsoleLogs({ container: consoleLogEl, removeAfter: null });
   console.log('Console dock expanded for extended diagnostics.');
@@ -706,9 +798,8 @@
       if (consoleStatus) {
         consoleStatus.textContent = folded ? 'Folded' : 'Expanded';
       }
-      if (consoleFoldLabel) {
-        consoleFoldLabel.textContent = folded ? 'Unfold Log' : 'Fold Log';
-      }
+      const label = folded ? 'Expand signal log' : 'Collapse signal log';
+      consoleFoldBtn.setAttribute('aria-label', label);
     };
     consoleFoldBtn.addEventListener('click', () => {
       const isFolded = consoleDock.classList.toggle('folded');
@@ -727,6 +818,16 @@
   };
   console.log('HUD telemetry overlay online.');
   console.log('Compact terrain interface scaling engaged.');
+
+  const renderModeButtons = document.querySelectorAll('[data-render-mode]');
+  const renderModeDescriptions = {
+    default: 'default shading',
+    wire: 'wired vectors'
+  };
+  let currentRenderMode = 'default';
+  const wireTerrainColor = new THREE.Color(0x8fd6ff);
+  const wireBlockColor = new THREE.Color(0xffb86b);
+  let defaultTerrainColor = null;
 
   const RESOLUTIONS = [
     { label: '144p', width: 256, height: 144 },
@@ -1067,10 +1168,54 @@
   const terrainMesh = new THREE.Mesh(terrain, new THREE.MeshStandardMaterial({ color:0x2a8a4b, flatShading:true, metalness:0, roughness:1 }));
   terrainMesh.position.set(terrainState.offsetX, 0, terrainState.offsetZ);
   scene.add(terrainMesh);
+  defaultTerrainColor = terrainMesh.material.color.clone();
   function snapToChunk(value) { return Math.round(value / chunkSize) * chunkSize; }
 
   const groundRay = new THREE.Raycaster();
   const floatingBlocks = [];
+
+  function updateRenderButtons(activeMode) {
+    renderModeButtons.forEach(button => {
+      const isActive = button.dataset.renderMode === activeMode;
+      button.classList.toggle('is-active', isActive);
+      button.setAttribute('aria-pressed', String(isActive));
+    });
+  }
+
+  function applyRenderMode(mode, { announce = true } = {}) {
+    const previousMode = currentRenderMode;
+    currentRenderMode = mode;
+    const isWire = mode === 'wire';
+    if (defaultTerrainColor) {
+      terrainMesh.material.wireframe = isWire;
+      terrainMesh.material.color.copy(isWire ? wireTerrainColor : defaultTerrainColor);
+      terrainMesh.material.needsUpdate = true;
+    }
+    floatingBlocks.forEach(block => {
+      block.material.wireframe = isWire;
+      if (isWire) {
+        block.material.color.copy(wireBlockColor);
+      } else if (block.userData.baseColor) {
+        block.material.color.copy(block.userData.baseColor);
+      }
+      block.material.needsUpdate = true;
+    });
+    updateRenderButtons(mode);
+    if (announce && previousMode !== mode) {
+      const description = renderModeDescriptions[mode] || mode;
+      console.log(`Render mode switched to ${description}.`);
+    }
+  }
+
+  renderModeButtons.forEach(button => {
+    button.addEventListener('click', () => {
+      const mode = button.dataset.renderMode;
+      if (!mode || mode === currentRenderMode) return;
+      applyRenderMode(mode);
+    });
+  });
+
+  applyRenderMode(currentRenderMode, { announce: false });
 
   function createBlock(x, z) {
     const size = 2;
@@ -1085,6 +1230,12 @@
     block.position.set(x, y + size / 2 + 8 * Math.random(), z);
     block.castShadow = true;
     block.receiveShadow = true;
+    block.userData.baseColor = block.material.color.clone();
+    if (currentRenderMode === 'wire') {
+      block.material.wireframe = true;
+      block.material.color.copy(wireBlockColor);
+      block.material.needsUpdate = true;
+    }
     block.userData.base = block.position.clone();
     block.userData.bobSpeed = 0.35 + Math.random() * 0.3;
     block.userData.bobAmp = 4 + Math.random() * 6;
@@ -1218,6 +1369,7 @@
 
   console.log('Terrain initialising...');
   await generateBlocks(1000);
+  applyRenderMode(currentRenderMode, { announce: false });
   console.log('Terrain ready.');
   animate();
 
@@ -1226,21 +1378,19 @@
   const fullscreenBtn = document.getElementById('fullscreen-btn');
   const controlUi = document.getElementById('control-ui');
   const foldBtn = document.getElementById('ui-fold-btn');
-  const foldBtnLabel = foldBtn?.querySelector('.fold-label');
 
   if (foldBtn) {
-    const updateFoldLabel = (folded) => {
-      if (foldBtnLabel) {
-        foldBtnLabel.textContent = folded ? 'Unfold Panel' : 'Fold Panel';
-      }
+    const updateFoldState = (folded) => {
+      const label = folded ? 'Expand control panel' : 'Collapse control panel';
+      foldBtn.setAttribute('aria-label', label);
     };
     foldBtn.addEventListener('click', () => {
       const isFolded = controlUi.classList.toggle('folded');
       foldBtn.setAttribute('aria-expanded', String(!isFolded));
-      updateFoldLabel(isFolded);
+      updateFoldState(isFolded);
       console.log(`Control interface ${isFolded ? 'folded' : 'expanded'}.`);
     });
-    updateFoldLabel(controlUi.classList.contains('folded'));
+    updateFoldState(controlUi.classList.contains('folded'));
     console.log('Control interface initialised with animated fold icon.');
   }
 
@@ -1251,6 +1401,20 @@
   );
 
   let currentResolution = RESOLUTIONS[4];
+  let vhsTimeoutId = null;
+
+  const triggerVhsEffect = () => {
+    if (!canvasWrap) return;
+    canvasWrap.classList.remove('vhs-glitch');
+    void canvasWrap.offsetWidth;
+    canvasWrap.classList.add('vhs-glitch');
+    if (vhsTimeoutId) {
+      clearTimeout(vhsTimeoutId);
+    }
+    vhsTimeoutId = setTimeout(() => {
+      canvasWrap.classList.remove('vhs-glitch');
+    }, 650);
+  };
 
   function applyResolution(res) {
     currentResolution = res;
@@ -1291,6 +1455,7 @@
 
   resolutionSelect.addEventListener('change', () => {
     applyResolution(parseResolution(resolutionSelect.value));
+    triggerVhsEffect();
   });
 
   function updateFullscreenButton() {
