@@ -28,6 +28,63 @@
   body.dirty #status{ background:#dede57; }
   a{ color:inherit; }
 
+  .mobile-only{ display:none; }
+  body.mobile-layout{ --workspace-pad:36px; }
+  body.mobile-layout #menubar{ flex-wrap:wrap; gap:4px; padding:4px 6px; overflow-x:auto; justify-content:flex-start; }
+  body.mobile-layout .menu-root{ flex:0 1 auto; min-width:96px; }
+  body.mobile-layout .mobile-only{ display:inline-flex; }
+  body.mobile-layout #ui{
+    position:static;
+    top:auto;
+    left:auto;
+    bottom:auto;
+    width:100%;
+    max-height:none;
+    border-right:none;
+    border-bottom:2px solid #808080;
+    overflow:visible;
+    padding:12px 10px;
+    background:#c0c0c0;
+  }
+  body.mobile-layout #ui .win-group{ width:100%; }
+  body.mobile-layout #sidebar{
+    position:static;
+    top:auto;
+    left:auto;
+    bottom:auto;
+    width:100%;
+    max-height:none;
+    border-right:none;
+    border-bottom:2px solid #808080;
+    padding:12px 10px;
+    background:#c0c0c0;
+  }
+  body.mobile-layout #pageViewport{
+    margin-left:0;
+    padding:32px 12px 120px;
+    max-width:100%;
+    overflow-x:auto;
+  }
+  body.mobile-layout #viewportZoomControls{
+    right:16px;
+    bottom:16px;
+  }
+  body.mobile-layout #viewportZoomControls button{
+    width:36px;
+    height:36px;
+  }
+  body.mobile-layout #rulerTop,
+  body.mobile-layout #rulerLeft{
+    display:none;
+  }
+  body.mobile-layout #thumbs .thumb{
+    max-width:320px;
+    margin-left:auto;
+    margin-right:auto;
+  }
+  body.mobile-ui-hidden #ui{ display:none !important; }
+  body.mobile-sidebar-hidden #sidebar{ display:none !important; }
+
   /* ===== Menubar ===== */
   #menubar{ position:sticky; top:0; z-index:1200; height:var(--menu-h); display:flex; align-items:stretch; gap:2px; padding:2px 6px; background:#c0c0c0; border-bottom:2px solid #808080; }
   .menu-root{ font:12px var(--font-ui); border:none; background:#c0c0c0; padding:4px 10px; min-width:64px; text-align:left; color:#000; border:1px solid transparent; border-top-color:#fff; border-left-color:#fff; border-right-color:#000; border-bottom-color:#000; cursor:pointer; }
@@ -246,6 +303,16 @@
   .page-preview-nav:disabled{ opacity:0.35; cursor:not-allowed; }
   .page-preview-nav:active{ border-color:#0a4d9c; }
 
+  @media (max-width: 640px){
+    #pagePreviewModal{ padding:16px; }
+    #pagePreviewModal .page-preview-card{ height:min(92vh, 640px); }
+    .page-preview-bar{ flex-direction:column; align-items:flex-start; gap:12px; }
+    .page-preview-controls{ flex-wrap:wrap; justify-content:flex-start; }
+    .page-preview-body{ flex-direction:column; align-items:stretch; }
+    .page-preview-nav{ width:100%; height:40px; border-radius:12px; }
+    .page-preview-viewport{ width:100%; }
+  }
+
   /* Template modal */
   #templateModal{ position:fixed; inset:0; background:rgba(0,0,0,0.55); z-index:2000; display:none; align-items:center; justify-content:center; padding:24px; }
   #templateModal.open{ display:flex; }
@@ -304,6 +371,8 @@
     <button class="menu-root" data-menu="file" type="button">File</button>
     <button class="menu-root" data-menu="export" type="button">Export</button>
     <button class="menu-root" data-menu="edit" type="button">Edit</button>
+    <button class="menu-root mobile-only" id="mobileToggleTools" type="button" aria-controls="ui" aria-expanded="false">Tools</button>
+    <button class="menu-root mobile-only" id="mobileTogglePages" type="button" aria-controls="sidebar" aria-expanded="false">Pages</button>
     <div class="menu-dropdown" data-panel="file" role="menu">
       <button type="button" data-action="new-doc">New</button>
       <button type="button" data-action="open-doc">Open…</button>
@@ -523,6 +592,8 @@
   const statusEl = document.getElementById('status');
   const versionEl = document.getElementById('ver');
   const menubar = document.getElementById('menubar');
+  const uiPanel = document.getElementById('ui');
+  const sidebar = document.getElementById('sidebar');
   const openFileInput = document.getElementById('openFileInput');
   const frameInspector = document.getElementById('frameInspector');
   const framePosX = document.getElementById('framePosX');
@@ -563,6 +634,8 @@
   const pagePreviewHeading = document.getElementById('pagePreviewHeading');
   const viewportZoomOutBtn = document.getElementById('viewportZoomOut');
   const viewportZoomInBtn = document.getElementById('viewportZoomIn');
+  const mobileToggleTools = document.getElementById('mobileToggleTools');
+  const mobileTogglePages = document.getElementById('mobileTogglePages');
   const pageCanvasRoot = pagesEl || document;
 
   let docModel = null;
@@ -609,8 +682,11 @@
 
   const MIN_CANVAS_ZOOM = 0.35;
   const MAX_CANVAS_ZOOM = 2.5;
+  const MOBILE_BREAKPOINT = 1080;
 
   const DEFAULT_TEMPLATE_ID = 'heritage-gazette';
+
+  let mobileAutoZoomed = false;
 
   function createColumnElement(columns, windows, style = 'standard', layout = []){
     const count = Math.min(4, Math.max(1, parseInt(columns, 10) || 1));
@@ -1679,6 +1755,7 @@
     updatePageThemeControl();
     refreshElementStyleControl();
     applyZoom();
+    applyMobileState();
     if(isPreviewOpen()){
       previewShouldRefit = true;
       renderPagePreview();
@@ -1821,12 +1898,75 @@
     zoomTo(rawScale);
   }
 
+  function isMobileLayout(){
+    return window.innerWidth <= MOBILE_BREAKPOINT;
+  }
+
+  function syncMobileToggleState(){
+    if(mobileToggleTools){
+      const expanded = !document.body.classList.contains('mobile-ui-hidden');
+      mobileToggleTools.setAttribute('aria-expanded', expanded ? 'true' : 'false');
+    }
+    if(mobileTogglePages){
+      const expanded = !document.body.classList.contains('mobile-sidebar-hidden');
+      mobileTogglePages.setAttribute('aria-expanded', expanded ? 'true' : 'false');
+    }
+  }
+
+  function applyMobileState(){
+    if(isMobileLayout()){
+      document.body.classList.add('mobile-layout');
+      if(!document.body.classList.contains('mobile-layout-active')){
+        document.body.classList.add('mobile-layout-active');
+        document.body.classList.add('mobile-ui-hidden','mobile-sidebar-hidden');
+        if(!mobileAutoZoomed){
+          zoomFit();
+          mobileAutoZoomed = true;
+        }
+      }
+    } else {
+      document.body.classList.remove('mobile-layout','mobile-layout-active','mobile-ui-hidden','mobile-sidebar-hidden');
+      mobileAutoZoomed = false;
+    }
+    syncMobileToggleState();
+  }
+
   if(zoomInBtn) zoomInBtn.addEventListener('click', zoomIn);
   if(zoomOutBtn) zoomOutBtn.addEventListener('click', zoomOut);
   if(zoomResetBtn) zoomResetBtn.addEventListener('click', zoomReset);
   if(zoomFullBtn) zoomFullBtn.addEventListener('click', zoomFit);
   if(viewportZoomInBtn) viewportZoomInBtn.addEventListener('click', zoomIn);
   if(viewportZoomOutBtn) viewportZoomOutBtn.addEventListener('click', zoomOut);
+
+  if(mobileToggleTools){
+    mobileToggleTools.addEventListener('click', ()=>{
+      if(!document.body.classList.contains('mobile-layout')) return;
+      document.body.classList.toggle('mobile-ui-hidden');
+      syncMobileToggleState();
+      if(!document.body.classList.contains('mobile-ui-hidden') && uiPanel){
+        try{
+          uiPanel.scrollIntoView({ behavior:'smooth', block:'start' });
+        } catch(err){
+          uiPanel.scrollIntoView();
+        }
+      }
+    });
+  }
+
+  if(mobileTogglePages){
+    mobileTogglePages.addEventListener('click', ()=>{
+      if(!document.body.classList.contains('mobile-layout')) return;
+      document.body.classList.toggle('mobile-sidebar-hidden');
+      syncMobileToggleState();
+      if(!document.body.classList.contains('mobile-sidebar-hidden') && sidebar){
+        try{
+          sidebar.scrollIntoView({ behavior:'smooth', block:'start' });
+        } catch(err){
+          sidebar.scrollIntoView();
+        }
+      }
+    });
+  }
 
   function isPreviewOpen(){
     return !!(pagePreviewModal && pagePreviewModal.classList.contains('open'));
@@ -2849,12 +2989,14 @@
   });
 
   renderDocument();
+  applyMobileState();
   updateVersionInfo();
   snapTo(0, true);
   setStatus('Ready.', false);
   window.addEventListener('resize', ()=>{
     buildThumbnails();
     applyZoom();
+    applyMobileState();
     if(isPreviewOpen()){
       previewShouldRefit = true;
       renderPagePreview();
