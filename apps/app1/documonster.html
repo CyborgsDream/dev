@@ -96,7 +96,8 @@
   #rulerLeft .cm span{ left:2px; transform:translate(0,-50%); }
 
   /* ===== Pages ===== */
-  #pages{ margin-left:calc(var(--measure-w) + var(--sidebar-w) + 36px); padding:var(--workspace-pad) 20px 40px; }
+  #pageViewport{ margin-left:calc(var(--measure-w) + var(--sidebar-w) + 36px); padding:var(--workspace-pad) 20px 40px; transform-origin:top left; }
+  #pages{ margin:0; padding:0; }
   .sheet{ position:relative; width:var(--sheet-w); height:var(--sheet-h); background:var(--paper); color:var(--ink); box-shadow:0 0 0 2px #808080, 0 0 0 4px #fff; margin:18px auto; border:none; scroll-margin-top:calc(var(--menu-h) + var(--workspace-pad)); overflow:hidden; }
   .sheet{ --inPage:var(--m-in); --outPage:var(--m-out); }
   .sheet.even{ --inPage:var(--m-out); --outPage:var(--m-in); }
@@ -163,14 +164,24 @@
   ul.bullet{ margin:0 0 3mm 0; padding-left:18px; }
   ul.bullet li{ margin:0 0 2mm 0; }
   .head{ padding:6mm 0 3mm 0; border-bottom:1px solid #ddd; }
-  .cols{ padding:4mm 0 0 0; column-fill:auto; }
-  .cols-1{ column-count:1; }
-  .cols-2{ column-count:2; column-gap:var(--col-gap); }
-  .cols-3{ column-count:3; column-gap:var(--col-gap); }
-  .cols p, .cols li, .cols figure, .cols h2, .cols h3{ break-inside:avoid-column; }
-  .cols.editable{ outline:1px dashed transparent; transition:outline 0.15s ease; }
-  .cols.editable:focus{ outline:1px dashed #008080; }
-  .cols.editable.selected{ outline:1px dashed var(--accent); background-clip:padding-box; }
+  .column-window-stack{ display:flex; flex-wrap:wrap; gap:6mm; padding:4mm 0 0 0; align-items:flex-start; position:relative; }
+  .column-window-stack.split{ margin-bottom:6mm; }
+  .column-window-stack.selected{ outline:1px dashed var(--accent); outline-offset:2px; }
+  .column-window{ flex:0 0 auto; min-width:45mm; min-height:40mm; max-width:calc(100% - 2mm); background:#fdfdfd; border:2px solid #808080; border-right-color:#fff; border-bottom-color:#fff; box-shadow:4px 4px 0 rgba(0,0,0,0.2); display:flex; flex-direction:column; resize:both; overflow:auto; position:relative; }
+  .column-window.dragging{ opacity:0.4; }
+  .column-window-header{ font:11px var(--font-ui); background:#c0c0c0; color:#000; padding:2px 6px; border-bottom:1px solid #808080; display:flex; justify-content:space-between; align-items:center; cursor:grab; }
+  .column-window-header .label{ font-weight:600; text-transform:uppercase; }
+  .column-window-header .size{ font-weight:500; font-size:10px; color:#333; }
+  .column-window-content{ flex:1 1 auto; padding:3mm; font-size:12px; line-height:1.4; outline:1px dashed transparent; transition:outline 0.12s ease, background 0.12s ease; }
+  .column-window-content:focus{ outline:1px dashed #008080; background:rgba(0,128,128,0.08); }
+  .column-window-drop-indicator{ position:absolute; inset:-2px; border:2px dashed rgba(0,128,128,0.65); pointer-events:none; }
+  .column-window-stack.style-accent .column-window-content{ background:rgba(0,128,128,0.08); border-left:3px solid var(--accent); }
+  .column-window-stack.style-note .column-window-content{ background:rgba(255,225,150,0.45); border:1px dashed #c58a00; }
+  .column-window-stack.style-inverse .column-window{ background:#0c3c52; color:#f5faff; border-color:#203a50; border-right-color:#405068; border-bottom-color:#405068; }
+  .column-window-stack.style-inverse .column-window-header{ background:#162a40; color:#f5faff; border-bottom-color:#203a50; }
+  .column-window-stack.style-inverse .column-window-content{ color:#f5faff; }
+  .column-window-stack.style-inverse .column-window-content h2,
+  .column-window-stack.style-inverse .column-window-content h3{ color:#f5faff; }
   .span-all{ column-span:all; break-before:column; break-after:column; }
   .split{ padding-bottom:6mm; }
   .foot{ padding:3mm 0 4mm 0; border-top:1px solid #ddd; font:11px var(--font-ui); color:#333; display:flex; justify-content:space-between; gap:6mm; }
@@ -193,11 +204,36 @@
   .frame .resize-handle.e{ right:-5px; top:50%; transform:translateY(-50%); cursor:e-resize; }
   .frame .resize-handle.s{ bottom:-5px; left:50%; transform:translateX(-50%); cursor:s-resize; }
   .frame.selected .resize-handle{ display:block; }
-  .cols.style-accent{ background:rgba(0,128,128,0.08); border-left:3px solid var(--accent); padding:4mm; }
-  .cols.style-note{ background:rgba(255,225,150,0.45); border:1px dashed #c58a00; padding:4mm; }
-  .cols.style-inverse{ background:#0c3c52; color:#f5faff; padding:4mm; }
-  .cols.style-inverse h2, .cols.style-inverse h3{ color:#f5faff; }
   .frame.style-outline{ border:2px solid var(--accent); box-shadow:4px 4px 0 rgba(0,128,128,0.2); }
+
+  /* Zoom controls */
+  #zoomControls{ display:flex; gap:6px; align-items:center; flex-wrap:wrap; }
+  #zoomControls button{ padding:2px 6px; font:12px var(--font-ui); background:#c0c0c0; border:2px solid #fff; border-right-color:#000; border-bottom-color:#000; cursor:pointer; }
+  #zoomControls button:active{ border:2px solid #000; border-right-color:#fff; border-bottom-color:#fff; }
+  #zoomDisplay{ font:12px var(--font-ui); background:#fff; border:2px solid #000; border-right-color:#fff; border-bottom-color:#fff; padding:2px 10px; min-width:56px; text-align:center; }
+
+  /* Template modal */
+  #templateModal{ position:fixed; inset:0; background:rgba(0,0,0,0.55); z-index:2000; display:none; align-items:center; justify-content:center; padding:24px; }
+  #templateModal.open{ display:flex; }
+  .template-modal-card{ background:#f4f4f4; border:3px solid #000; border-right-color:#fff; border-bottom-color:#fff; box-shadow:6px 6px 0 rgba(0,0,0,0.35); width:min(680px, 100%); max-height:calc(100vh - 48px); overflow:hidden; display:flex; flex-direction:column; }
+  .template-modal-header{ background:#000080; color:#fff; padding:14px 18px; font:16px var(--font-ui); text-transform:uppercase; letter-spacing:0.08em; }
+  .template-modal-body{ padding:18px; display:flex; flex-direction:column; gap:16px; overflow:auto; }
+  .template-grid{ display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:14px; }
+  .template-option{ background:#fff; border:2px solid #808080; border-right-color:#fff; border-bottom-color:#fff; padding:12px; cursor:pointer; display:flex; flex-direction:column; gap:8px; min-height:140px; }
+  .template-option:hover, .template-option:focus{ outline:2px dashed #000080; }
+  .template-option h3{ margin:0; font:14px var(--font-ui); text-transform:uppercase; }
+  .template-option p{ margin:0; font:12px var(--font-ui); color:#222; }
+  .template-actions{ display:flex; justify-content:flex-end; gap:12px; margin-top:8px; }
+  .template-actions button{ padding:6px 16px; font:12px var(--font-ui); background:#c0c0c0; border:2px solid #fff; border-right-color:#000; border-bottom-color:#000; cursor:pointer; }
+  .template-actions button:active{ border:2px solid #000; border-right-color:#fff; border-bottom-color:#fff; }
+
+  @media print{
+    .column-window-stack{ display:block; outline:none !important; }
+    .column-window{ page-break-inside:avoid; box-shadow:none; border:1px solid #ccc; resize:none; min-width:auto; min-height:auto; width:auto !important; height:auto !important; }
+    .column-window-header{ display:none; }
+    .column-window-content{ outline:none; background:transparent !important; padding:0; }
+    #templateModal{ display:none !important; }
+  }
   .frame.style-shadow{ box-shadow:6px 6px 0 rgba(0,0,0,0.35); }
   .frame.style-banner figcaption{ background:var(--accent); color:#fff; text-transform:uppercase; letter-spacing:0.12em; padding:3mm 4mm; }
   .frame.style-banner .frame-content{ padding-top:4mm; }
@@ -280,6 +316,13 @@
       <button class="win-btn" id="newPageBtn">+ Page</button>
       <button class="win-btn" id="duplicatePageBtn">Duplicate</button>
     </div>
+    <div class="win-group" id="zoomControls">
+      <button class="win-btn" id="zoomOutBtn">−</button>
+      <button class="win-btn" id="zoomInBtn">+</button>
+      <button class="win-btn" id="zoomResetBtn">Reset</button>
+      <button class="win-btn" id="zoomFullBtn">Fit Page</button>
+      <span id="zoomDisplay">100%</span>
+    </div>
     <div class="win-group" id="styleControls">
       <label class="win-check">Page Style:
         <select id="pageThemeSelect">
@@ -359,7 +402,21 @@
     <div id="releaseCard"></div>
     <div id="thumbs"></div>
   </aside>
-  <div id="pages"></div>
+  <div id="pageViewport">
+    <div id="pages"></div>
+  </div>
+  <div id="templateModal" role="dialog" aria-modal="true" aria-labelledby="templateModalTitle" tabindex="-1">
+    <div class="template-modal-card">
+      <div class="template-modal-header" id="templateModalTitle">New Document Templates</div>
+      <div class="template-modal-body">
+        <p>Select a starting layout for your next spread.</p>
+        <div class="template-grid" id="templateList"></div>
+        <div class="template-actions">
+          <button type="button" id="templateCancel">Cancel</button>
+        </div>
+      </div>
+    </div>
+  </div>
   <input type="file" id="openFileInput" accept="application/json" hidden />
 
 <script>
@@ -409,6 +466,15 @@
   const rulerLeftEl = document.getElementById('rulerLeft');
   const rulerLeftCm = document.querySelector('#rulerLeft .cm');
   const rulerLeftIn = document.querySelector('#rulerLeft .inch');
+  const pageViewport = document.getElementById('pageViewport');
+  const zoomOutBtn = document.getElementById('zoomOutBtn');
+  const zoomInBtn = document.getElementById('zoomInBtn');
+  const zoomResetBtn = document.getElementById('zoomResetBtn');
+  const zoomFullBtn = document.getElementById('zoomFullBtn');
+  const zoomDisplay = document.getElementById('zoomDisplay');
+  const templateModal = document.getElementById('templateModal');
+  const templateList = document.getElementById('templateList');
+  const templateCancel = document.getElementById('templateCancel');
 
   let docModel = null;
   let pages = [];
@@ -422,8 +488,10 @@
   let selectedColumnsBlock = null;
   let selectedColumnsPage = -1;
   let selectedColumnsIndex = -1;
-  let styledSelection = { type:null, page:-1, index:-1 };
+  let styledSelection = { type:null, pageIndex:-1, elementIndex:-1 };
   let currentStyleOptionType = null;
+  let zoomLevel = 1;
+  let columnDragState = null;
 
   const PAGE_THEMES = ['standard','newsprint','midnight'];
   const PAGE_THEME_CLASSES = PAGE_THEMES.map(t=>'theme-'+t);
@@ -446,13 +514,52 @@
     ]
   };
 
-  docModel = normalizeDocument(loadFromStorage() || defaultDocument());
+  const DEFAULT_TEMPLATE_ID = 'orbit-launch';
 
-  function mmToPx(mm){ return mm * pxPerMm; }
-  function pxToMm(px){ return px / pxPerMm; }
-  function getTotalPages(){ return docModel.pages.length || 1; }
+  function createColumnElement(columns, windows, style = 'standard', layout = []){
+    const count = Math.min(4, Math.max(1, parseInt(columns, 10) || 1));
+    const normalizedWindows = Array.from({ length:count }, (_, idx)=>{
+      if(Array.isArray(windows) && typeof windows[idx] === 'string' && windows[idx].trim()){
+        return windows[idx];
+      }
+      if(idx === 0 && Array.isArray(windows) && typeof windows[0] === 'string'){
+        return windows[0];
+      }
+      return '<p>Start typing…</p>';
+    });
+    const normalizedLayout = Array.from({ length:count }, (_, idx)=>{
+      const slot = Array.isArray(layout) ? layout[idx] : null;
+      const width = slot && Number.isFinite(slot.width) ? slot.width : null;
+      const height = slot && Number.isFinite(slot.height) ? slot.height : null;
+      return { width, height };
+    });
+    return {
+      type:'columns',
+      columns:count,
+      windows:normalizedWindows,
+      windowLayout:normalizedLayout,
+      style:normalizeStyleValue('columns', style),
+      html: normalizedWindows.join('')
+    };
+  }
 
-  function defaultDocument(){
+  function createFrameModel(data){
+    return Object.assign({
+      type:'frame',
+      frameType:'text',
+      mode:'overlay',
+      x:30,
+      y:30,
+      width:60,
+      height:40,
+      content:'<p>Double-click to edit frame text.</p>',
+      src:'',
+      caption:'',
+      style:'standard'
+    }, data || {});
+  }
+
+  function orbitLaunchTemplate(){
     return {
       version:'0.1.0',
       docVersion:'0.1.0',
@@ -471,30 +578,35 @@
           deck:'Orbit OS v 0.1.0 introduces Docu Monster Studio Pro, a desktop publishing lab for the browser.',
           theme:'standard',
           elements:[
-            {
-              type:'columns', columns:2,
-              html:'<p>Docu Monster Studio Pro debuts alongside Orbit OS v 0.1.0. The refreshed shell keeps the retro desktop look while focusing entirely on print production.</p>'+
-                   '<p>Swap between one, two, or three column grids from the Edit menu. Add text or image frames, set them to overlay or float, and fine-tune them with the inspector.</p>'+
-                   '<p>All terminology now aligns with Orbit OS and Docu Monster Studio Pro, making it clear which layer handles the interface and which powers layout.</p>'+
-                   '<p>Guides, crop marks, and colour bars are still a click away, so exporting from Docu Monster Studio Pro feels just like working in a print studio.</p>'
-            },
-            {
-              type:'columns', columns:1,
-              html:'<h2 class="span-all">Release Highlights</h2>'+
-                   '<ul class="bullet"><li>Persistent centimetre and inch rulers for exact placement.</li>'+
-                   '<li>Frame inspector with millimetre precision controls.</li>'+
-                   '<li>Autosave with local storage plus JSON import and export.</li>'+
-                   '<li>Mirrored gutter toggles, bleed proofing, and Docu Monster Studio Pro colour bars.</li></ul>'
-            },
-            {
-              type:'frame', frameType:'text', mode:'overlay', x:118, y:58, width:62, height:40,
-              content:'<p class="quote">“Design for print, proof in the browser, and ship straight from Docu Monster Studio Pro.”</p><p class="attribution">— Orbit OS Team</p>',
-              caption:''
-            },
-            {
-              type:'frame', frameType:'image', mode:'float-right', x:110, y:120, width:70, height:50,
-              src:'', caption:'Orbit OS wraps the editor with a familiar desktop-style workspace.'
-            }
+            createColumnElement(2,[
+              '<p>Docu Monster Studio Pro debuts alongside Orbit OS v 0.1.0. The refreshed shell keeps the retro desktop look while focusing entirely on print production.</p>'+
+              '<p>Swap between one, two, or three column grids from the Edit menu. Add text or image frames, set them to overlay or float, and fine-tune them with the inspector.</p>',
+              '<p>All terminology now aligns with Orbit OS and Docu Monster Studio Pro, making it clear which layer handles the interface and which powers layout.</p>'+
+              '<p>Guides, crop marks, and colour bars are still a click away, so exporting from Docu Monster Studio Pro feels just like working in a print studio.</p>'
+            ], 'standard', [ { width:90, height:120 }, { width:90, height:120 } ]),
+            createColumnElement(1,[
+              '<h2 class="span-all">Release Highlights</h2>'+
+              '<ul class="bullet"><li>Persistent centimetre and inch rulers for exact placement.</li>'+
+              '<li>Frame inspector with millimetre precision controls.</li>'+
+              '<li>Autosave with local storage plus JSON import and export.</li>'+
+              '<li>Mirrored gutter toggles, bleed proofing, and Docu Monster Studio Pro colour bars.</li></ul>'
+            ]),
+            createFrameModel({
+              frameType:'text',
+              mode:'overlay',
+              x:118,
+              y:58,
+              width:62,
+              height:40,
+              content:'<p class="quote">“Design for print, proof in the browser, and ship straight from Docu Monster Studio Pro.”</p><p class="attribution">— Orbit OS Team</p>'
+            }),
+            createFrameModel({
+              frameType:'image',
+              mode:'float-right',
+              width:70,
+              height:50,
+              caption:'Orbit OS wraps the editor with a familiar desktop-style workspace.'
+            })
           ],
           footerLeft:'Docu Monster Studio Pro • Orbit OS',
           footerRight:'Page {{page}} / {{total}} — Build {{version}}'
@@ -505,28 +617,33 @@
           deck:'Mix content structures per page for editorial rhythm.',
           theme:'standard',
           elements:[
-            {
-              type:'columns', columns:3,
-              html:'<p>Switch between one, two, and three column sets inside the same spread. Each block remains editable—type directly into place and Docu Monster Studio Pro keeps autosave running.</p>'+
-                   '<p>Frame wrap controls let imagery ride alongside the story or float freely for poster art. Overlay frames honour millimetre coordinates; floats behave like magazine callouts.</p>'+
-                   '<p>Columns are contenteditable, so you can prototype copy or import drafted HTML snippets without leaving Orbit OS.</p>'
-            },
-            {
-              type:'columns', columns:2,
-              html:'<h3 class="span-all">Workflow Tips</h3>'+
-                   '<p>Mix floats with overlay quotes for emphasis. Use the inspector to dial in millimetre offsets while the rulers confirm alignment.</p>'+
-                   '<p>Activate mirrored gutters when you are prepping signatures, then disable them for single-sided reports.</p>'+
-                   '<p>Autosave keeps progress safe between sessions—reload later with File → Load Autosave.</p>'
-            },
-            {
-              type:'frame', frameType:'text', mode:'float-left', x:32, y:70, width:55, height:45,
-              content:'<p class="callout">Add frames from the Edit menu, then select them to tune wrap, size, and coordinates with the inspector.</p>',
-              caption:''
-            },
-            {
-              type:'frame', frameType:'image', mode:'overlay', x:92, y:150, width:80, height:55,
-              src:'', caption:'Overlay frames support pixel-perfect placement alongside ruler guides.'
-            }
+            createColumnElement(3,[
+              '<p>Switch between one, two, and three column sets inside the same spread. Each block remains editable—type directly into place and Docu Monster Studio Pro keeps autosave running.</p>',
+              '<p>Frame wrap controls let imagery ride alongside the story or float freely for poster art. Overlay frames honour millimetre coordinates; floats behave like magazine callouts.</p>',
+              '<p>Columns are contenteditable, so you can prototype copy or import drafted HTML snippets without leaving Orbit OS.</p>'
+            ], 'standard', [ { width:55, height:120 }, { width:55, height:120 }, { width:55, height:120 } ]),
+            createColumnElement(2,[
+              '<h3 class="span-all">Workflow Tips</h3>'+
+              '<p>Mix floats with overlay quotes for emphasis. Use the inspector to dial in millimetre offsets while the rulers confirm alignment.</p>',
+              '<p>Activate mirrored gutters when you are prepping signatures, then disable them for single-sided reports.</p>'+
+              '<p>Autosave keeps progress safe between sessions—reload later with File → Load Autosave.</p>'
+            ], 'note', [ { width:85, height:110 }, { width:85, height:110 } ]),
+            createFrameModel({
+              frameType:'text',
+              mode:'float-left',
+              width:55,
+              height:45,
+              content:'<p class="callout">Add frames from the Edit menu, then select them to tune wrap, size, and coordinates with the inspector.</p>'
+            }),
+            createFrameModel({
+              frameType:'image',
+              mode:'overlay',
+              x:92,
+              y:150,
+              width:80,
+              height:55,
+              caption:'Overlay frames support pixel-perfect placement alongside ruler guides.'
+            })
           ],
           footerLeft:'Workshop Series',
           footerRight:'Docu Monster Studio Pro {{version}} • Page {{page}}'
@@ -537,21 +654,21 @@
           deck:'Control print outputs directly from the Export menu.',
           theme:'standard',
           elements:[
-            {
-              type:'columns', columns:2,
-              html:'<p>The Export menu collects bleed and trim print commands. Choose Print with Bleed for press-ready spreads or Print Trimmed for quick previews without crop marks.</p>'+
-                   '<p>Mirrored gutters are a single toggle away when you need perfect imposition, and the printshop grid offers extra confidence for production checks.</p>'
-            },
-            {
-              type:'columns', columns:1,
-              html:'<p>Use Save As to download a JSON snapshot of this publication. Share with collaborators or re-import to continue editing. Autosave keeps a local copy even if you forget.</p>'+
-                   '<p>The rulers and inspector stay active while printing, so you can verify alignment before exporting from Docu Monster Studio Pro.</p>'
-            },
-            {
-              type:'frame', frameType:'text', mode:'block', x:40, y:120, width:100, height:35,
-              content:'<p class="note">Orbit OS surfaces system status in the toolbar. Watch the autosave indicator whenever you make adjustments.</p>',
-              caption:''
-            }
+            createColumnElement(2,[
+              '<p>The Export menu collects bleed and trim print commands. Choose Print with Bleed for press-ready spreads or Print Trimmed for quick previews without crop marks.</p>',
+              '<p>Mirrored gutters are a single toggle away when you need perfect imposition, and the printshop grid offers extra confidence for production checks.</p>'
+            ], 'standard', [ { width:90, height:100 }, { width:90, height:100 } ]),
+            createColumnElement(1,[
+              '<p>Use Save As to download a JSON snapshot of this publication. Share with collaborators or re-import to continue editing. Autosave keeps a local copy even if you forget.</p>'+
+              '<p>The rulers and inspector stay active while printing, so you can verify alignment before exporting from Docu Monster Studio Pro.</p>'
+            ]),
+            createFrameModel({
+              frameType:'text',
+              mode:'block',
+              width:100,
+              height:35,
+              content:'<p class="note">Orbit OS surfaces system status in the toolbar. Watch the autosave indicator whenever you make adjustments.</p>'
+            })
           ],
           footerLeft:'Production Stack',
           footerRight:'Orbit OS — Page {{page}}/{{total}}'
@@ -562,29 +679,162 @@
           deck:'Orbit OS frames the creative suite powered by Docu Monster Studio Pro.',
           theme:'standard',
           elements:[
-            {
-              type:'columns', columns:2,
-              html:'<p>Docu Monster Studio Pro now ships with Orbit OS v 0.1.0, our browser-first desktop metaphor. The menubar nods to classic environments while the editor remains fast and modern.</p>'+
-                   '<p>This manifest tracks everything bundled in v0.1.0: rulers, menu commands, the frame inspector, autosave, and more. Use it as a base template for newsroom workflows.</p>'
-            },
-            {
-              type:'columns', columns:2,
-              html:'<h3 class="span-all">Included Modules</h3>'+
-                   '<ul class="bullet"><li>Docu Monster Studio Pro 0.1.0 (column engine, frames, PDF export).</li>'+
-                   '<li>Orbit OS shell v 0.1.0 (menubar, status HUD, OS release card).</li>'+
-                   '<li>Colour labs with Standard &amp; Ugra/Fogra presets.</li>'+
-                   '<li>Layout workshop library with editable spreads.</li></ul>'
-            },
-            {
-              type:'frame', frameType:'image', mode:'overlay', x:110, y:70, width:68, height:46,
-              src:'', caption:'Frames can be positioned freely or floated for magazine style wraps.'
-            }
+            createColumnElement(2,[
+              '<p>Docu Monster Studio Pro now ships with Orbit OS v 0.1.0, our browser-first desktop metaphor. The menubar nods to classic environments while the editor remains fast and modern.</p>',
+              '<p>This manifest tracks everything bundled in v0.1.0: rulers, menu commands, the frame inspector, autosave, and more. Use it as a base template for newsroom workflows.</p>'
+            ], 'standard', [ { width:90, height:100 }, { width:90, height:100 } ]),
+            createColumnElement(2,[
+              '<h3 class="span-all">Included Modules</h3>'+
+              '<ul class="bullet"><li>Docu Monster Studio Pro 0.1.0 (column engine, frames, PDF export).</li>'+
+              '<li>Orbit OS shell v 0.1.0 (menubar, status HUD, OS release card).</li>'+
+              '<li>Colour labs with Standard &amp; Ugra/Fogra presets.</li>'+
+              '<li>Layout workshop library with editable spreads.</li></ul>'
+            ], 'accent', [ { width:85, height:100 }, { width:85, height:100 } ]),
+            createFrameModel({
+              frameType:'image',
+              mode:'overlay',
+              x:110,
+              y:70,
+              width:68,
+              height:46,
+              caption:'Frames can be positioned freely or floated for magazine style wraps.'
+            })
           ],
           footerLeft:'Orbit OS Release Card',
           footerRight:'{{codename}} v {{version}} — Page {{page}}'
         }
       ]
     };
+  }
+
+  function blankTemplate(){
+    return {
+      version:'0.1.0',
+      docVersion:'0.1.0',
+      codename:'Blank Canvas',
+      docName:'Docu Monster Studio Pro',
+      releaseNotes:['Start from scratch with an empty two-page spread ready for newsroom experimentation.'],
+      pages:[
+        {
+          title:'UNTITLED SPREAD',
+          subtitle:'',
+          deck:'',
+          theme:'standard',
+          elements:[createColumnElement(2,['<p>Start typing…</p>','<p>…and add another column.</p>'])],
+          footerLeft:'Docu Monster Studio Pro',
+          footerRight:'Page {{page}} / {{total}}'
+        }
+      ]
+    };
+  }
+
+  function bildTemplate(){
+    return {
+      version:'0.2.0',
+      docVersion:'0.2.0',
+      codename:'Redline',
+      docName:'Docu Monster Studio Pro',
+      releaseNotes:[
+        'Die Build-inspired splash layout with bold headlines and kicker bands.',
+        'Preset column widths tuned for aggressive tabloid pacing.',
+        'Hero photo frame configured for instant wrap experimentation.'
+      ],
+      pages:[
+        {
+          title:'DIE BUILD MORGEN',
+          subtitle:'Riesen-Schlagzeile des Tages',
+          deck:'Stadt im Ausnahmezustand – alles, was Sie wissen müssen.',
+          theme:'newsprint',
+          elements:[
+            createColumnElement(3,[
+              '<p><strong>EXTRA!</strong> Noch in der Nacht überschlugen sich die Ereignisse im Herzen der Stadt. Rettungswagen, Reporter und Leserreporter standen Schulter an Schulter.</p>',
+              '<p>Die Build bündelt alle Stimmen: Feuerwehrkommandanten, Augenzeugen und Politiker liefern im Minutentakt neue Zitate.</p>',
+              '<p>Nutzen Sie die roten Eilmeldungs-Bänder, um dramatische Fakten mit Bildern zu koppeln – genau wie in der Redaktion.</p>'
+            ], 'accent', [ { width:58, height:115 }, { width:58, height:115 }, { width:58, height:115 } ]),
+            createFrameModel({
+              frameType:'image',
+              mode:'overlay',
+              x:68,
+              y:90,
+              width:110,
+              height:70,
+              caption:'Bild-typischer Aufmacher: kräftiger Rand, Platz für Schock-Headline.'
+            }),
+            createColumnElement(2,[
+              '<h3 class="span-all">Fakten im Schnellcheck</h3>'+
+              '<ul class="bullet"><li>Breaking-Boxen für jede Stunde der Nacht.</li>'+
+              '<li>Großzügige Typografie mit fetten Zwischentiteln.</li>'+
+              '<li>Bildplatzierungen, die Textfluss dramatisch schneiden.</li></ul>',
+              '<p>Mit Docu Monster können Sie die Fenster neu ordnen, Höhen ziehen und Headlines vergrößern – genau wie auf der echten Build-Titelseite.</p>'
+            ], 'note', [ { width:88, height:80 }, { width:88, height:80 } ])
+          ],
+          footerLeft:'Die Build Sonderausgabe',
+          footerRight:'Stadt-Desk • Seite {{page}}'
+        }
+      ]
+    };
+  }
+
+  function frankfurterTemplate(){
+    return {
+      version:'0.2.0',
+      docVersion:'0.2.0',
+      codename:'Feuilleton',
+      docName:'Docu Monster Studio Pro',
+      releaseNotes:[
+        'Frankfurter Allgemeine inspirierte Broadsheet-Typografie mit großzügigen Kolumnen.',
+        'Seriöse Titelleiste, dezente Deckzeile und Platz für Leitartikel.',
+        'Mehrspaltige Kommentare und Infokästen für klassische Tageszeitungsoptik.'
+      ],
+      pages:[
+        {
+          title:'FRANKFURTER ALLGEMEINE EDITION',
+          subtitle:'Zeitung für Deutschland',
+          deck:'Leitartikel, Analyse, Feuilleton und Kommentare im großformatigen Blatt.',
+          theme:'standard',
+          elements:[
+            createColumnElement(3,[
+              '<p>Mit breiter Schulter und ruhiger Typografie beginnt das Leitstück des Tages. Längere Absätze, dezente Initialen und klare Gliederung prägen das Blatt.</p>',
+              '<p>Jede Kolumne lässt sich wie ein eigenes Fenster skalieren. So entsteht der typische Blocksatz, der Lesern Orientierung bietet.</p>',
+              '<p>Ein Feuilleton-Kasten kann direkt daneben schweben – samt Serifenschrift und klassischer Zwischenzeile.</p>'
+            ], 'standard', [ { width:60, height:140 }, { width:60, height:140 }, { width:60, height:140 } ]),
+            createColumnElement(1,[
+              '<h3 class="span-all">Kommentar</h3>'+
+              '<p>Die Frankfurter Allgemeine lebt von pointierten Meinungen. Nutzen Sie das eigenständige Kommentar-Fenster, um Stimmen aus Politik und Wirtschaft zu platzieren.</p>'
+            ], 'inverse', [ { width:182, height:70 } ]),
+            createFrameModel({
+              frameType:'text',
+              mode:'block',
+              width:120,
+              height:50,
+              content:'<p class="note">Setzen Sie Zitate mit langen Gedankenstrichen, nutzen Sie ruhige Zeilenabstände und viel Weißraum für das hochwertige Erscheinungsbild.</p>'
+            })
+          ],
+          footerLeft:'Frankfurter Allgemeine',
+          footerRight:'Ausgabe {{page}} / {{total}}'
+        }
+      ]
+    };
+  }
+
+  const DOCUMENT_TEMPLATES = [
+    { id:'orbit-launch', label:'Orbit Launch Dossier', description:'Das klassische Docu Monster Studio Pro Startlayout.', create:orbitLaunchTemplate },
+    { id:'bild-bulletin', label:'Die Build Morgen', description:'Tabloid-Power mit rotem Aufmacherfenster.', create:bildTemplate },
+    { id:'frankfurter-report', label:'Frankfurter Allgemeine', description:'Elegante Broadsheet-Komposition für Leitartikel.', create:frankfurterTemplate },
+    { id:'blank-spread', label:'Blanko Spread', description:'Leeres Raster für individuelle Produktionen.', create:blankTemplate }
+  ];
+
+  const TEMPLATE_MAP = new Map(DOCUMENT_TEMPLATES.map(t=>[t.id, t]));
+
+  docModel = normalizeDocument(loadFromStorage() || TEMPLATE_MAP.get(DEFAULT_TEMPLATE_ID).create());
+
+  function mmToPx(mm){ return mm * pxPerMm; }
+  function pxToMm(px){ return px / pxPerMm; }
+  function getTotalPages(){ return docModel.pages.length || 1; }
+
+  function defaultDocument(){
+    const entry = TEMPLATE_MAP.get(DEFAULT_TEMPLATE_ID);
+    return entry ? entry.create() : orbitLaunchTemplate();
   }
 
   function normalizeDocument(input){
@@ -625,14 +875,32 @@
 
   function normalizeElement(el){
     if(!el || !el.type){
-      return { type:'columns', columns:1, html:'<p>Edit me.</p>' };
+      return createColumnElement(1, ['<p>Edit me.</p>']);
     }
     if(el.type === 'columns'){
+      const columns = Math.min(4, Math.max(1, parseInt(el.columns, 10) || (Array.isArray(el.windows) ? el.windows.length : 1)));
+      const windows = Array.isArray(el.windows) ? el.windows.slice(0, columns).map(html=> typeof html === 'string' && html.trim() ? html : '<p>Start typing…</p>') : [];
+      if(!windows.length){
+        const baseHtml = typeof el.html === 'string' ? el.html : '<p>Edit me.</p>';
+        windows.push(baseHtml);
+      }
+      while(windows.length < columns){
+        windows.push('<p>Start typing…</p>');
+      }
+      const layout = Array.isArray(el.windowLayout) ? el.windowLayout.slice(0, columns).map(item=>({
+        width: item && Number.isFinite(item.width) ? item.width : null,
+        height: item && Number.isFinite(item.height) ? item.height : null
+      })) : [];
+      while(layout.length < columns){
+        layout.push({ width:null, height:null });
+      }
       return {
         type:'columns',
-        columns:Math.min(3, Math.max(1, parseInt(el.columns,10) || 1)),
-        html: typeof el.html === 'string' ? el.html : '<p>Edit me.</p>',
-        style: normalizeStyleValue('columns', el.style)
+        columns,
+        windows,
+        windowLayout:layout,
+        style: normalizeStyleValue('columns', el.style),
+        html: windows.join('')
       };
     }
     const mode = el.mode || 'overlay';
@@ -739,6 +1007,16 @@
     section.appendChild(marks);
   }
 
+  function targetWindowIndicator(windowEl){
+    let indicator = windowEl.querySelector('.column-window-drop-indicator');
+    if(!indicator){
+      indicator = document.createElement('div');
+      indicator.className = 'column-window-drop-indicator';
+      windowEl.appendChild(indicator);
+    }
+    return indicator;
+  }
+
   function renderPage(page, idx){
     const sheet = document.createElement('section');
     sheet.className = 'sheet '+(idx%2 ? 'even' : 'odd');
@@ -776,24 +1054,142 @@
 
     page.elements.forEach((el, elementIndex)=>{
       if(el.type === 'columns'){
-        const block = document.createElement('div');
-        block.className = 'cols cols-'+el.columns+' split editable';
-        block.contentEditable = 'true';
-        block.dataset.pageIndex = String(idx);
-        block.dataset.elementIndex = String(elementIndex);
-        block.innerHTML = el.html;
-        el.style = applyElementStyleClass(block, el.style, 'columns');
-        if(selectedColumnsPage === idx && selectedColumnsIndex === elementIndex){
-          selectedColumnsBlock = block;
-          block.classList.add('selected');
+        const stack = document.createElement('div');
+        stack.className = 'column-window-stack split';
+        stack.dataset.pageIndex = String(idx);
+        stack.dataset.elementIndex = String(elementIndex);
+        el.style = applyElementStyleClass(stack, el.style, 'columns');
+        const windows = Array.isArray(el.windows) ? el.windows : [typeof el.html === 'string' ? el.html : '<p>Edit me.</p>'];
+        if(!Array.isArray(el.windowLayout) || el.windowLayout.length !== windows.length){
+          el.windowLayout = windows.map(()=>({ width:null, height:null }));
         }
-        block.addEventListener('input', ()=>{
-          el.html = block.innerHTML;
-          markDirty();
+        if(selectedColumnsPage === idx && selectedColumnsIndex === elementIndex){
+          selectedColumnsBlock = stack;
+          stack.classList.add('selected');
+        }
+
+        const updateSizeLabel = (windowEl, labelEl, windowIndex, triggerDirty = false)=>{
+          const widthPx = windowEl.offsetWidth;
+          const heightPx = windowEl.offsetHeight;
+          const widthMm = parseFloat(pxToMm(widthPx).toFixed(1));
+          const heightMm = parseFloat(pxToMm(heightPx).toFixed(1));
+          labelEl.textContent = Math.round(widthMm)+'×'+Math.round(heightMm)+'mm';
+          const prev = el.windowLayout[windowIndex] || { width:null, height:null };
+          const changed = !prev || Math.abs((prev.width || 0) - widthMm) > 0.2 || Math.abs((prev.height || 0) - heightMm) > 0.2;
+          el.windowLayout[windowIndex] = { width:widthMm, height:heightMm };
+          if(triggerDirty && changed){
+            markDirty();
+          }
+        };
+
+        const handleWindowResize = (windowEl, labelEl, windowIndex)=>{
+          const observer = new ResizeObserver(()=>{
+            updateSizeLabel(windowEl, labelEl, windowIndex, true);
+          });
+          observer.observe(windowEl);
+        };
+
+        const ensureDropCleanup = ()=>{
+          stack.querySelectorAll('.column-window-drop-indicator').forEach(el=>el.remove());
+        };
+
+        const handleDragDrop = (targetWindow, event)=>{
+          if(!columnDragState || columnDragState.pageIndex !== idx || columnDragState.elementIndex !== elementIndex) return;
+          event.preventDefault();
+          const fromIndex = columnDragState.windowIndex;
+          let toIndex = parseInt(targetWindow.dataset.windowIndex, 10);
+          const rect = targetWindow.getBoundingClientRect();
+          const isAfter = (event.clientX - rect.left) > rect.width/2;
+          if(isAfter) toIndex += 1;
+          handleColumnReorder(idx, elementIndex, fromIndex, toIndex);
+          ensureDropCleanup();
+        };
+
+        windows.forEach((windowHtml, windowIndex)=>{
+          const windowEl = document.createElement('section');
+          windowEl.className = 'column-window';
+          windowEl.draggable = true;
+          windowEl.dataset.windowIndex = String(windowIndex);
+
+          const header = document.createElement('div');
+          header.className = 'column-window-header';
+          const label = document.createElement('span');
+          label.className = 'label';
+          label.textContent = 'Column '+(windowIndex+1);
+          const size = document.createElement('span');
+          size.className = 'size';
+          header.appendChild(label);
+          header.appendChild(size);
+          windowEl.appendChild(header);
+
+          const body = document.createElement('div');
+          body.className = 'column-window-content';
+          body.contentEditable = 'true';
+          body.dataset.pageIndex = String(idx);
+          body.dataset.elementIndex = String(elementIndex);
+          body.dataset.windowIndex = String(windowIndex);
+          body.innerHTML = windowHtml;
+          body.addEventListener('input', ()=>{
+            el.windows[windowIndex] = body.innerHTML;
+            el.html = el.windows.join('');
+            markDirty();
+          });
+          body.addEventListener('focus', ()=>{ selectColumnsBlock(stack, idx, elementIndex); });
+          body.addEventListener('click', ()=>{ selectColumnsBlock(stack, idx, elementIndex); });
+          windowEl.appendChild(body);
+
+          const layout = el.windowLayout[windowIndex] || { width:null, height:null };
+          if(Number.isFinite(layout.width)){ windowEl.style.width = mmToPx(layout.width)+'px'; }
+          if(Number.isFinite(layout.height)){ windowEl.style.height = mmToPx(layout.height)+'px'; }
+
+          windowEl.addEventListener('dragstart', ev=>{
+            if(!ev.target.closest('.column-window-header')){
+              ev.preventDefault();
+              return;
+            }
+            columnDragState = { pageIndex:idx, elementIndex, windowIndex };
+            windowEl.classList.add('dragging');
+            ensureDropCleanup();
+            ev.dataTransfer.effectAllowed = 'move';
+            ev.dataTransfer.setData('text/plain', '');
+          });
+          windowEl.addEventListener('dragend', ()=>{
+            windowEl.classList.remove('dragging');
+            columnDragState = null;
+            ensureDropCleanup();
+          });
+          windowEl.addEventListener('dragover', ev=>{
+            if(!columnDragState || columnDragState.pageIndex !== idx || columnDragState.elementIndex !== elementIndex){ return; }
+            ev.preventDefault();
+            const indicator = targetWindowIndicator(windowEl);
+            const rect = windowEl.getBoundingClientRect();
+            const isAfter = (ev.clientX - rect.left) > rect.width/2;
+            indicator.style.left = isAfter ? 'auto' : '0';
+            indicator.style.right = isAfter ? '0' : 'auto';
+          });
+          windowEl.addEventListener('dragleave', ensureDropCleanup);
+          windowEl.addEventListener('drop', ev=>{
+            handleDragDrop(windowEl, ev);
+          });
+
+          updateSizeLabel(windowEl, size, windowIndex);
+          handleWindowResize(windowEl, size, windowIndex);
+
+          stack.appendChild(windowEl);
         });
-        block.addEventListener('focus', ()=>{ selectColumnsBlock(block, idx, elementIndex); });
-        block.addEventListener('click', ()=>{ selectColumnsBlock(block, idx, elementIndex); });
-        content.appendChild(block);
+
+        stack.addEventListener('dragover', ev=>{
+          if(!columnDragState || columnDragState.pageIndex !== idx || columnDragState.elementIndex !== elementIndex){ return; }
+          ev.preventDefault();
+        });
+        stack.addEventListener('drop', ev=>{
+          if(!columnDragState || columnDragState.pageIndex !== idx || columnDragState.elementIndex !== elementIndex){ return; }
+          ev.preventDefault();
+          handleColumnReorder(idx, elementIndex, columnDragState.windowIndex, el.windows.length);
+          ensureDropCleanup();
+        });
+
+        content.appendChild(stack);
       } else {
         const frame = createFrameElement(el, idx, elementIndex);
         content.appendChild(frame);
@@ -1002,14 +1398,143 @@
     pages.forEach(p=>obs.observe(p));
     refreshCounts();
     renderReleaseCard();
-    buildRulers();
     applyColorPreset();
     buildThumbnails();
     restoreFrameSelection();
     restoreColumnsSelection();
     updatePageThemeControl();
     refreshElementStyleControl();
+    applyZoom();
   }
+
+  function handleColumnReorder(pageIndex, elementIndex, fromIndex, toIndex){
+    const page = docModel.pages[pageIndex];
+    if(!page) return;
+    const el = page.elements[elementIndex];
+    if(!el || el.type !== 'columns') return;
+    const windows = Array.isArray(el.windows) ? el.windows.slice() : [];
+    if(!windows.length) return;
+    const layout = Array.isArray(el.windowLayout) ? el.windowLayout.slice() : windows.map(()=>({ width:null, height:null }));
+    if(fromIndex < 0 || fromIndex >= windows.length) return;
+    let normalizedTo = Math.max(0, Math.min(toIndex, windows.length));
+    if(normalizedTo === fromIndex || normalizedTo === fromIndex+1) return;
+    const [moved] = windows.splice(fromIndex, 1);
+    const [layoutMoved] = layout.splice(fromIndex, 1);
+    if(normalizedTo > windows.length){ normalizedTo = windows.length; }
+    windows.splice(normalizedTo > fromIndex ? normalizedTo-1 : normalizedTo, 0, moved);
+    layout.splice(normalizedTo > fromIndex ? normalizedTo-1 : normalizedTo, 0, layoutMoved || { width:null, height:null });
+    el.windows = windows;
+    el.windowLayout = layout;
+    el.columns = windows.length;
+    el.html = windows.join('');
+    markDirty();
+    selectedColumnsPage = pageIndex;
+    selectedColumnsIndex = elementIndex;
+    renderDocument();
+    snapTo(pageIndex, true);
+  }
+
+  function buildTemplateGallery(){
+    if(!templateList) return;
+    templateList.innerHTML = '';
+    DOCUMENT_TEMPLATES.forEach(entry=>{
+      const option = document.createElement('button');
+      option.type = 'button';
+      option.className = 'template-option';
+      option.dataset.templateId = entry.id;
+      option.innerHTML = '<h3>'+entry.label+'</h3><p>'+entry.description+'</p>';
+      option.addEventListener('click', ()=>{
+        createDocumentFromTemplate(entry.id);
+      });
+      templateList.appendChild(option);
+    });
+  }
+
+  function openTemplateChooser(){
+    if(isDirty && !confirm('Discard current changes and create a new document?')) return;
+    buildTemplateGallery();
+    if(templateModal){
+      templateModal.classList.add('open');
+      try{
+        templateModal.focus({ preventScroll:true });
+      }catch(err){
+        templateModal.focus();
+      }
+    }
+  }
+
+  function closeTemplateChooser(){
+    if(templateModal){
+      templateModal.classList.remove('open');
+    }
+  }
+
+  function createDocumentFromTemplate(templateId){
+    const entry = TEMPLATE_MAP.get(templateId) || TEMPLATE_MAP.get(DEFAULT_TEMPLATE_ID);
+    if(!entry) return;
+    docModel = normalizeDocument(entry.create());
+    markDirty(false);
+    updateVersionInfo();
+    renderDocument();
+    snapTo(0, true);
+    closeTemplateChooser();
+    setStatus('Template loaded: '+entry.label+'.');
+  }
+
+  if(templateCancel){
+    templateCancel.addEventListener('click', closeTemplateChooser);
+  }
+  if(templateModal){
+    templateModal.addEventListener('click', ev=>{
+      if(ev.target === templateModal) closeTemplateChooser();
+    });
+  }
+
+  function clampZoom(value){
+    return Math.min(2.5, Math.max(0.35, value));
+  }
+
+  function applyZoom(){
+    if(!pageViewport) return;
+    pageViewport.style.transform = 'scale('+zoomLevel.toFixed(3)+')';
+    if(zoomDisplay){
+      zoomDisplay.textContent = Math.round(zoomLevel*100)+'%';
+    }
+    buildRulers();
+  }
+
+  function zoomTo(value){
+    const clamped = clampZoom(value);
+    if(Math.abs(clamped - zoomLevel) < 0.01) return;
+    zoomLevel = clamped;
+    applyZoom();
+  }
+
+  function zoomIn(){ zoomTo(zoomLevel + 0.1); }
+  function zoomOut(){ zoomTo(zoomLevel - 0.1); }
+  function zoomReset(){ zoomTo(1); }
+
+  function zoomFit(){
+    if(!pageViewport || !pages.length){
+      zoomTo(1);
+      return;
+    }
+    const sheet = pages[cur] || pages[0];
+    if(!sheet){ zoomTo(1); return; }
+    const widthPx = sheet.offsetWidth || sheet.getBoundingClientRect().width;
+    const heightPx = sheet.offsetHeight || sheet.getBoundingClientRect().height;
+    if(!widthPx || !heightPx){ zoomTo(1); return; }
+    const viewportRect = pageViewport.getBoundingClientRect();
+    const availableWidth = Math.max(120, window.innerWidth - viewportRect.left - 32);
+    const availableHeight = Math.max(120, window.innerHeight - viewportRect.top - 32);
+    const rawScale = Math.min(availableWidth / widthPx, availableHeight / heightPx);
+    zoomTo(rawScale);
+  }
+
+  if(zoomInBtn) zoomInBtn.addEventListener('click', zoomIn);
+  if(zoomOutBtn) zoomOutBtn.addEventListener('click', zoomOut);
+  if(zoomResetBtn) zoomResetBtn.addEventListener('click', zoomReset);
+  if(zoomFullBtn) zoomFullBtn.addEventListener('click', zoomFit);
 
   function refreshCounts(){
     const total = getTotalPages();
@@ -1146,10 +1671,13 @@
     }
     const sheet = pages[cur] || pages[0];
     const rect = sheet.getBoundingClientRect();
-    const widthPx = rect.width;
-    const heightPx = rect.height;
-    const widthMm = pxToMm(widthPx);
-    const heightMm = pxToMm(heightPx);
+    const baseWidthPx = sheet.offsetWidth || rect.width;
+    const baseHeightPx = sheet.offsetHeight || rect.height;
+    const zoom = zoomLevel || 1;
+    const widthPx = baseWidthPx * zoom;
+    const heightPx = baseHeightPx * zoom;
+    const widthMm = pxToMm(baseWidthPx);
+    const heightMm = pxToMm(baseHeightPx);
     const cmTopCount = Math.ceil(widthMm / 10);
     const inTopCount = Math.ceil(widthMm / 25.4);
     const cmLeftCount = Math.ceil(heightMm / 10);
@@ -1164,29 +1692,29 @@
     rulerTopEl.style.left = Math.max(0, Math.round(rect.left))+'px';
     const verticalWidth = rulerLeftEl.offsetWidth || 36;
     rulerLeftEl.style.left = Math.max(0, Math.round(rect.left - verticalWidth))+'px';
-    rulerLeftEl.style.height = Math.round(heightPx + 40)+'px';
+    rulerLeftEl.style.height = Math.round(heightPx + 40*(zoomLevel || 1))+'px';
     for(let i=0;i<=cmTopCount;i++){
       const span = document.createElement('span');
       span.textContent = i;
-      span.style.left = mmToPx(i*10)+'px';
+      span.style.left = (mmToPx(i*10)*zoom)+'px';
       rulerTopCm.appendChild(span);
     }
     for(let i=0;i<=inTopCount;i++){
       const span = document.createElement('span');
       span.textContent = i+'"';
-      span.style.left = mmToPx(i*25.4)+'px';
+      span.style.left = (mmToPx(i*25.4)*zoom)+'px';
       rulerTopIn.appendChild(span);
     }
     for(let i=0;i<=cmLeftCount;i++){
       const span = document.createElement('span');
       span.textContent = i;
-      span.style.top = mmToPx(i*10)+'px';
+      span.style.top = (mmToPx(i*10)*zoom)+'px';
       rulerLeftCm.appendChild(span);
     }
     for(let i=0;i<=inLeftCount;i++){
       const span = document.createElement('span');
       span.textContent = i+'"';
-      span.style.top = mmToPx(i*25.4)+'px';
+      span.style.top = (mmToPx(i*25.4)*zoom)+'px';
       rulerLeftIn.appendChild(span);
     }
   }
@@ -1258,7 +1786,7 @@
     if(!ev.target.closest('.frame') && !ev.target.closest('#frameInspector')){
       clearFrameSelection();
     }
-    if(!ev.target.closest('.cols.editable') && !ev.target.closest('#styleControls')){
+    if(!ev.target.closest('.column-window-stack') && !ev.target.closest('#styleControls')){
       clearColumnsSelection();
     }
   });
@@ -1289,7 +1817,7 @@
 
   function restoreColumnsSelection(){
     if(selectedColumnsPage < 0 || selectedColumnsIndex < 0) return;
-    const selector = '.cols[data-page-index="'+selectedColumnsPage+'"][data-element-index="'+selectedColumnsIndex+'"]';
+    const selector = '.column-window-stack[data-page-index="'+selectedColumnsPage+'"][data-element-index="'+selectedColumnsIndex+'"]';
     const block = document.querySelector(selector);
     if(block){
       selectedColumnsBlock = block;
@@ -1330,14 +1858,14 @@
     }
     const normalized = type === 'frame' ? normalizeStyleValue('frame', element.style) : normalizeStyleValue('columns', element.style);
     element.style = normalized;
-    styledSelection = { type, page:pageIndex, index:elementIndex };
+    styledSelection = { type, pageIndex, elementIndex };
     populateElementStyleOptions(type, normalized);
     elementStyleSelect.disabled = false;
     elementStyleSelect.value = normalized;
   }
 
   function clearStyleControl(){
-    styledSelection = { type:null, page:-1, index:-1 };
+    styledSelection = { type:null, pageIndex:-1, elementIndex:-1 };
     if(elementStyleSelect){
       elementStyleSelect.innerHTML = '<option value="standard">Standard</option>';
       elementStyleSelect.value = 'standard';
@@ -1352,7 +1880,7 @@
       clearStyleControl();
       return;
     }
-    if(styledSelection.page !== cur){
+    if(styledSelection.pageIndex !== cur){
       if(styledSelection.type === 'columns'){
         clearColumnsSelection();
       } else {
@@ -1360,12 +1888,12 @@
       }
       return;
     }
-    const page = docModel.pages[styledSelection.page];
+    const page = docModel.pages[styledSelection.pageIndex];
     if(!page){
       clearStyleControl();
       return;
     }
-    const element = page.elements[styledSelection.index];
+    const element = page.elements[styledSelection.elementIndex];
     if(!element){
       if(styledSelection.type === 'columns'){
         clearColumnsSelection();
@@ -1464,7 +1992,8 @@
   function addColumnsToCurrent(count){
     const page = docModel.pages[cur];
     if(!page) return;
-    page.elements.push({ type:'columns', columns:count, html:'<p>Type your story here.</p>', style:'standard' });
+    const windows = Array.from({ length:count }, (_, idx)=> idx === 0 ? '<p>Type your story here.</p>' : '<p>Start typing…</p>');
+    page.elements.push(createColumnElement(count, windows));
     markDirty();
     renderDocument();
     snapTo(cur, true);
@@ -1497,7 +2026,7 @@
 
   function addPage(afterIndex){
     const inheritTheme = docModel.pages[afterIndex] ? docModel.pages[afterIndex].theme : 'standard';
-    const base = { title:'Untitled Spread', subtitle:'', deck:'', theme:inheritTheme, elements:[{ type:'columns', columns:1, html:'<p>Start typing…</p>', style:'standard' }], footerLeft:'Docu Monster Studio Pro • Orbit OS', footerRight:'Page {{page}} / {{total}}' };
+    const base = { title:'Untitled Spread', subtitle:'', deck:'', theme:inheritTheme, elements:[createColumnElement(1, ['<p>Start typing…</p>'])], footerLeft:'Docu Monster Studio Pro • Orbit OS', footerRight:'Page {{page}} / {{total}}' };
     docModel.pages.splice(afterIndex+1, 0, base);
     markDirty();
     renderDocument();
@@ -1515,13 +2044,7 @@
   }
 
   function newDocument(){
-    if(isDirty && !confirm('Discard current changes and create a new document?')) return;
-    docModel = normalizeDocument(defaultDocument());
-    markDirty(false);
-    updateVersionInfo();
-    renderDocument();
-    snapTo(0, true);
-    setStatus('New document ready.');
+    openTemplateChooser();
   }
 
   function openDocumentFile(){
@@ -1613,7 +2136,13 @@
   });
 
   document.addEventListener('keydown', ev=>{
-    if(ev.key === 'Escape') closeMenus();
+    if(ev.key === 'Escape'){
+      if(templateModal && templateModal.classList.contains('open')){
+        closeTemplateChooser();
+      } else {
+        closeMenus();
+      }
+    }
   });
 
   document.addEventListener('click', ev=>{
@@ -1714,8 +2243,8 @@
   });
   elementStyleSelect.addEventListener('change', ()=>{
     if(!styledSelection.type) return;
-    const pageIdx = styledSelection.page;
-    const elementIdx = styledSelection.index;
+    const pageIdx = styledSelection.pageIndex;
+    const elementIdx = styledSelection.elementIndex;
     const type = styledSelection.type;
     const page = docModel.pages[pageIdx];
     if(!page) return;
@@ -1727,7 +2256,7 @@
       const frame = document.querySelector('.frame[data-page-index="'+pageIdx+'"][data-element-index="'+elementIdx+'"]');
       if(frame) applyElementStyleClass(frame, normalized, 'frame');
     } else {
-      const block = document.querySelector('.cols[data-page-index="'+pageIdx+'"][data-element-index="'+elementIdx+'"]');
+      const block = document.querySelector('.column-window-stack[data-page-index="'+pageIdx+'"][data-element-index="'+elementIdx+'"]');
       if(block) applyElementStyleClass(block, normalized, 'columns');
     }
     populateElementStyleOptions(type, normalized);
@@ -1758,7 +2287,7 @@
   setStatus('Ready.', false);
   window.addEventListener('resize', ()=>{
     buildThumbnails();
-    buildRulers();
+    applyZoom();
   });
 
 })();
