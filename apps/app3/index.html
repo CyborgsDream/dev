@@ -46,10 +46,9 @@ const controls = {
   yaw: 0,
   yawVelocity: 0,
   speed: 60,
-  turnSpeed: Math.PI,
-  turnSmooth: 10,
-  height: 60,
-  bounds: 290
+  turnSpeed: Math.PI * 0.45,
+  turnSmooth: 3,
+  height: 60
 };
 camera.position.set(0, controls.height, 160);
 camera.lookAt(0, 0, 0);
@@ -92,13 +91,33 @@ function noise2(x,z){ const ix=Math.floor(x), iz=Math.floor(z), fx=x-ix, fz=z-iz
   const ux=smooth(fx), uz=smooth(fz); return lerp( lerp(a,b,ux), lerp(c,d,ux), uz ); }
 function fbm(x,z,oct=5){ let amp=1,freq=0.02,sum=0,norm=0; for(let i=0;i<oct;i++){ sum+=amp*noise2(x*freq,z*freq); norm+=amp; amp*=0.5; freq*=2; } return sum/norm; }
 
-const terrain = new THREE.PlaneGeometry(600,600,120,120);
+const terrainSize = 600;
+const terrainSegments = 120;
+const terrain = new THREE.PlaneGeometry(terrainSize, terrainSize, terrainSegments, terrainSegments);
 terrain.rotateX(-Math.PI/2);
 const pos = terrain.attributes.position;
-for(let i=0;i<pos.count;i++){ const x=pos.getX(i), z=pos.getZ(i); const y=fbm(x,z)*60-18; pos.setY(i,y); }
-terrain.computeVertexNormals();
+const basePositions = Float32Array.from(pos.array);
+const cellSize = terrainSize / terrainSegments;
+const chunkSize = cellSize * 10;
+const terrainState = { offsetX: 0, offsetZ: 0 };
+function refreshTerrain(offsetX, offsetZ) {
+  for (let i = 0; i < pos.count; i++) {
+    const ix = i * 3;
+    const x = basePositions[ix];
+    const z = basePositions[ix + 2];
+    const worldX = x + offsetX;
+    const worldZ = z + offsetZ;
+    const y = fbm(worldX, worldZ) * 60 - 18;
+    pos.setY(i, y);
+  }
+  pos.needsUpdate = true;
+  terrain.computeVertexNormals();
+}
+refreshTerrain(terrainState.offsetX, terrainState.offsetZ);
 const terrainMesh = new THREE.Mesh(terrain, new THREE.MeshStandardMaterial({ color:0x2a8a4b, flatShading:true, metalness:0, roughness:1 }));
+terrainMesh.position.set(terrainState.offsetX, 0, terrainState.offsetZ);
 scene.add(terrainMesh);
+function snapToChunk(value) { return Math.round(value / chunkSize) * chunkSize; }
 
 const groundRay = new THREE.Raycaster();
 function createBlock(x, z) {
@@ -117,10 +136,11 @@ function createBlock(x, z) {
   scene.add(block);
 }
 
+const blockSpread = terrainSize * 0.48;
 async function generateBlocks(count) {
   for (let i = 0; i < count; i++) {
-    const x = Math.random() * controls.bounds * 2 - controls.bounds;
-    const z = Math.random() * controls.bounds * 2 - controls.bounds;
+    const x = Math.random() * blockSpread * 2 - blockSpread;
+    const z = Math.random() * blockSpread * 2 - blockSpread;
     createBlock(x, z);
     if (i % 50 === 0) {
       setProgress((i / count) * 100);
@@ -144,12 +164,21 @@ function updateControls(dt){
     move.normalize().multiplyScalar(controls.speed * dt);
     const p = camera.position.clone().add(move);
     p.y = controls.height;
-    p.x = THREE.MathUtils.clamp(p.x, -controls.bounds, controls.bounds);
-    p.z = THREE.MathUtils.clamp(p.z, -controls.bounds, controls.bounds);
     camera.position.copy(p);
   }
   const lookTarget = camera.position.clone().add(forward);
   camera.lookAt(lookTarget);
+}
+
+function updateTerrainFollow() {
+  const snappedX = snapToChunk(camera.position.x);
+  const snappedZ = snapToChunk(camera.position.z);
+  if (snappedX !== terrainState.offsetX || snappedZ !== terrainState.offsetZ) {
+    terrainState.offsetX = snappedX;
+    terrainState.offsetZ = snappedZ;
+    refreshTerrain(snappedX, snappedZ);
+    terrainMesh.position.set(snappedX, 0, snappedZ);
+  }
 }
 
 let last = performance.now();
@@ -158,6 +187,7 @@ function animate(){
   const dt = Math.min(0.05, (now - last) / 1000);
   last = now;
   updateControls(dt);
+  updateTerrainFollow();
   renderer.render(scene, camera);
   requestAnimationFrame(animate);
 }
