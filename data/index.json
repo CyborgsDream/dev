@@ -8,7 +8,7 @@
     },
     {
       "name": "Terrain",
-      "file": "apps/app3/index.html",
+      "file": "apps/terrain/index.html",
       "short": "lorem ipsum doloret sit amet",
       "long": "This is the third demo showcasing features."
     },
