@@ -77,6 +77,48 @@
       text-transform: uppercase;
       z-index: 60;
     }
+    #loader .loader-content {
+      display: grid;
+      justify-items: center;
+      gap: 26px;
+      text-align: center;
+    }
+    #loader .loader-text {
+      font-size: 0.58em;
+      letter-spacing: 0.32em;
+    }
+    #loader .loader-logo {
+      width: min(220px, 40vw);
+      aspect-ratio: 1 / 1;
+      perspective: 900px;
+      position: relative;
+      filter: drop-shadow(0 22px 32px rgba(0, 0, 0, 0.55));
+    }
+    #loader .loader-logo svg {
+      width: 100%;
+      height: 100%;
+      transform-style: preserve-3d;
+      animation: logo-precess 8s linear infinite;
+    }
+    #loader .loader-logo .logo-glow {
+      fill: url(#logo-gradient);
+      filter: drop-shadow(0 0 18px rgba(255, 139, 47, 0.65));
+    }
+    #loader .loader-logo .logo-frame {
+      fill: none;
+      stroke: rgba(255, 255, 255, 0.5);
+      stroke-width: 1.8;
+    }
+    #loader .loader-meta {
+      font-size: 0.38em;
+      letter-spacing: 0.32em;
+      color: rgba(255, 255, 255, 0.72);
+    }
+    @keyframes logo-precess {
+      0% { transform: rotateX(14deg) rotateY(0deg); }
+      50% { transform: rotateX(14deg) rotateY(180deg); }
+      100% { transform: rotateX(14deg) rotateY(360deg); }
+    }
     #loader #progress {
       color: var(--accent-orange);
     }
@@ -141,18 +183,30 @@
       position: fixed;
       top: 18px;
       right: 18px;
-      background: linear-gradient(150deg, var(--navy-800), var(--navy-700));
+      background: rgba(7, 17, 39, 0.55);
       border: 1px solid var(--frame-border);
       box-shadow: inset 0 0 0 1px var(--frame-border-light), 0 18px 32px rgba(0, 0, 0, 0.45);
       padding: 18px 20px 22px;
       display: grid;
-      row-gap: 14px;
-      width: min(240px, 80vw);
-      z-index: 30;
+      row-gap: 16px;
+      width: min(256px, 80vw);
+      z-index: 34;
       font-family: 'Lucida Sans', 'Geneva', sans-serif;
       color: var(--text-white);
       text-transform: uppercase;
       letter-spacing: 0.08em;
+      backdrop-filter: blur(14px);
+      transition: background 0.35s ease, border-color 0.35s ease;
+    }
+    #control-ui.folded {
+      background: rgba(7, 17, 39, 0.38);
+      border-color: rgba(255, 255, 255, 0.12);
+    }
+    #control-ui .ui-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
     }
     #control-ui h2 {
       margin: 0;
@@ -166,6 +220,37 @@
     #control-ui h2 span:last-child {
       color: var(--text-white);
       letter-spacing: 0.24em;
+    }
+    #ui-fold-btn {
+      border: 1px solid rgba(255, 255, 255, 0.24);
+      background: rgba(2, 8, 23, 0.35);
+      color: var(--text-white);
+      font-size: 0.58rem;
+      letter-spacing: 0.18em;
+      padding: 6px 12px;
+      cursor: pointer;
+      text-transform: uppercase;
+      transition: background 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
+    }
+    #ui-fold-btn:hover {
+      background: rgba(255, 139, 47, 0.25);
+      border-color: rgba(255, 139, 47, 0.6);
+      transform: translateY(-1px);
+    }
+    #ui-fold-btn:active {
+      transform: translateY(1px);
+    }
+    .fold-body {
+      display: grid;
+      row-gap: 14px;
+      max-height: 400px;
+      overflow: hidden;
+      transition: max-height 0.4s ease, opacity 0.3s ease;
+    }
+    #control-ui.folded .fold-body {
+      max-height: 0;
+      opacity: 0;
+      pointer-events: none;
     }
     .ui-icon {
       width: 26px;
@@ -311,8 +396,90 @@
         right: 12px;
         top: 12px;
         padding: 16px 16px 18px;
-        width: min(210px, 84vw);
+        width: min(220px, 84vw);
       }
+      #ui-fold-btn {
+        padding: 5px 10px;
+        letter-spacing: 0.14em;
+      }
+    }
+    #hud-overlay {
+      position: fixed;
+      top: 18px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: grid;
+      gap: 6px;
+      padding: 14px 20px;
+      background: rgba(2, 8, 23, 0.42);
+      border: 1px solid rgba(255, 255, 255, 0.16);
+      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08), 0 12px 24px rgba(0, 0, 0, 0.35);
+      font-family: 'Lucida Console', 'Courier New', monospace;
+      font-size: 0.72rem;
+      color: var(--text-white);
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      min-width: min(360px, 90vw);
+      z-index: 42;
+      backdrop-filter: blur(12px);
+      pointer-events: none;
+    }
+    #hud-overlay .hud-title {
+      color: var(--accent-orange);
+      letter-spacing: 0.18em;
+      font-size: 0.66rem;
+    }
+    #hud-overlay .hud-line {
+      display: flex;
+      justify-content: space-between;
+      gap: 18px;
+    }
+    #hud-overlay .hud-value {
+      color: rgba(255, 255, 255, 0.86);
+    }
+    #console-dock {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      width: min(520px, 92vw);
+      max-height: 220px;
+      display: flex;
+      flex-direction: column;
+      padding: 12px;
+      gap: 8px;
+      background: rgba(2, 8, 23, 0.55);
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.55);
+      font-family: 'Lucida Console', 'Courier New', monospace;
+      font-size: 0.7rem;
+      letter-spacing: 0.08em;
+      overflow: hidden;
+      backdrop-filter: blur(10px);
+      z-index: 36;
+    }
+    #console-dock .console-headline {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 0.62rem;
+      color: var(--accent-orange);
+      text-transform: uppercase;
+      letter-spacing: 0.16em;
+    }
+    #console-dock #console-log {
+      position: relative;
+      inset: auto;
+      width: 100%;
+      max-height: 160px;
+      padding: 8px 12px;
+      overflow-y: auto;
+      background: rgba(0, 0, 0, 0.3);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      pointer-events: auto;
+    }
+    #console-dock #console-log .console-line {
+      margin-bottom: 4px;
+      white-space: pre-wrap;
     }
   </style>
 </head>
@@ -321,29 +488,34 @@
     <div id="canvas-wrap"></div>
   </div>
   <div id="control-ui">
-    <h2>
-      <span class="ui-icon" aria-hidden="true">
-        <svg viewBox="0 0 24 24" role="presentation">
-          <polygon points="12,2 22,7 22,17 12,22 2,17 2,7" opacity="0.4"></polygon>
-          <polygon points="12,4.5 19.5,8.2 19.5,15.8 12,19.5 4.5,15.8 4.5,8.2" fill="currentColor"></polygon>
-          <path d="M9 10h2v2H9zm4 0h2v2h-2zm-2 3h2v2h-2z" fill="var(--accent-orange)"></path>
-        </svg>
-      </span>
-      <span>Games Mode</span>
-    </h2>
-    <div id="resolution-display">—</div>
-    <label for="resolution-select">Resolution</label>
-    <div class="select-wrap">
-      <select id="resolution-select" aria-label="Resolution selector">
-      <option value="256x144">144p — 256 × 144</option>
-      <option value="426x240">240p — 426 × 240</option>
-      <option value="640x360">360p — 640 × 360</option>
-      <option value="854x480">480p — 854 × 480</option>
-      <option value="1280x720" selected>720p — 1280 × 720</option>
-      <option value="1920x1080">1080p — 1920 × 1080</option>
-      <option value="2560x1440">1440p — 2560 × 1440</option>
-      <option value="3840x2160">2160p — 3840 × 2160</option>
-      </select>
+    <div class="ui-header">
+      <h2>
+        <span class="ui-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" role="presentation">
+            <polygon points="12,2 22,7 22,17 12,22 2,17 2,7" opacity="0.4"></polygon>
+            <polygon points="12,4.5 19.5,8.2 19.5,15.8 12,19.5 4.5,15.8 4.5,8.2" fill="currentColor"></polygon>
+            <path d="M9 10h2v2H9zm4 0h2v2h-2zm-2 3h2v2h-2z" fill="var(--accent-orange)"></path>
+          </svg>
+        </span>
+        <span>Games Mode</span>
+      </h2>
+      <button id="ui-fold-btn" type="button" aria-expanded="true" aria-controls="ui-foldable">Fold Panel</button>
+    </div>
+    <div id="ui-foldable" class="fold-body">
+      <div id="resolution-display">—</div>
+      <label for="resolution-select">Resolution</label>
+      <div class="select-wrap">
+        <select id="resolution-select" aria-label="Resolution selector">
+        <option value="256x144">144p — 256 × 144</option>
+        <option value="426x240">240p — 426 × 240</option>
+        <option value="640x360">360p — 640 × 360</option>
+        <option value="854x480">480p — 854 × 480</option>
+        <option value="1280x720" selected>720p — 1280 × 720</option>
+        <option value="1920x1080">1080p — 1920 × 1080</option>
+        <option value="2560x1440">1440p — 2560 × 1440</option>
+        <option value="3840x2160">2160p — 3840 × 2160</option>
+        </select>
+      </div>
     </div>
   </div>
   <button id="fullscreen-btn" type="button">Enter Fullscreen</button>
@@ -358,13 +530,59 @@
     <button data-key="ArrowDown" aria-label="Move backward">▼</button>
     <span></span>
   </div>
+  <div id="hud-overlay" aria-live="polite">
+    <div class="hud-title">Terrain Telemetry</div>
+    <div class="hud-line"><span>Position</span><span class="hud-value" data-hud="position">0, 0, 0</span></div>
+    <div class="hud-line"><span>Heading</span><span class="hud-value" data-hud="heading">0° / 0°</span></div>
+    <div class="hud-line"><span>Chunk</span><span class="hud-value" data-hud="chunk">0, 0</span></div>
+    <div class="hud-line"><span>Speed</span><span class="hud-value" data-hud="speed">0 m/s</span></div>
+  </div>
   <div id="fps"></div>
-  <div id="loader">Loading <span id="progress">0%</span></div>
+  <div id="console-dock">
+    <div class="console-headline">
+      <span>Signal Log</span>
+      <span>Expanded</span>
+    </div>
+    <div id="console-log" role="log" aria-live="polite"></div>
+  </div>
+  <div id="loader">
+    <div class="loader-content">
+      <div class="loader-text">Loading <span id="progress">0%</span></div>
+      <div class="loader-logo" aria-hidden="true">
+        <svg viewBox="0 0 120 120" role="presentation">
+          <defs>
+            <linearGradient id="logo-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="#ff8b2f" />
+              <stop offset="55%" stop-color="#ffcf73" />
+              <stop offset="100%" stop-color="#6fd0ff" />
+            </linearGradient>
+          </defs>
+          <g>
+            <polygon class="logo-frame" points="60,6 108,34 108,86 60,114 12,86 12,34"></polygon>
+            <path class="logo-glow" d="M60 18L96 39V81L60 102L24 81V39L60 18ZM60 30L36 44V76L60 90L84 76V44L60 30Z"></path>
+            <circle cx="60" cy="60" r="16" fill="rgba(255,255,255,0.55)"></circle>
+            <path d="M60 42c9.9 0 18 8.1 18 18s-8.1 18-18 18-18-8.1-18-18 8.1-18 18-18zm0 6c-6.6 0-12 5.4-12 12s5.4 12 12 12 12-5.4 12-12-5.4-12-12-12z" fill="rgba(2,8,23,0.75)"></path>
+          </g>
+        </svg>
+      </div>
+      <div class="loader-meta">© 2025 Cyborgs Dream</div>
+    </div>
+  </div>
   <script type="module">
   import * as THREE from 'https://unpkg.com/three@0.160.0/build/three.module.js';
   import { initConsoleLogs } from '../../shared/consolelogs.js';
 
-  initConsoleLogs({ removeAfter: null });
+  const consoleLogEl = document.getElementById('console-log');
+  initConsoleLogs({ container: consoleLogEl, removeAfter: null });
+  console.log('Console dock expanded for extended diagnostics.');
+
+  const hudElements = {
+    position: document.querySelector('[data-hud="position"]'),
+    heading: document.querySelector('[data-hud="heading"]'),
+    chunk: document.querySelector('[data-hud="chunk"]'),
+    speed: document.querySelector('[data-hud="speed"]')
+  };
+  console.log('HUD telemetry overlay online.');
 
   const RESOLUTIONS = [
     { label: '144p', width: 256, height: 144 },
@@ -534,6 +752,10 @@
   renderer.setPixelRatio(1);
   const canvasWrap = document.getElementById('canvas-wrap');
   canvasWrap.appendChild(renderer.domElement);
+  renderer.domElement.style.cursor = 'grab';
+  renderer.domElement.style.touchAction = 'none';
+  renderer.domElement.tabIndex = 0;
+  renderer.domElement.setAttribute('aria-label', 'Interactive terrain viewport');
 
   const scene = new THREE.Scene();
   scene.add(new THREE.AmbientLight(0x666666));
@@ -544,16 +766,25 @@
   const camera = new THREE.PerspectiveCamera(50, 16 / 9, 0.1, 3000);
   const controls = {
     yaw: 0,
+    pitch: -0.22,
     yawVelocity: 0,
     speed: 60,
     turnSpeed: Math.PI * 0.45,
     turnSmooth: 3,
-    height: 60
+    height: 60,
+    minPitch: -Math.PI / 3,
+    maxPitch: Math.PI / 4,
+    dragSensitivity: 0.0024,
+    touchDragSensitivity: 0.0042
   };
+  let currentSpeed = 0;
   camera.position.set(0, controls.height, 160);
   camera.lookAt(0, 0, 0);
 
   const keyState = {};
+  const horizontalForward = new THREE.Vector3();
+  const moveVector = new THREE.Vector3();
+  const lookVector = new THREE.Vector3();
   window.addEventListener('keydown', e => {
     if (['ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.key)) { keyState[e.key] = true; e.preventDefault(); }
   });
@@ -575,14 +806,72 @@
     window.addEventListener('touchcancel', () => { keyState[key] = false; });
   });
 
+  const pointerState = {
+    active: false,
+    pointerId: null,
+    lastX: 0,
+    lastY: 0,
+    pointerType: null,
+    hasLogged: false
+  };
+
+  function beginPointerDrag(event) {
+    if (pointerState.active) return;
+    if (event.button !== undefined && event.button !== 0) return;
+    if (event.target.closest('#control-ui, #console-dock')) return;
+    pointerState.active = true;
+    pointerState.pointerId = event.pointerId;
+    pointerState.lastX = event.clientX;
+    pointerState.lastY = event.clientY;
+    pointerState.pointerType = event.pointerType || 'mouse';
+    renderer.domElement.setPointerCapture(event.pointerId);
+    renderer.domElement.style.cursor = 'grabbing';
+    if (!pointerState.hasLogged) {
+      console.log(`Pointer look engaged (${pointerState.pointerType}).`);
+      pointerState.hasLogged = true;
+    }
+    event.preventDefault();
+  }
+
+  function handlePointerMove(event) {
+    if (!pointerState.active || event.pointerId !== pointerState.pointerId) return;
+    const dx = event.clientX - pointerState.lastX;
+    const dy = event.clientY - pointerState.lastY;
+    pointerState.lastX = event.clientX;
+    pointerState.lastY = event.clientY;
+    const sensitivity = event.pointerType === 'touch' ? controls.touchDragSensitivity : controls.dragSensitivity;
+    controls.yaw -= dx * sensitivity;
+    controls.pitch = THREE.MathUtils.clamp(controls.pitch - dy * sensitivity, controls.minPitch, controls.maxPitch);
+    event.preventDefault();
+  }
+
+  function endPointerDrag(event) {
+    if (pointerState.active && (event.pointerId === pointerState.pointerId || event.type === 'pointerleave')) {
+      if (event.pointerId != null && renderer.domElement.hasPointerCapture?.(event.pointerId)) {
+        renderer.domElement.releasePointerCapture(event.pointerId);
+      }
+      pointerState.active = false;
+      pointerState.pointerId = null;
+      renderer.domElement.style.cursor = 'grab';
+    }
+  }
+
+  renderer.domElement.addEventListener('pointerdown', beginPointerDrag);
+  renderer.domElement.addEventListener('pointermove', handlePointerMove);
+  renderer.domElement.addEventListener('pointerup', endPointerDrag);
+  renderer.domElement.addEventListener('pointercancel', endPointerDrag);
+  renderer.domElement.addEventListener('lostpointercapture', endPointerDrag);
+  renderer.domElement.addEventListener('pointerleave', endPointerDrag);
+  window.addEventListener('blur', () => { pointerState.active = false; renderer.domElement.style.cursor = 'grab'; });
+
   let touchStart = null;
   window.addEventListener('touchstart', e => {
-    if (e.target.closest('#control-pad')) return;
+    if (e.target.closest('#control-pad') || e.target.closest('#canvas-wrap')) return;
     touchStart = e.touches[0];
     e.preventDefault();
   }, { passive: false });
   window.addEventListener('touchmove', e => {
-    if (!touchStart || e.target.closest('#control-pad')) return;
+    if (!touchStart || e.target.closest('#control-pad') || e.target.closest('#canvas-wrap')) return;
     const touch = e.touches[0];
     const dx = touch.clientX - touchStart.clientX;
     const dy = touch.clientY - touchStart.clientY;
@@ -594,7 +883,7 @@
     e.preventDefault();
   }, { passive: false });
   window.addEventListener('touchend', e => {
-    if (e.target.closest('#control-pad')) return;
+    if (e.target.closest('#control-pad') || e.target.closest('#canvas-wrap')) return;
     touchStart = null;
     keyState['ArrowLeft'] = keyState['ArrowRight'] = keyState['ArrowUp'] = keyState['ArrowDown'] = false;
     e.preventDefault();
@@ -683,17 +972,31 @@
     const targetYawVelocity = yawInput * controls.turnSpeed;
     controls.yawVelocity = THREE.MathUtils.damp(controls.yawVelocity, targetYawVelocity, controls.turnSmooth, dt);
     controls.yaw += controls.yawVelocity * dt;
-    const forward = new THREE.Vector3(Math.sin(controls.yaw), 0, -Math.cos(controls.yaw));
-    let move = new THREE.Vector3();
-    if (keyState['ArrowUp']) move.add(forward);
-    if (keyState['ArrowDown']) move.add(forward.clone().multiplyScalar(-1));
-    if (move.lengthSq() > 0) {
-      move.normalize().multiplyScalar(controls.speed * dt);
-      const p = camera.position.clone().add(move);
+    controls.yaw = THREE.MathUtils.euclideanModulo(controls.yaw, Math.PI * 2);
+
+    horizontalForward.set(Math.sin(controls.yaw), 0, -Math.cos(controls.yaw));
+    moveVector.set(0, 0, 0);
+    if (keyState['ArrowUp']) moveVector.add(horizontalForward);
+    if (keyState['ArrowDown']) moveVector.addScaledVector(horizontalForward, -1);
+
+    let speedTarget = 0;
+    if (moveVector.lengthSq() > 0) {
+      moveVector.normalize().multiplyScalar(controls.speed * dt);
+      speedTarget = controls.speed;
+      const p = camera.position.clone().add(moveVector);
       p.y = controls.height;
       camera.position.copy(p);
     }
-    const lookTarget = camera.position.clone().add(forward);
+    currentSpeed = THREE.MathUtils.damp(currentSpeed, speedTarget, 6, dt);
+
+    const cosPitch = Math.cos(controls.pitch);
+    lookVector.set(
+      Math.sin(controls.yaw) * cosPitch,
+      Math.sin(controls.pitch),
+      -Math.cos(controls.yaw) * cosPitch
+    );
+    const lookTarget = camera.position.clone().add(lookVector);
+    camera.position.y = controls.height;
     camera.lookAt(lookTarget);
   }
 
@@ -705,10 +1008,21 @@
       terrainState.offsetZ = snappedZ;
       refreshTerrain(snappedX, snappedZ);
       terrainMesh.position.set(snappedX, 0, snappedZ);
+      console.log(`Terrain recentered to chunk (${Math.round(snappedX / chunkSize)}, ${Math.round(snappedZ / chunkSize)}).`);
     }
   }
 
   const tempVec = new THREE.Vector3();
+  function updateHud() {
+    if (!hudElements.position) return;
+    const pos = camera.position;
+    hudElements.position.textContent = `${pos.x.toFixed(1)}, ${pos.y.toFixed(1)}, ${pos.z.toFixed(1)}`;
+    const yawDeg = THREE.MathUtils.euclideanModulo(THREE.MathUtils.radToDeg(controls.yaw), 360);
+    const pitchDeg = THREE.MathUtils.radToDeg(controls.pitch);
+    hudElements.heading.textContent = `${yawDeg.toFixed(1)}° / ${pitchDeg.toFixed(1)}°`;
+    hudElements.chunk.textContent = `${Math.round(terrainState.offsetX / chunkSize)}, ${Math.round(terrainState.offsetZ / chunkSize)}`;
+    hudElements.speed.textContent = `${currentSpeed.toFixed(1)} m/s`;
+  }
   function updateBlocks(dt, time) {
     const cameraPos = camera.position;
     for (const block of floatingBlocks) {
@@ -739,6 +1053,7 @@
     last = now;
     updateControls(dt);
     updateTerrainFollow();
+    updateHud();
     updateBlocks(dt, now / 1000);
     renderer.render(scene, camera);
     fpsMonitor.end();
@@ -753,6 +1068,18 @@
   const resolutionSelect = document.getElementById('resolution-select');
   const resolutionDisplay = document.getElementById('resolution-display');
   const fullscreenBtn = document.getElementById('fullscreen-btn');
+  const controlUi = document.getElementById('control-ui');
+  const foldBtn = document.getElementById('ui-fold-btn');
+
+  if (foldBtn) {
+    foldBtn.addEventListener('click', () => {
+      const isFolded = controlUi.classList.toggle('folded');
+      foldBtn.setAttribute('aria-expanded', String(!isFolded));
+      foldBtn.textContent = isFolded ? 'Unfold Panel' : 'Fold Panel';
+      console.log(`Control interface ${isFolded ? 'folded' : 'expanded'}.`);
+    });
+    console.log('Control interface initialised with foldable panel.');
+  }
 
   const isFullscreenActive = () => Boolean(
     document.fullscreenElement ||
@@ -771,6 +1098,7 @@
     camera.updateProjectionMatrix();
     resolutionDisplay.textContent = `${res.label} — ${res.width} × ${res.height}`;
     updateCanvasLayout();
+    console.log(`Resolution set to ${res.width}×${res.height} (${res.label}).`);
   }
 
   function parseResolution(value) {
