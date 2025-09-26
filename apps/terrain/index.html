@@ -5,28 +5,38 @@
   <title>Terrain</title>
   <style>
     :root {
-      --navy: #000b33;
-      --panel-bg: rgba(0, 0, 0, 0.88);
-      --panel-border: #ffffff;
-      --accent: #00ffd0;
-      --accent-2: #ff006c;
-      --accent-3: #ffe600;
+      --amiga-blue: #0060b6;
+      --amiga-blue-dark: #004b8a;
+      --amiga-shadow: #002c63;
+      --amiga-highlight: #f4fbff;
+      --amiga-panel-bg: #dfe9ff;
+      --amiga-panel-border-dark: #0f3c70;
+      --amiga-panel-border-light: #ffffff;
+      --amiga-text: #0c2559;
+      --accent-amber: #ffcc5c;
+      --accent-mint: #6fffd3;
+      --graph-bg: #142d5e;
+      --graph-line: #6fffd3;
+      --graph-fill: rgba(111, 255, 211, 0.2);
     }
     html, body {
       margin: 0;
       height: 100%;
       overflow: hidden;
-      background: var(--navy);
-      color: #fff;
-      font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      color: var(--amiga-text);
+      font-family: 'Trebuchet MS', 'Lucida Sans', 'Geneva', sans-serif;
     }
     body {
       position: relative;
+      background:
+        linear-gradient(90deg, rgba(255, 255, 255, 0.08) 1px, transparent 1px),
+        linear-gradient(180deg, rgba(255, 255, 255, 0.08) 1px, transparent 1px),
+        var(--amiga-blue);
+      background-size: 18px 18px;
     }
     #scene-shell {
       position: fixed;
       inset: 0;
-      background: var(--navy);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -45,9 +55,9 @@
     }
     canvas {
       display: block;
-      border-radius: 0;
+      border: 4px solid var(--amiga-panel-border-dark);
       background: #000;
-      box-shadow: none;
+      box-shadow: 8px 8px 0 var(--amiga-shadow);
       max-width: 100%;
       max-height: 100%;
       image-rendering: pixelated;
@@ -61,71 +71,103 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      background: rgba(0, 0, 0, 0.92);
-      color: #fff;
-      font-family: sans-serif;
+      background: rgba(0, 45, 105, 0.92);
+      color: var(--amiga-highlight);
+      font-family: 'Lucida Sans', 'Geneva', sans-serif;
       font-size: 2em;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
       z-index: 60;
     }
     #fps {
       position: fixed;
-      top: 16px;
-      left: 16px;
+      top: 20px;
+      left: 20px;
       z-index: 40;
       pointer-events: none;
     }
     #fps-monitor {
-      display: inline-flex;
-      align-items: center;
-      gap: 12px;
-      padding: 10px 14px;
-      background: #000;
-      border: 2px solid var(--panel-border);
-      color: #fff;
-      font-family: "Courier New", Courier, monospace;
+      position: relative;
+      display: grid;
+      row-gap: 8px;
+      padding: 14px 16px 16px;
+      background: var(--amiga-panel-bg);
+      border: 2px solid var(--amiga-panel-border-dark);
+      box-shadow: 6px 6px 0 var(--amiga-shadow);
+      min-width: 200px;
       text-transform: uppercase;
-      letter-spacing: 0.08em;
+      letter-spacing: 0.1em;
+    }
+    #fps-monitor::before {
+      content: 'Performance';
+      display: block;
+      background: linear-gradient(90deg, var(--amiga-blue-dark), var(--amiga-blue));
+      color: var(--amiga-highlight);
+      font-size: 0.7rem;
+      padding: 6px 10px;
+      margin: -14px -16px 10px;
+      border-bottom: 2px solid var(--amiga-shadow);
+      letter-spacing: 0.16em;
+    }
+    #fps-monitor .fps-readout {
+      display: flex;
+      align-items: baseline;
+      gap: 12px;
+      font-family: 'Lucida Console', 'Courier New', monospace;
     }
     #fps-monitor .fps-label {
-      font-size: 0.75rem;
-      color: var(--accent-3);
+      font-size: 0.65rem;
+      color: var(--accent-amber);
     }
     #fps-monitor .fps-value {
-      font-size: 1rem;
+      font-size: 1.6rem;
       font-weight: 700;
-      color: var(--accent);
+      color: var(--accent-mint);
       min-width: 4.5em;
+      text-shadow: 1px 1px 0 var(--amiga-panel-border-light);
+    }
+    #fps-monitor canvas {
+      width: 100%;
+      height: 64px;
+      border: 2px solid var(--amiga-panel-border-dark);
+      background: var(--graph-bg);
+      box-shadow: inset 2px 2px 0 var(--amiga-panel-border-light), inset -2px -2px 0 var(--amiga-shadow);
     }
     #control-ui {
       position: fixed;
-      top: 16px;
-      right: 16px;
-      background: #000;
-      border: 2px solid var(--panel-border);
-      padding: 12px 14px;
+      top: 18px;
+      right: 18px;
+      background: var(--amiga-panel-bg);
+      border: 2px solid var(--amiga-panel-border-dark);
+      padding: 16px 18px 20px;
       display: grid;
-      row-gap: 10px;
-      width: min(220px, 78vw);
+      row-gap: 12px;
+      width: min(240px, 80vw);
       z-index: 30;
-      font-family: "Courier New", Courier, monospace;
-      color: #fff;
+      font-family: 'Lucida Sans', 'Geneva', sans-serif;
+      color: var(--amiga-text);
       text-transform: uppercase;
       letter-spacing: 0.08em;
-      box-shadow: none;
+      box-shadow: 6px 6px 0 var(--amiga-shadow);
     }
     #control-ui h2 {
-      margin: 0;
-      font-size: 0.75rem;
-      color: var(--accent-2);
+      margin: -16px -18px 10px;
+      padding: 8px 12px;
+      font-size: 0.78rem;
+      color: var(--amiga-highlight);
+      background: linear-gradient(90deg, var(--amiga-blue-dark), var(--amiga-blue));
+      letter-spacing: 0.22em;
+      border-bottom: 2px solid var(--amiga-shadow);
     }
     #resolution-display {
       font-size: 0.85rem;
       font-weight: 700;
-      color: var(--accent);
+      color: var(--accent-mint);
+      text-shadow: 1px 1px 0 var(--amiga-panel-border-light);
     }
     label[for="resolution-select"] {
       font-size: 0.7rem;
-      color: var(--accent-3);
+      color: var(--amiga-text);
     }
     .select-wrap {
       position: relative;
@@ -134,107 +176,117 @@
       content: '';
       position: absolute;
       top: 50%;
-      right: 10px;
-      width: 6px;
-      height: 6px;
-      border-right: 2px solid var(--accent-2);
-      border-bottom: 2px solid var(--accent-2);
+      right: 12px;
+      width: 8px;
+      height: 8px;
+      border-right: 2px solid var(--amiga-panel-border-dark);
+      border-bottom: 2px solid var(--amiga-panel-border-dark);
       transform: translateY(-50%) rotate(45deg);
       pointer-events: none;
     }
     #resolution-select {
       width: 100%;
-      padding: 8px 26px 8px 10px;
+      padding: 8px 32px 8px 12px;
       border-radius: 0;
-      border: 2px solid var(--panel-border);
-      background: #001a36;
-      color: var(--accent);
+      border: 2px solid var(--amiga-panel-border-dark);
+      background: var(--amiga-highlight);
+      color: var(--amiga-text);
       font-size: 0.75rem;
       font-weight: 700;
       letter-spacing: 0.06em;
       appearance: none;
       outline: none;
-      box-shadow: none;
+      box-shadow: inset 2px 2px 0 var(--amiga-panel-border-light), inset -2px -2px 0 var(--amiga-shadow);
     }
     #resolution-select:focus {
-      border-color: var(--accent-2);
+      border-color: var(--accent-amber);
+      box-shadow: inset 2px 2px 0 var(--amiga-panel-border-light), inset -2px -2px 0 var(--amiga-shadow), 0 0 0 2px rgba(255, 204, 92, 0.4);
     }
     #fullscreen-btn {
       position: fixed;
       left: 50%;
-      bottom: 28px;
+      bottom: 32px;
       transform: translateX(-50%);
-      padding: 10px 22px;
-      background: linear-gradient(120deg, rgba(38, 119, 247, 0.9), rgba(96, 211, 255, 0.85));
-      border: none;
-      border-radius: 999px;
-      color: #fff;
-      font-size: 14px;
-      font-weight: 600;
-      letter-spacing: 0.05em;
+      padding: 10px 32px;
+      background: var(--amiga-panel-bg);
+      border: 2px solid var(--amiga-panel-border-dark);
+      color: var(--amiga-text);
+      font-size: 0.75rem;
+      font-weight: 700;
+      letter-spacing: 0.12em;
       cursor: pointer;
-      box-shadow: 0 12px 30px rgba(22, 120, 255, 0.3);
-      transition: transform 0.2s ease, box-shadow 0.2s ease;
+      box-shadow: 6px 6px 0 var(--amiga-shadow), inset 2px 2px 0 var(--amiga-panel-border-light), inset -2px -2px 0 var(--amiga-shadow);
+      text-transform: uppercase;
+      transition: transform 0.15s ease;
       z-index: 35;
       display: none;
     }
     #fullscreen-btn:hover {
-      transform: translateX(-50%) translateY(-1px);
-      box-shadow: 0 18px 36px rgba(22, 120, 255, 0.4);
+      transform: translateX(-50%) translateY(-2px);
+    }
+    #fullscreen-btn:active {
+      transform: translateX(-50%) translateY(2px);
+      box-shadow: 2px 2px 0 var(--amiga-shadow), inset 1px 1px 0 var(--amiga-panel-border-light), inset -1px -1px 0 var(--amiga-shadow);
     }
     #control-pad {
       position: fixed;
-      bottom: 24px;
-      right: 24px;
+      bottom: 28px;
+      right: 28px;
       display: grid;
-      grid-template-columns: repeat(3, 52px);
-      grid-template-rows: repeat(3, 52px);
-      gap: 8px;
+      grid-template-columns: repeat(3, 54px);
+      grid-template-rows: repeat(3, 54px);
+      gap: 10px;
       z-index: 35;
     }
-    #control-pad button, #control-pad span {
-      width: 52px;
-      height: 52px;
-      border-radius: 16px;
-      border: 1px solid rgba(109, 167, 255, 0.2);
-      background: var(--panel-bg);
-      backdrop-filter: blur(12px);
-      color: rgba(255, 255, 255, 0.92);
+    #control-pad button,
+    #control-pad span {
+      width: 54px;
+      height: 54px;
+      border-radius: 12px;
+      border: 2px solid var(--amiga-panel-border-dark);
+      background: var(--amiga-panel-bg);
+      color: var(--amiga-text);
       font-size: 20px;
       display: flex;
       align-items: center;
       justify-content: center;
       cursor: pointer;
-      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08), 0 12px 24px rgba(0, 0, 0, 0.25);
-      transition: transform 0.15s ease, background 0.15s ease;
+      box-shadow: 4px 4px 0 var(--amiga-shadow), inset 2px 2px 0 var(--amiga-panel-border-light), inset -2px -2px 0 var(--amiga-shadow);
+      transition: transform 0.1s ease;
+      text-shadow: 1px 1px 0 var(--amiga-panel-border-light);
     }
     #control-pad span {
       cursor: default;
       opacity: 0;
-      border: none;
       box-shadow: none;
+      border: none;
+      pointer-events: none;
     }
     #control-pad button:active {
-      transform: translateY(2px) scale(0.98);
-      background: rgba(29, 62, 103, 0.95);
+      transform: translateY(2px);
+      box-shadow: 1px 1px 0 var(--amiga-shadow), inset 1px 1px 0 var(--amiga-panel-border-light), inset -1px -1px 0 var(--amiga-shadow);
     }
     @media (max-width: 720px) {
       #control-pad {
-        right: 14px;
-        bottom: 14px;
-        grid-template-columns: repeat(3, 46px);
-        grid-template-rows: repeat(3, 46px);
-        gap: 6px;
+        right: 16px;
+        bottom: 16px;
+        grid-template-columns: repeat(3, 48px);
+        grid-template-rows: repeat(3, 48px);
+        gap: 8px;
       }
-      #control-pad button, #control-pad span {
-        width: 46px;
-        height: 46px;
+      #control-pad button,
+      #control-pad span {
+        width: 48px;
+        height: 48px;
       }
       #control-ui {
         right: 12px;
         top: 12px;
-        padding: 10px 12px;
-        width: min(200px, 82vw);
+        padding: 14px 14px 16px;
+        width: min(210px, 84vw);
+      }
+      #control-ui h2 {
+        margin: -14px -14px 10px;
       }
     }
   </style>
@@ -302,6 +354,9 @@
       this.dom = document.createElement('div');
       this.dom.id = 'fps-monitor';
 
+      this.readoutEl = document.createElement('div');
+      this.readoutEl.className = 'fps-readout';
+
       this.labelEl = document.createElement('div');
       this.labelEl.className = 'fps-label';
       this.labelEl.textContent = 'fps';
@@ -310,13 +365,28 @@
       this.valueEl.className = 'fps-value';
       this.valueEl.textContent = '000';
 
+      this.readoutEl.appendChild(this.labelEl);
+      this.readoutEl.appendChild(this.valueEl);
+
+      this.graphCanvas = document.createElement('canvas');
+      this.graphCanvas.width = 160;
+      this.graphCanvas.height = 60;
+      this.graphCanvas.className = 'fps-graph';
+      this.graphCanvas.setAttribute('aria-hidden', 'true');
+      this.graphCtx = this.graphCanvas.getContext('2d');
+
+      this.maxSamples = this.graphCanvas.width;
+      this.samples = new Array(this.maxSamples).fill(0);
+      this.referenceFps = 120;
+
       this.sampleWindow = 250;
       this.frameCount = 0;
       this.lastSample = performance.now();
       this.smoothed = 0;
 
-      this.dom.appendChild(this.labelEl);
-      this.dom.appendChild(this.valueEl);
+      this.dom.appendChild(this.readoutEl);
+      this.dom.appendChild(this.graphCanvas);
+      this.drawGraph();
       container.appendChild(this.dom);
     }
 
@@ -339,6 +409,67 @@
       this.smoothed = this.smoothed === 0 ? fps : (this.smoothed * 0.7 + fps * 0.3);
       const rounded = Math.max(0, Math.round(this.smoothed));
       this.valueEl.textContent = `${rounded.toString().padStart(3, '0')}`;
+      this.samples.push(fps);
+      if (this.samples.length > this.maxSamples) {
+        this.samples.shift();
+      }
+      this.drawGraph();
+    }
+
+    drawGraph() {
+      const ctx = this.graphCtx;
+      const width = this.graphCanvas.width;
+      const height = this.graphCanvas.height;
+      ctx.clearRect(0, 0, width, height);
+
+      ctx.fillStyle = '#142d5e';
+      ctx.fillRect(0, 0, width, height);
+
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.15)';
+      ctx.lineWidth = 1;
+      const gridLines = 4;
+      for (let i = 1; i < gridLines; i++) {
+        const y = Math.round((height / gridLines) * i) + 0.5;
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.lineTo(width, y);
+        ctx.stroke();
+      }
+
+      const highestSample = this.samples.reduce((max, value) => Math.max(max, value), 0);
+      const scaleMax = Math.max(this.referenceFps, highestSample, 30);
+      const verticalPadding = 2;
+      const usableHeight = height - verticalPadding * 2;
+
+      ctx.beginPath();
+      ctx.moveTo(0, height - verticalPadding);
+      for (let i = 0; i < this.samples.length; i++) {
+        const value = this.samples[i];
+        const x = (i / (this.samples.length - 1 || 1)) * width;
+        const normalized = Math.min(1, value / scaleMax);
+        const y = height - verticalPadding - normalized * usableHeight;
+        ctx.lineTo(x, y);
+      }
+      ctx.lineTo(width, height - verticalPadding);
+      ctx.closePath();
+      ctx.fillStyle = 'rgba(111, 255, 211, 0.2)';
+      ctx.fill();
+
+      ctx.beginPath();
+      for (let i = 0; i < this.samples.length; i++) {
+        const value = this.samples[i];
+        const x = (i / (this.samples.length - 1 || 1)) * width;
+        const normalized = Math.min(1, value / scaleMax);
+        const y = height - verticalPadding - normalized * usableHeight;
+        if (i === 0) {
+          ctx.moveTo(x, y);
+        } else {
+          ctx.lineTo(x, y);
+        }
+      }
+      ctx.strokeStyle = '#6fffd3';
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
     }
   }
 
