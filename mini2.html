@@ -1,954 +1,1098 @@
+<!--
+ * @version   v1.9.1
+ * @codename  "ZoomWin"
+ * @author    Prof. Adrian Zephyr
+ * @date      2025-08-12
+ * @log       Add 3D zoom animations for windows
+ * @changelog
+ *   - [2025-08-12] Implemented 3D open/close zoom effects.
+-->
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Orbit OS — Single File Edition</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
-  <style>
-    :root {
-      color-scheme: dark;
-      font-size: 18px;
-      --desktop-bg: radial-gradient(circle at 10% 15%, rgba(0, 255, 255, 0.12), transparent 55%),
-        radial-gradient(circle at 90% 8%, rgba(255, 120, 0, 0.16), transparent 52%),
-        linear-gradient(160deg, #020b27, #00103a 52%, #001f3f 100%);
-      --panel-light: #1c2f63;
-      --panel-dark: #08142d;
-      --chrome-border-light: #ffffff;
-      --chrome-border-dark: #0a214d;
-      --chrome-shadow: rgba(0, 0, 0, 0.65);
-      --accent: #4ec9ff;
-      --accent-soft: rgba(78, 201, 255, 0.2);
-      --text-strong: #f5f7ff;
-      --text-muted: rgba(245, 247, 255, 0.7);
-    }
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Orbit OS v 0.1.0</title>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=VT323&display=swap">
+    <script>
+        window.ORBIT_BASE_PATH = 'apps/app1/';
+    </script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'VT323', monospace;
+        }
+        
+        body {
+            background: #005;
+            min-height: calc(var(--vh, 1vh) * 100);
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: #fff;
+        }
+        
+        .desktop {
+            width: 100vw;
+            height: calc(var(--vh, 1vh) * 100);
+            background: #0055aa;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 0 30px rgba(0, 100, 255, 0.5);
+            border: 2px solid #00aaff;
+        }
+        
+        /* CRT scanlines effect */
+        .desktop::after {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: repeating-linear-gradient(
+                0deg,
+                rgba(0, 0, 0, 0.15),
+                rgba(0, 0, 0, 0.15) 1px,
+                transparent 1px,
+                transparent 2px
+            );
+            pointer-events: none;
+            z-index: 100;
+        }
+        
+        /* CRT curvature effect */
+        .desktop::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.7);
+            pointer-events: none;
+            z-index: 101;
+            border-radius: 5px;
+        }
+        
+        .menu-bar {
+            height: 24px;
+            background: linear-gradient(to bottom, #0066cc, #004499);
+            border-bottom: 1px solid #00aaff;
+            display: flex;
+            align-items: center;
+            padding: 0 10px;
+            font-size: 18px;
+            color: #fff;
+            position: relative;
+            z-index: 10;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+        }
+        
+        .menu-item {
+            margin-right: 15px;
+            cursor: pointer;
+            text-shadow: 1px 1px 1px #000;
+            position: relative;
+            padding: 0 5px;
+        }
+        
+        .menu-item:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+        
+        .dropdown {
+            position: absolute;
+            top: 24px;
+            left: 0;
+            background: linear-gradient(to bottom, #a0a0a0, #808080);
+            border: 2px solid;
+            border-top-color: #fff;
+            border-left-color: #fff;
+            border-right-color: #555;
+            border-bottom-color: #555;
+            min-width: 180px;
+            display: none;
+            z-index: 100;
+        }
+        
+        .dropdown-item {
+            padding: 5px 10px;
+            cursor: pointer;
+            border-bottom: 1px solid #999;
+        }
+        
+        .dropdown-item:hover {
+            background: rgba(0, 0, 255, 0.4);
+            color: #fff;
+        }
+        
+        .clock {
+            margin-left: auto;
+            text-shadow: 1px 1px 1px #000;
+            font-size: 18px;
+        }
+        
+        .desktop-icons {
+            display: flex;
+            flex-wrap: wrap;
+            padding: 20px;
+            gap: 30px;
+            position: relative;
+            z-index: 3; /* Ensure icons are above wallpaper */
+        }
+        
+        .icon {
+            width: 64px;
+            text-align: center;
+            cursor: pointer;
+            user-select: none;
+            transition: transform 0.2s;
+        }
+        
+        .icon:hover {
+            transform: translateY(-3px);
+        }
+        
+        .icon-image {
+            width: 48px;
+            height: 48px;
+            background: linear-gradient(135deg, #ff9900, #ff6600);
+            border: 1px solid #ffcc00;
+            margin: 0 auto;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: #fff;
+            font-size: 24px;
+            box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.5);
+        }
+        
+        .icon-label {
+            margin-top: 5px;
+            font-size: 14px;
+            color: #fff;
+            text-shadow: 1px 1px 1px #000;
+            background: rgba(0, 0, 0, 0.4);
+            padding: 2px 4px;
+        }
+        
+        .window {
+            position: absolute;
+            background: linear-gradient(to bottom, #a0a0a0, #808080);
+            border: 2px solid;
+            border-top-color: #fff;
+            border-left-color: #fff;
+            border-right-color: #555;
+            border-bottom-color: #555;
+            box-shadow: 5px 5px 10px rgba(0, 0, 0, 0.5);
+            min-width: 300px;
+            min-height: 200px;
+            z-index: 5;
+            display: flex;
+            flex-direction: column;
+            resize: both;
+            overflow: hidden;
+            transform-style: preserve-3d;
+            transition: transform 0.3s ease, opacity 0.3s ease;
+            opacity: 1;
+        }
 
-    *, *::before, *::after {
-      box-sizing: border-box;
-    }
+        .window.zoom-init,
+        .window.zoom-out {
+            transform: perspective(800px) translateZ(-400px) scale(0.8);
+            opacity: 0;
+        }
+        
+        .window-header {
+            height: 24px;
+            background: linear-gradient(to right, #0000aa, #000088);
+            color: white;
+            display: flex;
+            align-items: center;
+            padding: 0 5px;
+            cursor: move;
+            font-size: 18px;
+        }
+        
+        .window-title {
+            flex: 1;
+            text-shadow: 1px 1px 1px #000;
+        }
+        
+        .window-controls {
+            display: flex;
+            gap: 5px;
+        }
+        
+        .window-btn {
+            width: 18px;
+            height: 18px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: linear-gradient(to bottom, #c0c0c0, #a0a0a0);
+            border: 1px solid;
+            border-top-color: #fff;
+            border-left-color: #fff;
+            border-right-color: #555;
+            border-bottom-color: #555;
+            cursor: pointer;
+            font-size: 14px;
+            line-height: 1;
+        }
+        
+        .window-btn:active {
+            border-top-color: #555;
+            border-left-color: #555;
+            border-right-color: #fff;
+            border-bottom-color: #fff;
+        }
+        
+        .window-content {
+            padding: 15px;
+            flex: 1;
+            overflow: auto;
+            color: #000;
+            font-size: 18px;
+            line-height: 1.4;
+            background: #c0c0c0;
+            position: relative;
+        }
 
-    body {
-      margin: 0;
-      min-height: 100vh;
-      font-family: "VT323", system-ui, monospace;
-      letter-spacing: 0.02em;
-      background: #020b27;
-      display: grid;
-      place-items: stretch;
-      color: var(--text-strong);
-      user-select: none;
-    }
+        .loading-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(255, 255, 255, 0.7);
+            color: #000;
+            font-size: 18px;
+            z-index: 5;
+        }
+        
+        .terminal {
+            background: #000;
+            color: #0f0;
+            font-family: 'VT323', monospace;
+            padding: 10px;
+            height: 100%;
+            overflow: auto;
+            font-size: 18px;
+        }
+        
+        .terminal-line {
+            margin-bottom: 5px;
+        }
+        
+        .prompt {
+            color: #0f0;
+        }
+        
+        .disk-drive {
+            position: absolute;
+            bottom: 10px;
+            right: 10px;
+            width: 120px;
+            height: 80px;
+            background: linear-gradient(to bottom, #d0d0d0, #a0a0a0);
+            border: 2px solid;
+            border-top-color: #fff;
+            border-left-color: #fff;
+            border-right-color: #555;
+            border-bottom-color: #555;
+            padding: 5px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.5);
+            z-index: 4;
+        }
+        
+        .drive-slot {
+            width: 80px;
+            height: 20px;
+            background: #222;
+            margin-top: 10px;
+            position: relative;
+        }
+        
+        .drive-light {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #f00;
+            position: absolute;
+            right: 5px;
+            top: 5px;
+            animation: blink 1.5s infinite;
+        }
+        
+        @keyframes blink {
+            0% { opacity: 0.3; }
+            50% { opacity: 1; }
+            100% { opacity: 0.3; }
+        }
+        
+        .task-bar {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 24px;
+            background: linear-gradient(to bottom, #0066cc, #004499);
+            border-top: 1px solid #00aaff;
+            display: flex;
+            align-items: center;
+            padding: 0 10px;
+            font-size: 18px;
+            color: #fff;
+            z-index: 10;
+        }
+        
+        .task-btn {
+            padding: 0 10px;
+            height: 20px;
+            background: linear-gradient(to bottom, #a0a0a0, #808080);
+            border: 1px solid;
+            border-top-color: #fff;
+            border-left-color: #fff;
+            border-right-color: #555;
+            border-bottom-color: #555;
+            margin-right: 5px;
+            cursor: pointer;
+            font-size: 16px;
+        }
 
-    .desktop {
-      position: relative;
-      min-height: 100vh;
-      overflow: hidden;
-      background: var(--desktop-bg);
-      display: flex;
-      flex-direction: column;
-      isolation: isolate;
-    }
+        .task-btn.active {
+            background: linear-gradient(to bottom, #0066cc, #004499);
+            color: #fff;
+        }
 
-    .desktop::after {
-      content: "";
-      position: absolute;
-      inset: 0;
-      background: repeating-linear-gradient(0deg, rgba(0, 0, 0, 0.18), rgba(0, 0, 0, 0.18) 2px, transparent 2px, transparent 4px);
-      mix-blend-mode: screen;
-      pointer-events: none;
-      opacity: 0.35;
-      z-index: 2;
-    }
+        .taskbar-menu {
+            position: absolute;
+            background: #ccc;
+            border: 1px solid #555;
+            color: #000;
+            bottom: 26px;
+            z-index: 200;
+            display: none;
+        }
 
-    .desktop::before {
-      content: "";
-      position: absolute;
-      inset: 0;
-      border-radius: 10px;
-      box-shadow: inset 0 0 60px rgba(0, 0, 0, 0.65);
-      pointer-events: none;
-      z-index: 1;
-    }
+        .taskbar-menu div {
+            padding: 5px 15px;
+            white-space: nowrap;
+            cursor: pointer;
+        }
 
-    .menu-bar {
-      position: relative;
-      z-index: 5;
-      display: flex;
-      align-items: center;
-      gap: 18px;
-      padding: 10px 18px;
-      background: linear-gradient(to bottom, rgba(22, 51, 110, 0.95), rgba(5, 14, 34, 0.95));
-      border-bottom: 1px solid rgba(255, 255, 255, 0.12);
-      box-shadow: 0 18px 35px rgba(0, 0, 0, 0.45);
-      font-size: 1.1rem;
-    }
+        .taskbar-menu div:hover {
+            background: #0066cc;
+            color: #fff;
+        }
 
-    .menu-item {
-      position: relative;
-      cursor: pointer;
-      padding: 4px 10px;
-      border-radius: 6px;
-      transition: background 0.18s ease;
-    }
-
-    .menu-item:focus-visible,
-    .menu-item[aria-expanded="true"],
-    .menu-item:hover {
-      outline: none;
-      background: rgba(78, 201, 255, 0.2);
-    }
-
-    .dropdown {
-      position: absolute;
-      top: calc(100% + 6px);
-      left: 0;
-      background: rgba(8, 20, 45, 0.92);
-      border: 1px solid rgba(255, 255, 255, 0.1);
-      border-radius: 10px;
-      box-shadow: 0 18px 40px rgba(0, 0, 0, 0.55);
-      padding: 10px 0;
-      min-width: 210px;
-      display: none;
-    }
-
-    .dropdown[aria-hidden="false"] {
-      display: grid;
-      gap: 4px;
-    }
-
-    .dropdown button,
-    .dropdown a {
-      text-align: left;
-      background: none;
-      border: none;
-      color: var(--text-strong);
-      padding: 8px 16px;
-      font: inherit;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      transition: background 0.18s ease;
-    }
-
-    .dropdown button:hover,
-    .dropdown a:hover,
-    .dropdown button:focus-visible,
-    .dropdown a:focus-visible {
-      background: rgba(78, 201, 255, 0.2);
-      outline: none;
-    }
-
-    .clock-display {
-      margin-left: auto;
-      letter-spacing: 0.08em;
-      font-size: 1.05rem;
-      color: var(--text-muted);
-    }
-
-    .status-strip {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      padding: 6px 12px;
-      margin: 0 18px 18px;
-      border-radius: 8px;
-      background: rgba(8, 20, 45, 0.72);
-      border: 1px solid rgba(255, 255, 255, 0.08);
-      box-shadow: inset 0 0 0 1px rgba(78, 201, 255, 0.12);
-      z-index: 4;
-      position: relative;
-    }
-
-    .status-strip span {
-      color: var(--text-muted);
-      letter-spacing: 0.06em;
-      font-size: 0.95rem;
-    }
-
-    .desktop-icons {
-      position: relative;
-      z-index: 3;
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-      gap: 28px;
-      padding: clamp(32px, 4vw, 60px);
-      align-content: start;
-    }
-
-    .icon {
-      background: rgba(8, 20, 45, 0.78);
-      border: 1px solid rgba(255, 255, 255, 0.08);
-      border-radius: 18px;
-      padding: 18px 16px;
-      display: flex;
-      flex-direction: column;
-      gap: 14px;
-      align-items: flex-start;
-      text-align: left;
-      cursor: pointer;
-      transition: transform 0.18s ease, border-color 0.18s ease, background 0.18s ease;
-    }
-
-    .icon:focus-visible,
-    .icon:hover {
-      outline: none;
-      border-color: rgba(78, 201, 255, 0.45);
-      background: rgba(13, 34, 70, 0.94);
-      transform: translateY(-6px);
-    }
-
-    .icon-figure {
-      width: 54px;
-      height: 54px;
-      border-radius: 16px;
-      display: grid;
-      place-items: center;
-      font-size: 1.6rem;
-      background: rgba(78, 201, 255, 0.16);
-      color: var(--accent);
-      box-shadow: inset 0 0 0 1px rgba(78, 201, 255, 0.3);
-    }
-
-    .icon h3 {
-      margin: 0;
-      font-size: 1.1rem;
-      text-transform: uppercase;
-      letter-spacing: 0.12em;
-      color: var(--text-strong);
-    }
-
-    .icon p {
-      margin: 0;
-      font-size: 0.95rem;
-      color: var(--text-muted);
-      line-height: 1.4;
-    }
-
-    .icon .tag {
-      text-transform: uppercase;
-      font-size: 0.75rem;
-      letter-spacing: 0.14em;
-      color: rgba(245, 247, 255, 0.5);
-    }
-
-    .window-layer {
-      position: absolute;
-      inset: 0;
-      z-index: 4;
-      pointer-events: none;
-    }
-
-    .window {
-      position: absolute;
-      min-width: 320px;
-      max-width: min(520px, 92vw);
-      max-height: min(520px, 80vh);
-      background: linear-gradient(180deg, rgba(25, 48, 98, 0.95), rgba(7, 17, 36, 0.96));
-      border-radius: 22px;
-      border: 1px solid rgba(255, 255, 255, 0.12);
-      box-shadow: 0 28px 80px rgba(0, 0, 0, 0.55);
-      overflow: hidden;
-      display: flex;
-      flex-direction: column;
-      transform-origin: center;
-      animation: window-pop 200ms ease;
-      pointer-events: auto;
-    }
-
-    .window.is-maximized {
-      max-width: none;
-      max-height: none;
-      border-radius: 18px;
-    }
-
-    @keyframes window-pop {
-      from {
-        transform: translateY(18px) scale(0.92);
-        opacity: 0;
-      }
-      to {
-        transform: translateY(0) scale(1);
-        opacity: 1;
-      }
-    }
-
-    .window-header {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      padding: 14px 18px;
-      background: linear-gradient(90deg, rgba(78, 201, 255, 0.16), transparent);
-      cursor: grab;
-      user-select: none;
-    }
-
-    .window-header:active {
-      cursor: grabbing;
-    }
-
-    .window-title {
-      flex: 1;
-      margin: 0;
-      font-size: 1rem;
-      text-transform: uppercase;
-      letter-spacing: 0.16em;
-    }
-
-    .window-controls {
-      display: flex;
-      gap: 8px;
-    }
-
-    .window-btn {
-      width: 28px;
-      height: 28px;
-      border-radius: 50%;
-      border: none;
-      color: var(--text-strong);
-      background: rgba(78, 201, 255, 0.22);
-      font-size: 0.9rem;
-      display: grid;
-      place-items: center;
-      cursor: pointer;
-      transition: background 0.18s ease, transform 0.18s ease;
-    }
-
-    .window-btn:hover {
-      background: var(--accent);
-      transform: translateY(-1px);
-    }
-
-    .window-body {
-      padding: 20px;
-      display: grid;
-      gap: 16px;
-      font-size: 1rem;
-      color: var(--text-muted);
-      overflow: auto;
-    }
-
-    .window-body h2 {
-      margin: 0;
-      font-size: 1.2rem;
-      color: var(--text-strong);
-    }
-
-    .window-body p {
-      margin: 0;
-      line-height: 1.6;
-    }
-
-    .window-body ul {
-      margin: 0;
-      padding-left: 20px;
-      display: grid;
-      gap: 8px;
-    }
-
-    .window-body code {
-      font-family: "VT323", monospace;
-      font-size: 1rem;
-      background: rgba(78, 201, 255, 0.16);
-      padding: 0 6px;
-      border-radius: 4px;
-      color: var(--accent);
-    }
-
-    textarea {
-      width: 100%;
-      min-height: 160px;
-      border-radius: 14px;
-      border: 1px solid rgba(78, 201, 255, 0.45);
-      background: rgba(2, 11, 39, 0.65);
-      color: var(--text-strong);
-      font: inherit;
-      padding: 14px;
-      resize: vertical;
-    }
-
-    textarea:focus {
-      outline: 2px solid rgba(78, 201, 255, 0.45);
-    }
-
-    .terminal {
-      font-family: "VT323", monospace;
-      background: #020b27;
-      border-radius: 12px;
-      border: 1px solid rgba(78, 201, 255, 0.22);
-      padding: 12px 16px;
-      min-height: 220px;
-      display: grid;
-      gap: 8px;
-      overflow: hidden;
-    }
-
-    .terminal-line {
-      color: var(--accent);
-      letter-spacing: 0.08em;
-    }
-
-    .terminal-line span {
-      color: var(--text-strong);
-    }
-
-    .palette-grid {
-      display: grid;
-      gap: 14px;
-    }
-
-    .palette-swatch {
-      border-radius: 12px;
-      padding: 14px 16px;
-      font-weight: 600;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      text-transform: uppercase;
-      letter-spacing: 0.14em;
-    }
-
-    .timeline {
-      display: grid;
-      gap: 16px;
-    }
-
-    .timeline-item {
-      background: rgba(2, 11, 39, 0.65);
-      border-radius: 12px;
-      padding: 12px 16px;
-      border: 1px solid rgba(255, 255, 255, 0.06);
-    }
-
-    .timeline-item h3 {
-      margin: 0 0 6px;
-      font-size: 1rem;
-      color: var(--text-strong);
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-    }
-
-    .timeline-item p {
-      margin: 0;
-      color: var(--text-muted);
-    }
-
-    @media (max-width: 720px) {
-      :root { font-size: 16px; }
-      .desktop-icons {
-        grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-        padding: 28px;
-      }
-      .window {
-        left: 50% !important;
-        width: min(94vw, 520px);
-        transform: translateX(-50%);
-      }
-    }
-
-    @media (prefers-reduced-motion: reduce) {
-      *, *::before, *::after {
-        animation-duration: 0.01ms !important;
-        animation-iteration-count: 1 !important;
-        transition-duration: 0.01ms !important;
-        scroll-behavior: auto !important;
-      }
-    }
-  </style>
+        .dialog {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: linear-gradient(to bottom, #a0a0a0, #808080);
+            border: 2px solid;
+            border-top-color: #fff;
+            border-left-color: #fff;
+            border-right-color: #555;
+            border-bottom-color: #555;
+            min-width: 300px;
+            z-index: 20;
+            box-shadow: 5px 5px 15px rgba(0, 0, 0, 0.7);
+        }
+        
+        .dialog-content {
+            padding: 20px;
+            text-align: center;
+        }
+        
+        .dialog-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 15px;
+        }
+        
+        .dialog-btn {
+            padding: 5px 15px;
+            background: linear-gradient(to bottom, #c0c0c0, #a0a0a0);
+            border: 1px solid;
+            border-top-color: #fff;
+            border-left-color: #fff;
+            border-right-color: #555;
+            border-bottom-color: #555;
+            cursor: pointer;
+            min-width: 80px;
+            font-size: 18px;
+        }
+        
+        .dialog-btn:active {
+            border-top-color: #555;
+            border-left-color: #555;
+            border-right-color: #fff;
+            border-bottom-color: #fff;
+        }
+        
+        /* Calculator styles */
+        .calculator {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 5px;
+            width: 200px;
+            margin: 0 auto;
+        }
+        
+        .calc-display {
+            grid-column: span 4;
+            height: 40px;
+            background: #000;
+            color: #0f0;
+            text-align: right;
+            padding: 5px;
+            font-family: 'VT323', monospace;
+            font-size: 24px;
+            border: 1px solid #555;
+            margin-bottom: 5px;
+        }
+        
+        .calc-btn {
+            height: 30px;
+            background: linear-gradient(to bottom, #c0c0c0, #a0a0a0);
+            border: 1px solid #555;
+            cursor: pointer;
+            font-size: 18px;
+        }
+        
+        .calc-btn:active {
+            background: linear-gradient(to bottom, #a0a0a0, #808080);
+        }
+        
+        .calc-btn.operator {
+            background: linear-gradient(to bottom, #ff9900, #ff6600);
+            color: #fff;
+        }
+        
+        /* Calendar styles */
+        .calendar {
+            width: 100%;
+            text-align: center;
+        }
+        
+        .calendar-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+            padding: 0 10px;
+        }
+        
+        .calendar-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 2px;
+        }
+        
+        .calendar-day {
+            background: #ddd;
+            padding: 5px;
+            border: 1px solid #aaa;
+            font-size: 16px;
+        }
+        
+        .calendar-day.header {
+            background: #aaa;
+            font-weight: bold;
+        }
+        
+        .calendar-day.today {
+            background: #ffcc00;
+            font-weight: bold;
+        }
+        
+        /* Game styles */
+        .game-container {
+            text-align: center;
+        }
+        
+        .game-board {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 5px;
+            margin: 10px auto;
+            width: 240px;
+        }
+        
+        .game-tile {
+            width: 50px;
+            height: 50px;
+            background: #ff9900;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 24px;
+            cursor: pointer;
+            border: 1px solid #ff6600;
+            user-select: none;
+        }
+        
+        .game-tile.empty {
+            background: #c0c0c0;
+            border: 1px solid #aaa;
+        }
+        
+        /* Retro wallpaper */
+        .wallpaper {
+            position: absolute;
+            top: 24px;
+            left: 0;
+            right: 0;
+            bottom: 24px;
+            background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100"><rect width="100" height="100" fill="%230055aa"/><path d="M0,0 L100,100 M100,0 L0,100" stroke="%230077cc" stroke-width="0.5"/></svg>');
+            opacity: 0.2;
+            z-index: 1;
+            pointer-events: none; /* Fix for click-through issue */
+        }
+        
+        /* Status bar */
+        .status-bar {
+            position: absolute;
+            bottom: 24px;
+            left: 0;
+            right: 0;
+            height: 20px;
+            background: rgba(0, 0, 0, 0.3);
+            color: #fff;
+            font-size: 14px;
+            padding: 0 10px;
+            display: flex;
+            align-items: center;
+            z-index: 2;
+        }
+        
+        /* Icons are now clickable! */
+    </style>
+    <link id="theme-link" rel="stylesheet">
 </head>
 <body>
-  <div class="desktop" data-desktop>
-    <nav class="menu-bar" aria-label="Orbit OS menu bar">
-      <button class="menu-item" data-menu="system" aria-expanded="false">System</button>
-      <button class="menu-item" data-menu="apps" aria-expanded="false">Apps</button>
-      <button class="menu-item" data-menu="help" aria-expanded="false">Help</button>
-      <div class="clock-display" id="menu-clock" aria-live="polite">00:00</div>
-      <div class="dropdown" data-dropdown="system" aria-hidden="true">
-        <button type="button" data-action="toggle-theme">Switch Theme<span data-theme-label>Midnight</span></button>
-        <button type="button" data-action="show-about">About Orbit OS…</button>
-      </div>
-      <div class="dropdown" data-dropdown="apps" aria-hidden="true">
-        <button type="button" data-launch="terminal">Open Mission Terminal</button>
-        <button type="button" data-launch="notes">Open Field Notes</button>
-        <button type="button" data-launch="palette">Open Palette Atlas</button>
-        <button type="button" data-launch="timeline">Open Release Timeline</button>
-      </div>
-      <div class="dropdown" data-dropdown="help" aria-hidden="true">
-        <a href="#" data-launch="handbook">View Crew Handbook</a>
-        <button type="button" data-action="show-shortcuts">Keyboard Shortcuts</button>
-      </div>
-    </nav>
-    <div class="status-strip" role="status">
-      <span>Orbit OS v0.9.0 "Monarch"</span>
-      <span>Subsystems stable</span>
-      <span data-theme-status>Theme: Midnight</span>
+    <div class="desktop" id="desktop">
+        <!-- Retro wallpaper -->
+        <div class="wallpaper"></div>
+        
+        <!-- Menu bar -->
+        <div class="menu-bar" id="menu-bar">
+            <div class="clock" id="clock">12:00:00 PM</div>
+        </div>
+        
+        <!-- Desktop icons -->
+        <div class="desktop-icons" id="desktop-icons"></div>
+        
+        <!-- Storage indicator -->
+        <div class="disk-drive">
+            <div>Storage:</div>
+            <div class="drive-slot">
+                <div class="drive-light"></div>
+            </div>
+        </div>
+        
+        <!-- Status bar -->
+        <div class="status-bar" id="status-bar"></div>
+
+        <!-- Task bar -->
+        <div class="task-bar" id="task-bar"></div>
+        <div class="taskbar-menu" id="taskbar-menu" style="display:none;"></div>
+        
+        <!-- Theme selection dialog -->
+        <div class="dialog" id="theme-dialog" style="display:none;">
+            <div class="window-header">
+                <div class="window-title">Select Theme</div>
+            </div>
+            <div class="dialog-content">
+                <div class="dialog-buttons">
+                    <div class="dialog-btn" data-theme="retro">Retro</div>
+                    <div class="dialog-btn" data-theme="futuristic">Futuristic</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Welcome dialog -->
+        <div class="dialog" id="welcome-dialog" style="display:none;">
+            <div class="window-header">
+                <div class="window-title"></div>
+            </div>
+            <div class="dialog-content"></div>
+        </div>
     </div>
-    <section class="desktop-icons" aria-label="Orbit OS desktop">
-      <button class="icon" data-app="mission">
-        <span class="icon-figure" aria-hidden="true">🛰️</span>
-        <h3>Mission Deck</h3>
-        <p>Capture the high-level audit of the classic Orbit stack.</p>
-        <span class="tag">intel</span>
-      </button>
-      <button class="icon" data-app="terminal">
-        <span class="icon-figure" aria-hidden="true">💻</span>
-        <h3>Mission Terminal</h3>
-        <p>Stream diagnostics from the simulated command relay.</p>
-        <span class="tag">ops</span>
-      </button>
-      <button class="icon" data-app="notes">
-        <span class="icon-figure" aria-hidden="true">🗒️</span>
-        <h3>Field Notes</h3>
-        <p>Keep persistent mission logs. Saved locally.</p>
-        <span class="tag">memory</span>
-      </button>
-      <button class="icon" data-app="palette">
-        <span class="icon-figure" aria-hidden="true">🎨</span>
-        <h3>Palette Atlas</h3>
-        <p>Review color harmonics driving the interface.</p>
-        <span class="tag">visual</span>
-      </button>
-      <button class="icon" data-app="timeline">
-        <span class="icon-figure" aria-hidden="true">🗂️</span>
-        <h3>Release Timeline</h3>
-        <p>Track milestone deployments across Orbit OS.</p>
-        <span class="tag">history</span>
-      </button>
-      <button class="icon" data-app="handbook">
-        <span class="icon-figure" aria-hidden="true">📘</span>
-        <h3>Crew Handbook</h3>
-        <p>Quick orientation for newly assigned cadets.</p>
-        <span class="tag">guide</span>
-      </button>
-    </section>
-    <div class="window-layer" id="window-layer" aria-live="polite"></div>
-    <template id="window-template">
-      <section class="window" role="dialog" aria-modal="false">
-        <header class="window-header">
-          <h2 class="window-title"></h2>
-          <div class="window-controls">
-            <button type="button" class="window-btn" data-action="minimize" title="Minimize">–</button>
-            <button type="button" class="window-btn" data-action="maximize" title="Maximize">⬜</button>
-            <button type="button" class="window-btn" data-action="close" title="Close">×</button>
-          </div>
-        </header>
-        <div class="window-body"></div>
-      </section>
-    </template>
-  </div>
-  <script>
-    const desktop = document.querySelector('[data-desktop]');
-    const windowLayer = document.getElementById('window-layer');
-    const template = document.getElementById('window-template');
-    const CLOCK = document.getElementById('menu-clock');
-    const STORAGE_KEY = 'orbit-os-notes';
-    const themeStatus = document.querySelector('[data-theme-status]');
-    const themeLabel = document.querySelector('[data-theme-label]');
-    let zIndexCounter = 10;
-    let currentTheme = localStorage.getItem('orbit-theme') || 'midnight';
 
-    const apps = {
-      mission: {
-        title: 'Mission Deck',
-        render() {
-          const wrapper = document.createElement('div');
-          wrapper.innerHTML = `
-            <h2>Legacy Stack Highlights</h2>
-            <p>The original Orbit OS desktop mixes CRT nostalgia with rich creative tooling. The single-file deck keeps the key briefing close at hand:</p>
-            <ul>
-              <li><strong>Immersive chrome:</strong> layered scanlines, curvature, and phosphor glows simulate a retro console.</li>
-              <li><strong>Declarative workspace:</strong> JSON payloads describe icons, launchers, and default window layouts.</li>
-              <li><strong>Utility suite:</strong> Terminals, note pads, studio embeds, and creative toys boot as independent modules.</li>
-              <li><strong>Embeddable studios:</strong> Orbit windows can frame bespoke authoring surfaces like DocuMonster Studio Pro.</li>
-            </ul>
-            <p>The mini build focuses on situational awareness while honoring the playful choreography of the original experience.</p>
-          `;
-          return wrapper;
+    <script>
+        // State management
+        const state = {
+            windows: [],
+            zIndex: 5,
+            windowCount: 0,
+            puzzleState: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 0]
+        };
+
+        // DOM references
+        const desktop = document.getElementById('desktop');
+        const ORBIT_BASE_PATH = window.ORBIT_BASE_PATH || '';
+        let appData = null;
+        let persistWindows = true;
+        let windowStates = JSON.parse(localStorage.getItem('windowStates') || '{}');
+
+        function setTheme(theme) {
+            const link = document.getElementById('theme-link');
+            if (theme === 'retro') {
+                link.removeAttribute('href');
+            } else {
+                link.setAttribute('href', `${ORBIT_BASE_PATH}app-css/${theme}.css`);
+            }
+            localStorage.setItem('theme', theme);
         }
-      },
-      terminal: {
-        title: 'Mission Terminal',
-        render() {
-          const wrapper = document.createElement('div');
-          const terminal = document.createElement('div');
-          terminal.className = 'terminal';
-          wrapper.append(terminal);
-          const lines = [
-            '[00:00] Booting ORBIT core services…',
-            '[00:03] Mounting /creative drive',
-            '[00:06] Loading window manager «Parallax»',
-            '[00:08] Syncing telemetry with L2 relay',
-            '[00:12] Calibrating neon bloom shaders',
-            '[00:15] All systems stable. Awaiting commands.'
-          ];
-          lines.forEach((line, index) => {
-            setTimeout(() => {
-              const row = document.createElement('div');
-              row.className = 'terminal-line';
-              row.innerHTML = `<span class="prompt">orbit@deck:</span> <span>${line}</span>`;
-              terminal.append(row);
-              terminal.scrollTop = terminal.scrollHeight;
-            }, index * 320);
-          });
-          return wrapper;
+
+        function buildMenus(menus) {
+            const bar = document.getElementById('menu-bar');
+            const clock = document.getElementById('clock');
+            bar.innerHTML = '';
+            menus.forEach(menu => {
+                const item = document.createElement('div');
+                item.className = 'menu-item';
+                item.textContent = menu.label;
+                const dropdown = document.createElement('div');
+                dropdown.className = 'dropdown';
+                menu.items.forEach(entry => {
+                    const div = document.createElement('div');
+                    div.className = 'dropdown-item';
+                    div.textContent = entry.label;
+                    if (entry.action === 'set-theme' && entry.theme) {
+                        div.addEventListener('click', () => setTheme(entry.theme));
+                    } else if (entry.type) {
+                        div.setAttribute('onclick', `openWindow('${entry.type}')`);
+                    }
+                    dropdown.appendChild(div);
+                });
+                item.appendChild(dropdown);
+                bar.appendChild(item);
+            });
+            bar.appendChild(clock);
         }
-      },
-      notes: {
-        title: 'Field Notes',
-        render() {
-          const wrapper = document.createElement('div');
-          wrapper.innerHTML = `
-            <h2>Mission Notes</h2>
-            <p>Entries are stored locally on this device. Your log travels with you across sessions.</p>
-            <textarea aria-label="Mission notes"></textarea>
-          `;
-          const textarea = wrapper.querySelector('textarea');
-          textarea.value = localStorage.getItem(STORAGE_KEY) || '';
-          textarea.addEventListener('input', () => {
-            localStorage.setItem(STORAGE_KEY, textarea.value);
-          });
-          wrapper.addEventListener('removed', () => {
-            localStorage.setItem(STORAGE_KEY, textarea.value);
-          });
-          return wrapper;
+
+        let lastIconTouch = 0;
+        function buildIcons(icons) {
+            const container = document.getElementById('desktop-icons');
+            container.innerHTML = '';
+            icons.forEach(icon => {
+                const el = document.createElement('div');
+                el.className = 'icon';
+                el.innerHTML = `<div class="icon-image">${icon.emoji}</div><div class="icon-label">${icon.label}</div>`;
+                if (icon.type) {
+                    const handler = (e) => {
+                        const now = Date.now();
+                        if (now - lastIconTouch < 1000) return;
+                        lastIconTouch = now;
+                        if (e.type === 'touchstart') e.preventDefault();
+                        loadApp(icon.label.toLowerCase());
+                    };
+                    el.addEventListener('click', handler);
+                    el.addEventListener('touchstart', handler, { passive: false });
+                }
+                container.appendChild(el);
+            });
         }
-      },
-      palette: {
-        title: 'Palette Atlas',
-        render() {
-          const wrapper = document.createElement('div');
-          wrapper.innerHTML = `
-            <p>Orbit thrives on a collision between midnight blues and energized amber. Sand tones bridge the spectrum.</p>
-            <div class="palette-grid">
-              <div class="palette-swatch" style="background:#f5efe4; color:#1b2236">Sand 10 <span>#F5EFE4</span></div>
-              <div class="palette-swatch" style="background:#e4d4b8; color:#1b2236">Sand 30 <span>#E4D4B8</span></div>
-              <div class="palette-swatch" style="background:#c7a874; color:#020b27">Sand 60 <span>#C7A874</span></div>
-              <div class="palette-swatch" style="background:#8a6a36; color:#f5efe4">Sand 90 <span>#8A6A36</span></div>
-              <div class="palette-swatch" style="background:#4ec9ff; color:#00103a">Ion 70 <span>#4EC9FF</span></div>
-            </div>
-          `;
-          return wrapper;
+
+        function buildIconTypeMap() {
+            window.appTypeMap = {};
+            if (!appData || !appData.icons) return;
+            appData.icons.forEach(ic => {
+                window.appTypeMap[ic.label.toLowerCase()] = ic.type;
+            });
         }
-      },
-      timeline: {
-        title: 'Release Timeline',
-        render() {
-          const wrapper = document.createElement('div');
-          wrapper.innerHTML = `
-            <p>Major check-ins from the archive of Orbit OS builds:</p>
-            <div class="timeline">
-              <div class="timeline-item">
-                <h3>v0.5.0 "Aurora" — 2023</h3>
-                <p>Introduced modular window bootstrap and the first scanline shader experiments.</p>
-              </div>
-              <div class="timeline-item">
-                <h3>v0.7.4 "Parallax" — 2024</h3>
-                <p>Expanded with creative studios, embedded iframe apps, and JSON-driven layouts.</p>
-              </div>
-              <div class="timeline-item">
-                <h3>v0.9.0 "Monarch" — 2025</h3>
-                <p>Refined motion system, added command relay, and tightened accessibility tooling.</p>
-              </div>
-            </div>
-          `;
-          return wrapper;
+
+        function saveWindowState(type, el) {
+            if (!persistWindows || !type) return;
+            windowStates[type] = {
+                top: el.offsetTop,
+                left: el.offsetLeft,
+                width: el.offsetWidth,
+                height: el.offsetHeight
+            };
+            localStorage.setItem('windowStates', JSON.stringify(windowStates));
         }
-      },
-      handbook: {
-        title: 'Crew Handbook',
-        render() {
-          const wrapper = document.createElement('div');
-          wrapper.innerHTML = `
-            <h2>Getting oriented</h2>
-            <p>Use <code>Enter</code> or double-click icons to launch. Drag headers to reposition. Press <code>Esc</code> to close focused windows.</p>
-            <ul>
-              <li><strong>Cmd/Ctrl + N</strong> — Open Field Notes</li>
-              <li><strong>Cmd/Ctrl + T</strong> — Open Mission Terminal</li>
-              <li><strong>Cmd/Ctrl + Shift + P</strong> — Toggle theme</li>
-            </ul>
-            <p>The single-file edition keeps assets inline so you can drop it anywhere and boot a mini desk instantly.</p>
-          `;
-          return wrapper;
+
+        function preloadAppScripts() {
+            if (!appData || !appData.icons) return;
+            appData.icons.forEach(ic => {
+                if (!ic.type) return;
+                const safe = ic.label.toLowerCase().replace(/\s+/g,'');
+                const link = document.createElement('link');
+                link.rel = 'prefetch';
+                link.href = `${ORBIT_BASE_PATH}app-js/${safe}.js`;
+                document.head.appendChild(link);
+            });
+            ['html-studio.html', 'cloud-storage.html', 'documonster.html', 'retro-list.html'].forEach(p => {
+                const l = document.createElement('link');
+                l.rel = 'prefetch';
+                l.href = `${ORBIT_BASE_PATH}${p}`;
+                document.head.appendChild(l);
+            });
         }
-      },
-      about: {
-        title: 'About Orbit OS',
-        render() {
-          const wrapper = document.createElement('div');
-          wrapper.innerHTML = `
-            <h2>Orbit OS — Single File</h2>
-            <p>A condensed homage to the sprawling Orbit desktop. Built as a single HTML document so the experience can be shared without a build step.</p>
-            <p>Created by CyborgsDream. Crafted for rapid demos, workshops, or nostalgic trips through neon command decks.</p>
-          `;
-          return wrapper;
+
+        function buildWelcome(welcome) {
+            const dialog = document.getElementById('welcome-dialog');
+            dialog.querySelector('.window-title').textContent = welcome.title;
+            const content = dialog.querySelector('.dialog-content');
+            content.innerHTML = welcome.lines.map(l => `<p>${l}</p>`).join('');
+            const buttons = document.createElement('div');
+            buttons.className = 'dialog-buttons';
+            const btn = document.createElement('div');
+            btn.className = 'dialog-btn';
+            btn.textContent = welcome.button;
+            btn.onclick = () => closeDialog('welcome-dialog');
+            buttons.appendChild(btn);
+            content.appendChild(buttons);
+            dialog.style.display = 'block';
         }
-      },
-      shortcuts: {
-        title: 'Keyboard Shortcuts',
-        render() {
-          const wrapper = document.createElement('div');
-          wrapper.innerHTML = `
-            <ul>
-              <li><code>Cmd/Ctrl + N</code> — Launch Field Notes</li>
-              <li><code>Cmd/Ctrl + T</code> — Launch Mission Terminal</li>
-              <li><code>Cmd/Ctrl + Shift + P</code> — Toggle theme</li>
-              <li><code>Esc</code> — Close focused window</li>
-              <li><code>Tab</code> — Cycle focus across icons and windows</li>
-            </ul>
-          `;
-          return wrapper;
+        
+        // Initialize menus
+        function initMenus() {
+            const menuItems = document.querySelectorAll('.menu-item');
+            menuItems.forEach(item => {
+                const dropdown = item.querySelector('.dropdown');
+                if (dropdown) {
+                    item.addEventListener('click', () => {
+                        // Close all other dropdowns
+                        document.querySelectorAll('.dropdown').forEach(d => {
+                            if (d !== dropdown) d.style.display = 'none';
+                        });
+                        dropdown.style.display = dropdown.style.display === 'block' ? 'none' : 'block';
+                    });
+                }
+            });
+            
+            // Close dropdowns when clicking elsewhere
+            document.addEventListener('click', (e) => {
+                if (!e.target.closest('.menu-item')) {
+                    document.querySelectorAll('.dropdown').forEach(d => {
+                        d.style.display = 'none';
+                    });
+                }
+            });
         }
-      }
-    };
+        
+        // Clock functionality
+        function initClock(format) {
+            let use24 = false;
+            const clockEl = document.getElementById('clock');
+            const locale = format || navigator.language || 'en-US';
 
-    function formatClock() {
-      const now = new Date();
-      const time = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-      const date = now.toLocaleDateString([], { month: 'short', day: '2-digit' });
-      CLOCK.textContent = `${time} · ${date}`;
-    }
+            function updateClock() {
+                const now = new Date();
+                const opts = { hour12: !use24 };
+                clockEl.textContent = now.toLocaleTimeString(locale, opts);
+            }
 
-    formatClock();
-    setInterval(formatClock, 1000);
+            function toggle() {
+                use24 = !use24;
+                updateClock();
+            }
 
-    function openWindow(appKey) {
-      const app = apps[appKey];
-      if (!app) return;
-      const node = template.content.firstElementChild.cloneNode(true);
-      const body = node.querySelector('.window-body');
-      node.dataset.app = appKey;
-      node.querySelector('.window-title').textContent = app.title;
-      const view = app.render();
-      body.append(view);
-      windowLayer.append(node);
-      positionWindow(node);
-      focusWindow(node);
-      enableDrag(node);
-      node.querySelectorAll('.window-btn').forEach(btn => {
-        btn.addEventListener('click', () => handleWindowControl(node, btn.dataset.action));
-      });
-      node.addEventListener('pointerdown', () => focusWindow(node));
-      node.addEventListener('keyup', (event) => {
-        if (event.key === 'Escape') closeWindow(node);
-      });
-      node.tabIndex = 0;
-      node.focus();
-    }
+            clockEl.addEventListener('click', toggle);
+            clockEl.addEventListener('touchstart', toggle);
 
-    function positionWindow(node) {
-      const margin = 40;
-      const maxLeft = window.innerWidth - node.offsetWidth - margin;
-      const maxTop = window.innerHeight - node.offsetHeight - margin;
-      const left = Math.max(margin, Math.min(maxLeft, margin + Math.random() * 200));
-      const top = Math.max(margin + 60, Math.min(maxTop, margin + Math.random() * 160));
-      node.style.left = `${left}px`;
-      node.style.top = `${top}px`;
-    }
-
-    function focusWindow(node) {
-      zIndexCounter += 1;
-      node.style.zIndex = zIndexCounter;
-      node.classList.add('is-focused');
-      windowLayer.querySelectorAll('.window').forEach(win => {
-        if (win !== node) win.classList.remove('is-focused');
-      });
-    }
-
-    function closeWindow(node) {
-      node.dispatchEvent(new Event('removed', { bubbles: true }));
-      node.remove();
-    }
-
-    function handleWindowControl(node, action) {
-      if (action === 'close') {
-        closeWindow(node);
-      } else if (action === 'maximize') {
-        node.classList.toggle('is-maximized');
-        if (node.classList.contains('is-maximized')) {
-          node.dataset.prevLeft = node.style.left;
-          node.dataset.prevTop = node.style.top;
-          node.dataset.prevWidth = node.style.width;
-          node.dataset.prevHeight = node.style.height;
-          node.style.left = '4vw';
-          node.style.top = '80px';
-          node.style.width = '92vw';
-          node.style.height = 'calc(100vh - 120px)';
-        } else {
-          node.style.left = node.dataset.prevLeft;
-          node.style.top = node.dataset.prevTop;
-          node.style.width = node.dataset.prevWidth;
-          node.style.height = node.dataset.prevHeight;
+            setInterval(updateClock, 1000);
+            updateClock();
         }
-      } else if (action === 'minimize') {
-        node.style.display = 'none';
-        setTimeout(() => {
-          node.style.display = '';
-          focusWindow(node);
-        }, 1200);
-      }
-    }
+        
+        // Window management helpers
+        function openWindow(type) {
+            console.log('Opening window:', type);
+            const windowConfig = getWindowConfig(type);
+            if (!windowConfig) return;
 
-    function enableDrag(node) {
-      const header = node.querySelector('.window-header');
-      let startX = 0;
-      let startY = 0;
-      let offsetX = 0;
-      let offsetY = 0;
-      function onPointerDown(event) {
-        if (event.button !== 0) return;
-        startX = event.clientX;
-        startY = event.clientY;
-        const rect = node.getBoundingClientRect();
-        offsetX = startX - rect.left;
-        offsetY = startY - rect.top;
-        header.setPointerCapture(event.pointerId);
-        header.addEventListener('pointermove', onPointerMove);
-        header.addEventListener('pointerup', onPointerUp, { once: true });
-      }
-      function onPointerMove(event) {
-        const x = event.clientX - offsetX;
-        const y = event.clientY - offsetY;
-        node.style.left = `${x}px`;
-        node.style.top = `${y}px`;
-      }
-      function onPointerUp(event) {
-        header.releasePointerCapture(event.pointerId);
-        header.removeEventListener('pointermove', onPointerMove);
-      }
-      header.addEventListener('pointerdown', onPointerDown);
-    }
+            let winWidth = windowConfig.width;
+            let winHeight = windowConfig.height;
+            if (window.innerWidth < winWidth) winWidth = window.innerWidth - 20;
+            if (window.innerHeight < winHeight) winHeight = window.innerHeight - 40;
 
-    desktop.querySelectorAll('.icon').forEach(icon => {
-      icon.addEventListener('dblclick', () => openWindow(icon.dataset.app));
-      icon.addEventListener('keydown', (event) => {
-        if (event.key === 'Enter' || event.key === ' ') {
-          event.preventDefault();
-          openWindow(icon.dataset.app);
+            const id = `window-${++state.windowCount}`;
+            state.zIndex++;
+            let top = 50 + state.windowCount * 20;
+            let left = 50 + state.windowCount * 20;
+
+            if (persistWindows && windowStates[type]) {
+                const saved = windowStates[type];
+                winWidth = saved.width;
+                winHeight = saved.height;
+                top = saved.top;
+                left = saved.left;
+            }
+
+            const windowHtml = `
+                <div class="window" id="${id}" data-window-type="${type}"
+                     data-init-width="${winWidth}"
+                     data-init-height="${winHeight}"
+                     data-init-top="${top}"
+                     data-init-left="${left}"
+                     style="top: ${top}px; left: ${left}px; width: ${winWidth}px; height: ${winHeight}px; z-index: ${state.zIndex}">
+                    <div class="window-header">
+                        <div class="window-title">${windowConfig.title}</div>
+                        <div class="window-controls">
+                            <div class="window-btn" onclick="minimizeWindow('${id}')">_</div>
+                            <div class="window-btn" onclick="maximizeWindow('${id}')">□</div>
+                            <div class="window-btn" onclick="closeWindow('${id}')">×</div>
+                        </div>
+                    </div>
+                    <div class="window-content">
+                        ${windowConfig.content}
+                    </div>
+                </div>
+            `;
+            
+            desktop.insertAdjacentHTML('beforeend', windowHtml);
+            const winEl = document.getElementById(id);
+            winEl.classList.add('zoom-init');
+            requestAnimationFrame(() => winEl.classList.remove('zoom-init'));
+            makeDraggable(id);
+            state.windows.push(id);
+            updateTaskBar();
+            saveWindowState(type, winEl);
+            const iframe = winEl.querySelector('iframe');
+            if (iframe) {
+                const loader = document.createElement('div');
+                loader.className = 'loading-overlay';
+                loader.textContent = 'Loading...';
+                winEl.querySelector('.window-content').appendChild(loader);
+                iframe.addEventListener('load', () => loader.remove());
+            }
+            if (type === 'console-log') {
+                // lazily load console log handler and keep restore callback
+                import('shared/consolelogs.js').then(({ initConsoleLogs }) => {
+                    const el = document
+                        .getElementById(id)
+                        ?.querySelector('.console-log-window');
+                    if (el) {
+                        const { restore } = initConsoleLogs({ container: el, removeAfter: null });
+                        // store restore handler on the window element so we can clean up on close
+                        winEl._restoreConsole = restore;
+                    }
+                });
+            }
+            // App specific initialization can be handled by each module
+            return id;
         }
-      });
-      icon.addEventListener('click', () => openWindow(icon.dataset.app));
-    });
-
-    window.addEventListener('keydown', (event) => {
-      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'n') {
-        event.preventDefault();
-        openWindow('notes');
-      }
-      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 't') {
-        event.preventDefault();
-        openWindow('terminal');
-      }
-      if ((event.metaKey || event.ctrlKey) && event.shiftKey && event.key.toLowerCase() === 'p') {
-        event.preventDefault();
-        toggleTheme();
-      }
-      if (event.key === 'Escape') {
-        const focused = windowLayer.querySelector('.window.is-focused');
-        if (focused) closeWindow(focused);
-      }
-    });
-
-    function toggleTheme() {
-      currentTheme = currentTheme === 'midnight' ? 'nova' : 'midnight';
-      if (currentTheme === 'nova') {
-        document.documentElement.style.setProperty('--desktop-bg', 'radial-gradient(circle at 15% 20%, rgba(255, 214, 102, 0.18), transparent 48%), radial-gradient(circle at 85% 12%, rgba(102, 170, 255, 0.2), transparent 55%), linear-gradient(145deg, #1b0536, #051e42)');
-        document.documentElement.style.setProperty('--accent', '#ffa94d');
-        document.documentElement.style.setProperty('--accent-soft', 'rgba(255, 169, 77, 0.28)');
-        document.documentElement.style.setProperty('--panel-light', '#3d1a5a');
-        themeStatus.textContent = 'Theme: Nova';
-        themeLabel.textContent = 'Nova';
-      } else {
-        document.documentElement.style.removeProperty('--desktop-bg');
-        document.documentElement.style.removeProperty('--accent');
-        document.documentElement.style.removeProperty('--accent-soft');
-        document.documentElement.style.removeProperty('--panel-light');
-        themeStatus.textContent = 'Theme: Midnight';
-        themeLabel.textContent = 'Midnight';
-      }
-      localStorage.setItem('orbit-theme', currentTheme);
-    }
-
-    if (currentTheme === 'nova') toggleTheme();
-
-    const menus = document.querySelectorAll('.menu-item');
-    const dropdowns = document.querySelectorAll('.dropdown');
-
-    function closeMenus() {
-      menus.forEach(btn => btn.setAttribute('aria-expanded', 'false'));
-      dropdowns.forEach(menu => menu.setAttribute('aria-hidden', 'true'));
-    }
-
-    menus.forEach(menuButton => {
-      menuButton.addEventListener('click', (event) => {
-        const id = menuButton.dataset.menu;
-        const menu = document.querySelector(`[data-dropdown="${id}"]`);
-        const isOpen = menuButton.getAttribute('aria-expanded') === 'true';
-        closeMenus();
-        if (!isOpen) {
-          menuButton.setAttribute('aria-expanded', 'true');
-          menu.setAttribute('aria-hidden', 'false');
-          const first = menu.querySelector('button, a');
-          first?.focus();
+        
+        function getWindowConfig(type) {
+            if (!appData) return null;
+            const now = new Date();
+            const cfg = appData.windows[type];
+            if (!cfg) return null;
+            let calDays = '';
+            if (typeof generateCalendarDays === 'function') {
+                try {
+                    calDays = generateCalendarDays(now);
+                } catch {}
+            }
+            let content = cfg.content
+                .replace(/\{DATE\}/g, now.toLocaleDateString())
+                .replace(/\{TIME\}/g, now.toLocaleTimeString())
+                .replace(/\{MONTH_YEAR\}/g, now.toLocaleString('default', { month: 'long', year: 'numeric' }))
+                .replace(/\{CALENDAR_DAYS\}/g, calDays)
+                .replace(/src="(html-studio|documonster|cloud-storage|retro-list)\.html"/g, (match, name) => `src="${ORBIT_BASE_PATH}${name}.html"`);
+            return { title: cfg.title, content, width: cfg.width, height: cfg.height };
         }
-        event.stopPropagation();
-      });
-      menuButton.addEventListener('keydown', (event) => {
-        if (event.key === 'ArrowDown') {
-          event.preventDefault();
-          menuButton.click();
+        
+       function closeWindow(id) {
+           const window = document.getElementById(id);
+            if (!window) return;
+            // run cleanup for special windows such as console log
+            if (window._restoreConsole) {
+                window._restoreConsole();
+            }
+            window.classList.add('zoom-out');
+            window.addEventListener('transitionend', () => {
+                window.remove();
+                console.log('Window closed:', id);
+                state.windows = state.windows.filter(winId => winId !== id);
+                updateTaskBar();
+            }, { once: true });
         }
-      });
-    });
 
-    dropdowns.forEach(menu => {
-      menu.addEventListener('keydown', (event) => {
-        const items = Array.from(menu.querySelectorAll('button, a'));
-        const index = items.indexOf(document.activeElement);
-        if (event.key === 'ArrowDown') {
-          event.preventDefault();
-          const next = items[(index + 1) % items.length];
-          next.focus();
+       function minimizeWindow(id) {
+           const window = document.getElementById(id);
+           if (window) {
+               window.style.display = 'none';
+                console.log('Window minimized:', id);
+                updateTaskBar();
+            }
         }
-        if (event.key === 'ArrowUp') {
-          event.preventDefault();
-          const next = items[(index - 1 + items.length) % items.length];
-          next.focus();
-        }
-        if (event.key === 'Escape') {
-          closeMenus();
-          const trigger = document.querySelector(`.menu-item[data-menu="${menu.dataset.dropdown}"]`);
-          trigger?.focus();
-        }
-      });
-      menu.addEventListener('click', (event) => {
-        const target = event.target.closest('[data-launch], [data-action]');
-        if (!target) return;
-        if (target.dataset.launch) {
-          openWindow(target.dataset.launch);
-        } else if (target.dataset.action === 'toggle-theme') {
-          toggleTheme();
-        } else if (target.dataset.action === 'show-about') {
-          openWindow('about');
-        } else if (target.dataset.action === 'show-shortcuts') {
-          openWindow('shortcuts');
-        }
-        closeMenus();
-      });
-    });
 
-    document.addEventListener('click', (event) => {
-      if (!event.target.closest('.menu-bar')) closeMenus();
-    });
+        function updateTaskBar() {
+            const bar = document.getElementById('task-bar');
+            bar.innerHTML = '';
+            state.windows.forEach(id => {
+                const win = document.getElementById(id);
+                if (!win) return;
+                const btn = document.createElement('div');
+                btn.className = 'task-btn';
+                if (win.style.display !== 'none') btn.classList.add('active');
+                btn.textContent = win.querySelector('.window-title').textContent;
+                btn.onclick = () => {
+                    if (win.style.display === 'none') win.style.display = 'flex';
+                    win.style.zIndex = ++state.zIndex;
+                    updateTaskBar();
+                };
+                bar.appendChild(btn);
+            });
+        }
 
-    windowLayer.addEventListener('click', (event) => {
-      const windowEl = event.target.closest('.window');
-      if (windowEl) focusWindow(windowEl);
-    });
+        function initTaskBarMenu() {
+            const bar = document.getElementById('task-bar');
+            const menu = document.getElementById('taskbar-menu');
+            menu.innerHTML = '';
+            const pin = document.createElement('div');
+            pin.textContent = 'Pin Mini App';
+            pin.onclick = () => {
+                openWindow('mini-app');
+                menu.style.display = 'none';
+            };
+            menu.appendChild(pin);
 
-    // Auto-launch mission deck on boot for orientation
-    openWindow('mission');
-  </script>
+            bar.addEventListener('contextmenu', e => {
+                e.preventDefault();
+                menu.style.left = e.clientX + 'px';
+                menu.style.display = 'block';
+            });
+
+            document.addEventListener('click', () => {
+                menu.style.display = 'none';
+            });
+        }
+        
+       function maximizeWindow(id) {
+           const window = document.getElementById(id);
+           if (window) {
+               if (window.dataset.maximized === 'true') {
+                    window.style.width = window.dataset.initWidth + 'px';
+                    window.style.height = window.dataset.initHeight + 'px';
+                    window.style.top = window.dataset.initTop + 'px';
+                    window.style.left = window.dataset.initLeft + 'px';
+                    window.dataset.maximized = 'false';
+                    console.log('Window restored:', id);
+                } else {
+                    window.dataset.initWidth = window.offsetWidth;
+                    window.dataset.initHeight = window.offsetHeight;
+                    window.dataset.initTop = window.offsetTop;
+                    window.dataset.initLeft = window.offsetLeft;
+                    window.style.width = '95%';
+                    window.style.height = '85%';
+                    window.style.top = '30px';
+                    window.style.left = '10px';
+                    window.dataset.maximized = 'true';
+                    console.log('Window maximized:', id);
+                }
+                window.style.zIndex = ++state.zIndex;
+                updateTaskBar();
+                saveWindowState(window.dataset.windowType, window);
+            }
+        }
+        
+        // Draggable windows
+        function makeDraggable(windowId) {
+            const window = document.getElementById(windowId);
+            const header = window.querySelector('.window-header');
+
+            let pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
+
+            header.style.touchAction = 'none';
+            header.onpointerdown = dragPointerDown;
+
+            function dragPointerDown(e) {
+                e.preventDefault();
+                pos3 = e.clientX;
+                pos4 = e.clientY;
+                document.onpointerup = closeDragElement;
+                document.onpointermove = elementDrag;
+                window.style.zIndex = ++state.zIndex;
+            }
+
+            function elementDrag(e) {
+                e.preventDefault();
+                pos1 = pos3 - e.clientX;
+                pos2 = pos4 - e.clientY;
+                pos3 = e.clientX;
+                pos4 = e.clientY;
+                window.style.top = (window.offsetTop - pos2) + "px";
+                window.style.left = (window.offsetLeft - pos1) + "px";
+            }
+
+            function closeDragElement() {
+                document.onpointerup = null;
+                document.onpointermove = null;
+                saveWindowState(window.dataset.windowType, window);
+            }
+        }
+        
+        function selectThemeDialog() {
+            return new Promise(resolve => {
+                const dialog = document.getElementById('theme-dialog');
+                dialog.style.display = 'block';
+                dialog.querySelectorAll('.dialog-btn').forEach(btn => {
+                    btn.onclick = () => {
+                        const theme = btn.dataset.theme;
+                        setTheme(theme);
+                        closeDialog('theme-dialog');
+                        resolve(theme);
+                    };
+                });
+            });
+        }
+
+        function closeDialog(id) {
+            document.getElementById(id).style.display = 'none';
+        }
+        
+        // Initialize everything
+        async function init() {
+            setTheme('retro');
+            await selectThemeDialog();
+            const res = await fetch(`${ORBIT_BASE_PATH}app-data/app1.json`);
+            appData = await res.json();
+            persistWindows = appData.settings && appData.settings.persistWindows !== false;
+            buildMenus(appData.menus);
+            buildIcons(appData.icons);
+            buildIconTypeMap();
+            preloadAppScripts();
+            document.getElementById('status-bar').textContent = appData.status;
+            buildWelcome(appData.welcome);
+            initClock(appData.settings && appData.settings.clockFormat);
+            initMenus();
+            updateTaskBar();
+            initTaskBarMenu();
+            openWindow('console-log');
+            console.log('App1 initialized');
+        }
+
+        function updateViewportHeight() {
+            document.documentElement.style.setProperty('--vh', `${window.innerHeight * 0.01}px`);
+        }
+
+        window.addEventListener('resize', updateViewportHeight);
+        window.addEventListener('orientationchange', updateViewportHeight);
+        updateViewportHeight();
+
+        window.onload = init;
+    </script>
+    <script src="apps/app1/app-js/gui-api.js"></script>
 </body>
 </html>
