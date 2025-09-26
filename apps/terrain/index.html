@@ -4,15 +4,42 @@
   <meta charset="utf-8">
   <title>Terrain</title>
   <style>
+    :root {
+      --navy: #04112a;
+      --panel-bg: rgba(5, 24, 45, 0.82);
+      --panel-border: rgba(157, 190, 255, 0.2);
+      --accent: #69c0ff;
+    }
     html, body {
       margin: 0;
       height: 100%;
       overflow: hidden;
-      background: #000;
+      background: var(--navy);
       color: #fff;
-      font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
     }
-    canvas { display: block; }
+    body {
+      position: relative;
+    }
+    #scene-shell {
+      position: fixed;
+      inset: 0;
+      background: var(--navy);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      pointer-events: none;
+    }
+    #canvas-wrap {
+      position: relative;
+      pointer-events: auto;
+    }
+    canvas {
+      display: block;
+      border-radius: 12px;
+      background: radial-gradient(circle at top, rgba(8, 24, 41, 0.95), #030712 85%);
+      box-shadow: 0 28px 60px rgba(0, 0, 0, 0.5);
+    }
     #loader {
       position: fixed;
       top: 0;
@@ -22,290 +49,576 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      background: #000;
+      background: rgba(0, 0, 0, 0.92);
       color: #fff;
       font-family: sans-serif;
       font-size: 2em;
+      z-index: 60;
     }
     #fps {
       position: fixed;
-      top: 8px;
-      left: 8px;
+      top: 12px;
+      left: 12px;
       z-index: 40;
       pointer-events: none;
+    }
+    #control-ui {
+      position: fixed;
+      top: 16px;
+      right: 16px;
+      background: var(--panel-bg);
+      border: 1px solid var(--panel-border);
+      border-radius: 16px;
+      padding: 12px 16px;
+      display: grid;
+      row-gap: 8px;
+      width: min(240px, 80vw);
+      backdrop-filter: blur(14px);
+      box-shadow: 0 20px 35px rgba(0, 0, 0, 0.35);
+      z-index: 30;
+    }
+    #control-ui h2 {
+      margin: 0;
+      font-size: 15px;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      color: rgba(255, 255, 255, 0.7);
+    }
+    #resolution-display {
+      font-size: 18px;
+      font-weight: 600;
+      color: #fff;
+    }
+    label[for="resolution-select"] {
+      font-size: 13px;
+      color: rgba(255, 255, 255, 0.7);
+    }
+    #resolution-select {
+      width: 100%;
+      padding: 8px 10px;
+      border-radius: 10px;
+      border: 1px solid rgba(150, 200, 255, 0.35);
+      background: rgba(2, 18, 36, 0.9);
+      color: #f3f7ff;
+      font-size: 14px;
+      font-weight: 500;
+      appearance: none;
+      background-image: linear-gradient(45deg, transparent 50%, rgba(255, 255, 255, 0.45) 50%),
+        linear-gradient(135deg, rgba(255, 255, 255, 0.45) 50%, transparent 50%),
+        linear-gradient(to right, rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0));
+      background-position: calc(100% - 18px) calc(50% - 2px), calc(100% - 12px) calc(50% - 2px), 0 0;
+      background-size: 6px 6px, 6px 6px, 100% 100%;
+      background-repeat: no-repeat;
+    }
+    #resolution-select:focus {
+      outline: none;
+      border-color: rgba(111, 182, 255, 0.75);
+      box-shadow: 0 0 0 3px rgba(54, 132, 255, 0.25);
+    }
+    #fullscreen-btn {
+      position: fixed;
+      left: 50%;
+      bottom: 28px;
+      transform: translateX(-50%);
+      padding: 10px 22px;
+      background: linear-gradient(120deg, rgba(38, 119, 247, 0.9), rgba(96, 211, 255, 0.85));
+      border: none;
+      border-radius: 999px;
+      color: #fff;
+      font-size: 14px;
+      font-weight: 600;
+      letter-spacing: 0.05em;
+      cursor: pointer;
+      box-shadow: 0 12px 30px rgba(22, 120, 255, 0.3);
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+      z-index: 35;
+      display: none;
+    }
+    #fullscreen-btn:hover {
+      transform: translateX(-50%) translateY(-1px);
+      box-shadow: 0 18px 36px rgba(22, 120, 255, 0.4);
+    }
+    #control-pad {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      display: grid;
+      grid-template-columns: repeat(3, 52px);
+      grid-template-rows: repeat(3, 52px);
+      gap: 8px;
+      z-index: 35;
+    }
+    #control-pad button, #control-pad span {
+      width: 52px;
+      height: 52px;
+      border-radius: 16px;
+      border: 1px solid rgba(109, 167, 255, 0.2);
+      background: var(--panel-bg);
+      backdrop-filter: blur(12px);
+      color: rgba(255, 255, 255, 0.92);
+      font-size: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08), 0 12px 24px rgba(0, 0, 0, 0.25);
+      transition: transform 0.15s ease, background 0.15s ease;
+    }
+    #control-pad span {
+      cursor: default;
+      opacity: 0;
+      border: none;
+      box-shadow: none;
+    }
+    #control-pad button:active {
+      transform: translateY(2px) scale(0.98);
+      background: rgba(29, 62, 103, 0.95);
+    }
+    @media (max-width: 720px) {
+      #control-pad {
+        right: 14px;
+        bottom: 14px;
+        grid-template-columns: repeat(3, 46px);
+        grid-template-rows: repeat(3, 46px);
+        gap: 6px;
+      }
+      #control-pad button, #control-pad span {
+        width: 46px;
+        height: 46px;
+      }
+      #control-ui {
+        right: 12px;
+        top: 12px;
+        padding: 10px 14px;
+      }
     }
   </style>
 </head>
 <body>
-<div id="fps"></div>
-<div id="loader">Loading <span id="progress">0%</span></div>
-<script type="module">
-import * as THREE from 'https://unpkg.com/three@0.160.0/build/three.module.js';
-import { initConsoleLogs } from '../../shared/consolelogs.js';
+  <div id="scene-shell">
+    <div id="canvas-wrap"></div>
+  </div>
+  <div id="control-ui">
+    <h2>Viewport</h2>
+    <div id="resolution-display">—</div>
+    <label for="resolution-select">Resolution</label>
+    <select id="resolution-select" aria-label="Resolution selector">
+      <option value="256x144">144p — 256 × 144</option>
+      <option value="426x240">240p — 426 × 240</option>
+      <option value="640x360">360p — 640 × 360</option>
+      <option value="854x480">480p — 854 × 480</option>
+      <option value="1280x720" selected>720p — 1280 × 720</option>
+      <option value="1920x1080">1080p — 1920 × 1080</option>
+      <option value="2560x1440">1440p — 2560 × 1440</option>
+      <option value="3840x2160">2160p — 3840 × 2160</option>
+    </select>
+  </div>
+  <button id="fullscreen-btn" type="button">Enter Fullscreen</button>
+  <div id="control-pad">
+    <span></span>
+    <button data-key="ArrowUp" aria-label="Move forward">▲</button>
+    <span></span>
+    <button data-key="ArrowLeft" aria-label="Turn left">◀</button>
+    <span></span>
+    <button data-key="ArrowRight" aria-label="Turn right">▶</button>
+    <span></span>
+    <button data-key="ArrowDown" aria-label="Move backward">▼</button>
+    <span></span>
+  </div>
+  <div id="fps"></div>
+  <div id="loader">Loading <span id="progress">0%</span></div>
+  <script type="module">
+  import * as THREE from 'https://unpkg.com/three@0.160.0/build/three.module.js';
+  import { initConsoleLogs } from '../../shared/consolelogs.js';
 
-initConsoleLogs({ removeAfter: null });
+  initConsoleLogs({ removeAfter: null });
 
-class MiniStats {
-  constructor(){
-    this.dom = document.createElement('div');
-    this.dom.style.cssText = 'background:rgba(0,0,0,.6);padding:4px 6px;font:12px/1.2 monospace;';
-    this.dom.style.pointerEvents = 'none';
-    this.label = document.createElement('div');
-    this.dom.appendChild(this.label);
-    this._smoothing = 0.9;
-    this._fps = 0;
-    this._valid = false;
-    this.begin();
+  const RESOLUTIONS = [
+    { label: '144p', width: 256, height: 144 },
+    { label: '240p', width: 426, height: 240 },
+    { label: '360p', width: 640, height: 360 },
+    { label: '480p', width: 854, height: 480 },
+    { label: '720p', width: 1280, height: 720 },
+    { label: '1080p', width: 1920, height: 1080 },
+    { label: '1440p', width: 2560, height: 1440 },
+    { label: '2160p', width: 3840, height: 2160 }
+  ];
+
+  const loaderEl = document.getElementById('loader');
+  const progressEl = document.getElementById('progress');
+  function setProgress(p){ progressEl.textContent = Math.round(p) + '%'; }
+
+  const fpsHolder = document.getElementById('fps');
+  let stats;
+
+  class MiniStats {
+    constructor(){
+      this.dom = document.createElement('div');
+      this.dom.style.cssText = 'background:rgba(0,0,0,.6);padding:4px 6px;font:12px/1.2 monospace;';
+      this.dom.style.pointerEvents = 'none';
+      this.label = document.createElement('div');
+      this.dom.appendChild(this.label);
+      this._smoothing = 0.9;
+      this._fps = 0;
+      this._valid = false;
+      this.begin();
+    }
+    begin(){ this._tick = performance.now(); }
+    end(){
+      const now = performance.now();
+      const dt = now - this._tick;
+      const inst = 1000 / Math.max(dt, 0.0001);
+      this._fps = this._valid ? (this._smoothing * this._fps + (1 - this._smoothing) * inst) : inst;
+      this._valid = true;
+      this.label.textContent = `FPS: ${this._fps.toFixed(1)} | ms: ${dt.toFixed(2)}`;
+    }
+    showPanel() {}
   }
-  begin(){ this._tick = performance.now(); }
-  end(){
-    const now = performance.now();
-    const dt = now - this._tick;
-    const inst = 1000 / Math.max(dt, 0.0001);
-    this._fps = this._valid ? (this._smoothing * this._fps + (1 - this._smoothing) * inst) : inst;
-    this._valid = true;
-    this.label.textContent = `FPS: ${this._fps.toFixed(1)} | ms: ${dt.toFixed(2)}`;
-  }
-  showPanel() {}
-}
 
-function loadScript(url, timeoutMs = 9000) {
-  return new Promise((resolve, reject) => {
-    const s = document.createElement('script');
-    const t = setTimeout(() => {
-      s.onload = s.onerror = null;
-      reject(new Error('Timeout loading: ' + url));
-    }, timeoutMs);
-    s.src = url;
-    s.async = true;
-    s.defer = true;
-    s.crossOrigin = 'anonymous';
-    s.referrerPolicy = 'no-referrer';
-    s.onload = () => { clearTimeout(t); resolve(url); };
-    s.onerror = () => {
-      clearTimeout(t);
-      reject(new Error('Failed to load: ' + url));
-    };
-    document.head.appendChild(s);
+  function loadScript(url, timeoutMs = 9000) {
+    return new Promise((resolve, reject) => {
+      const s = document.createElement('script');
+      const t = setTimeout(() => {
+        s.onload = s.onerror = null;
+        reject(new Error('Timeout loading: ' + url));
+      }, timeoutMs);
+      s.src = url;
+      s.async = true;
+      s.defer = true;
+      s.crossOrigin = 'anonymous';
+      s.referrerPolicy = 'no-referrer';
+      s.onload = () => { clearTimeout(t); resolve(url); };
+      s.onerror = () => {
+        clearTimeout(t);
+        reject(new Error('Failed to load: ' + url));
+      };
+      document.head.appendChild(s);
+    });
+  }
+
+  async function loadFirstAvailable(urls) {
+    let lastErr;
+    for (const url of urls) {
+      try {
+        await loadScript(url);
+        return url;
+      } catch (err) {
+        lastErr = err;
+        console.warn(err.message);
+      }
+    }
+    throw lastErr || new Error('All URLs failed: ' + urls.join(', '));
+  }
+
+  try {
+    const statsUrl = await loadFirstAvailable([
+      'https://unpkg.com/stats.js@0.17.0/build/stats.min.js',
+      'https://cdn.jsdelivr.net/npm/stats.js@0.17.0/build/stats.min.js',
+      'https://cdnjs.cloudflare.com/ajax/libs/stats.js/r17/Stats.min.js'
+    ]);
+    console.log('Stats loaded from:', statsUrl);
+    const StatsCtor = (typeof window !== 'undefined' && window.Stats) ? window.Stats : MiniStats;
+    stats = new StatsCtor();
+    if (stats.showPanel) stats.showPanel(0);
+  } catch (err) {
+    console.warn('Stats unavailable, using MiniStats. Cause:', err.message);
+    stats = new MiniStats();
+  }
+  if (stats?.dom) {
+    stats.dom.style.pointerEvents = 'none';
+    fpsHolder.appendChild(stats.dom);
+  }
+
+  const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
+  renderer.setPixelRatio(1);
+  const canvasWrap = document.getElementById('canvas-wrap');
+  canvasWrap.appendChild(renderer.domElement);
+
+  const scene = new THREE.Scene();
+  scene.add(new THREE.AmbientLight(0x666666));
+  const sunLight = new THREE.DirectionalLight(0xffffff, 1.2);
+  sunLight.position.set(260, 220, -500);
+  scene.add(sunLight);
+
+  const camera = new THREE.PerspectiveCamera(50, 16 / 9, 0.1, 3000);
+  const controls = {
+    yaw: 0,
+    yawVelocity: 0,
+    speed: 60,
+    turnSpeed: Math.PI * 0.45,
+    turnSmooth: 3,
+    height: 60
+  };
+  camera.position.set(0, controls.height, 160);
+  camera.lookAt(0, 0, 0);
+
+  const keyState = {};
+  window.addEventListener('keydown', e => {
+    if (['ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.key)) { keyState[e.key] = true; e.preventDefault(); }
   });
-}
+  window.addEventListener('keyup', e => {
+    if (['ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.key)) { keyState[e.key] = false; e.preventDefault(); }
+  });
 
-async function loadFirstAvailable(urls) {
-  let lastErr;
-  for (const url of urls) {
-    try {
-      await loadScript(url);
-      return url;
-    } catch (err) {
-      lastErr = err;
-      console.warn(err.message);
+  const onscreenButtons = document.querySelectorAll('#control-pad button[data-key]');
+  onscreenButtons.forEach(btn => {
+    const key = btn.dataset.key;
+    const activate = ev => { keyState[key] = true; ev.preventDefault(); };
+    const deactivate = ev => { keyState[key] = false; ev.preventDefault(); };
+    btn.addEventListener('mousedown', activate);
+    btn.addEventListener('touchstart', activate, { passive: false });
+    const endEvents = ['mouseleave','mouseup','touchend','touchcancel'];
+    endEvents.forEach(evt => btn.addEventListener(evt, deactivate));
+    window.addEventListener('mouseup', () => { keyState[key] = false; });
+    window.addEventListener('touchend', () => { keyState[key] = false; });
+    window.addEventListener('touchcancel', () => { keyState[key] = false; });
+  });
+
+  let touchStart = null;
+  window.addEventListener('touchstart', e => {
+    if (e.target.closest('#control-pad')) return;
+    touchStart = e.touches[0];
+    e.preventDefault();
+  }, { passive: false });
+  window.addEventListener('touchmove', e => {
+    if (!touchStart || e.target.closest('#control-pad')) return;
+    const touch = e.touches[0];
+    const dx = touch.clientX - touchStart.clientX;
+    const dy = touch.clientY - touchStart.clientY;
+    const threshold = 10;
+    keyState['ArrowLeft'] = dx < -threshold;
+    keyState['ArrowRight'] = dx > threshold;
+    keyState['ArrowUp'] = dy < -threshold;
+    keyState['ArrowDown'] = dy > threshold;
+    e.preventDefault();
+  }, { passive: false });
+  window.addEventListener('touchend', e => {
+    if (e.target.closest('#control-pad')) return;
+    touchStart = null;
+    keyState['ArrowLeft'] = keyState['ArrowRight'] = keyState['ArrowUp'] = keyState['ArrowDown'] = false;
+    e.preventDefault();
+  });
+
+  function hash(ix, iz){ const s = Math.sin(ix*127.1 + iz*311.7) * 43758.5453123; return s - Math.floor(s); }
+  const lerp = (a,b,t)=> a + (b-a)*t; const smooth = t => t*t*(3-2*t);
+  function noise2(x,z){ const ix=Math.floor(x), iz=Math.floor(z), fx=x-ix, fz=z-iz;
+    const a=hash(ix,iz), b=hash(ix+1,iz), c=hash(ix,iz+1), d=hash(ix+1,iz+1);
+    const ux=smooth(fx), uz=smooth(fz); return lerp( lerp(a,b,ux), lerp(c,d,ux), uz ); }
+  function fbm(x,z,oct=5){ let amp=1,freq=0.02,sum=0,norm=0; for(let i=0;i<oct;i++){ sum+=amp*noise2(x*freq,z*freq); norm+=amp; amp*=0.5; freq*=2; } return sum/norm; }
+
+  const terrainSize = 600;
+  const terrainSegments = 120;
+  const terrain = new THREE.PlaneGeometry(terrainSize, terrainSize, terrainSegments, terrainSegments);
+  terrain.rotateX(-Math.PI/2);
+  const pos = terrain.attributes.position;
+  const basePositions = Float32Array.from(pos.array);
+  const cellSize = terrainSize / terrainSegments;
+  const chunkSize = cellSize * 10;
+  const terrainState = { offsetX: 0, offsetZ: 0 };
+
+  function refreshTerrain(offsetX, offsetZ) {
+    for (let i = 0; i < pos.count; i++) {
+      const ix = i * 3;
+      const x = basePositions[ix];
+      const z = basePositions[ix + 2];
+      const worldX = x + offsetX;
+      const worldZ = z + offsetZ;
+      const y = fbm(worldX, worldZ) * 60 - 18;
+      pos.setY(i, y);
+    }
+    pos.needsUpdate = true;
+    terrain.computeVertexNormals();
+  }
+  refreshTerrain(terrainState.offsetX, terrainState.offsetZ);
+  const terrainMesh = new THREE.Mesh(terrain, new THREE.MeshStandardMaterial({ color:0x2a8a4b, flatShading:true, metalness:0, roughness:1 }));
+  terrainMesh.position.set(terrainState.offsetX, 0, terrainState.offsetZ);
+  scene.add(terrainMesh);
+  function snapToChunk(value) { return Math.round(value / chunkSize) * chunkSize; }
+
+  const groundRay = new THREE.Raycaster();
+  const floatingBlocks = [];
+
+  function createBlock(x, z) {
+    const size = 2;
+    const color = new THREE.Color().setHSL(Math.random() * 0.15, 0.9, 0.5 + Math.random() * 0.1);
+    const block = new THREE.Mesh(
+      new THREE.BoxGeometry(size, size, size),
+      new THREE.MeshStandardMaterial({ color })
+    );
+    groundRay.set(new THREE.Vector3(x, 100, z), new THREE.Vector3(0, -1, 0));
+    const hit = groundRay.intersectObject(terrainMesh);
+    const y = hit.length ? hit[0].point.y : 0;
+    block.position.set(x, y + size / 2 + 8 * Math.random(), z);
+    block.castShadow = true;
+    block.receiveShadow = true;
+    block.userData.base = block.position.clone();
+    block.userData.bobSpeed = 0.35 + Math.random() * 0.3;
+    block.userData.bobAmp = 4 + Math.random() * 6;
+    block.userData.phase = Math.random() * Math.PI * 2;
+    block.userData.windOffset = new THREE.Vector3();
+    block.userData.windVelocity = new THREE.Vector3();
+    scene.add(block);
+    floatingBlocks.push(block);
+  }
+
+  const blockSpread = terrainSize * 0.48;
+  async function generateBlocks(count) {
+    for (let i = 0; i < count; i++) {
+      const x = Math.random() * blockSpread * 2 - blockSpread;
+      const z = Math.random() * blockSpread * 2 - blockSpread;
+      createBlock(x, z);
+      if (i % 50 === 0) {
+        setProgress((i / count) * 100);
+        await new Promise(requestAnimationFrame);
+      }
+    }
+    setProgress(100);
+    loaderEl.remove();
+    console.log(`Terrain populated with ${count} blocks.`);
+  }
+
+  function updateControls(dt){
+    const yawInput = (keyState['ArrowRight'] ? 1 : 0) - (keyState['ArrowLeft'] ? 1 : 0);
+    const targetYawVelocity = yawInput * controls.turnSpeed;
+    controls.yawVelocity = THREE.MathUtils.damp(controls.yawVelocity, targetYawVelocity, controls.turnSmooth, dt);
+    controls.yaw += controls.yawVelocity * dt;
+    const forward = new THREE.Vector3(Math.sin(controls.yaw), 0, -Math.cos(controls.yaw));
+    let move = new THREE.Vector3();
+    if (keyState['ArrowUp']) move.add(forward);
+    if (keyState['ArrowDown']) move.add(forward.clone().multiplyScalar(-1));
+    if (move.lengthSq() > 0) {
+      move.normalize().multiplyScalar(controls.speed * dt);
+      const p = camera.position.clone().add(move);
+      p.y = controls.height;
+      camera.position.copy(p);
+    }
+    const lookTarget = camera.position.clone().add(forward);
+    camera.lookAt(lookTarget);
+  }
+
+  function updateTerrainFollow() {
+    const snappedX = snapToChunk(camera.position.x);
+    const snappedZ = snapToChunk(camera.position.z);
+    if (snappedX !== terrainState.offsetX || snappedZ !== terrainState.offsetZ) {
+      terrainState.offsetX = snappedX;
+      terrainState.offsetZ = snappedZ;
+      refreshTerrain(snappedX, snappedZ);
+      terrainMesh.position.set(snappedX, 0, snappedZ);
     }
   }
-  throw lastErr || new Error('All URLs failed: ' + urls.join(', '));
-}
 
-const loaderEl = document.getElementById('loader');
-const progressEl = document.getElementById('progress');
-function setProgress(p){ progressEl.textContent = Math.round(p) + '%'; }
-
-const fpsHolder = document.getElementById('fps');
-let stats;
-try {
-  const statsUrl = await loadFirstAvailable([
-    'https://unpkg.com/stats.js@0.17.0/build/stats.min.js',
-    'https://cdn.jsdelivr.net/npm/stats.js@0.17.0/build/stats.min.js',
-    'https://cdnjs.cloudflare.com/ajax/libs/stats.js/r17/Stats.min.js'
-  ]);
-  console.log('Stats loaded from:', statsUrl);
-  const StatsCtor = (typeof window !== 'undefined' && window.Stats) ? window.Stats : MiniStats;
-  stats = new StatsCtor();
-  if (stats.showPanel) stats.showPanel(0);
-} catch (err) {
-  console.warn('Stats unavailable, using MiniStats. Cause:', err.message);
-  stats = new MiniStats();
-}
-if (stats?.dom) {
-  stats.dom.style.pointerEvents = 'none';
-  fpsHolder.appendChild(stats.dom);
-}
-
-const renderer = new THREE.WebGLRenderer({ antialias: true });
-renderer.setSize(window.innerWidth, window.innerHeight);
-document.body.appendChild(renderer.domElement);
-
-const scene = new THREE.Scene();
-scene.add(new THREE.AmbientLight(0x666666));
-const sunLight = new THREE.DirectionalLight(0xffffff, 1.2);
-sunLight.position.set(260, 220, -500);
-scene.add(sunLight);
-
-const camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 3000);
-const controls = {
-  yaw: 0,
-  yawVelocity: 0,
-  speed: 60,
-  turnSpeed: Math.PI * 0.45,
-  turnSmooth: 3,
-  height: 60
-};
-camera.position.set(0, controls.height, 160);
-camera.lookAt(0, 0, 0);
-
-const keyState = {};
-window.addEventListener('keydown', e => {
-  if (['ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.key)) { keyState[e.key] = true; e.preventDefault(); }
-});
-window.addEventListener('keyup', e => {
-  if (['ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.key)) { keyState[e.key] = false; e.preventDefault(); }
-});
-
-let touchStart = null;
-window.addEventListener('touchstart', e => {
-  touchStart = e.touches[0];
-  e.preventDefault();
-});
-window.addEventListener('touchmove', e => {
-  if (!touchStart) return;
-  const touch = e.touches[0];
-  const dx = touch.clientX - touchStart.clientX;
-  const dy = touch.clientY - touchStart.clientY;
-  const threshold = 10;
-  keyState['ArrowLeft'] = dx < -threshold;
-  keyState['ArrowRight'] = dx > threshold;
-  keyState['ArrowUp'] = dy < -threshold;
-  keyState['ArrowDown'] = dy > threshold;
-  e.preventDefault();
-});
-window.addEventListener('touchend', e => {
-  touchStart = null;
-  keyState['ArrowLeft'] = keyState['ArrowRight'] = keyState['ArrowUp'] = keyState['ArrowDown'] = false;
-  e.preventDefault();
-});
-
-function hash(ix, iz){ const s = Math.sin(ix*127.1 + iz*311.7) * 43758.5453123; return s - Math.floor(s); }
-const lerp = (a,b,t)=> a + (b-a)*t; const smooth = t => t*t*(3-2*t);
-function noise2(x,z){ const ix=Math.floor(x), iz=Math.floor(z), fx=x-ix, fz=z-iz;
-  const a=hash(ix,iz), b=hash(ix+1,iz), c=hash(ix,iz+1), d=hash(ix+1,iz+1);
-  const ux=smooth(fx), uz=smooth(fz); return lerp( lerp(a,b,ux), lerp(c,d,ux), uz ); }
-function fbm(x,z,oct=5){ let amp=1,freq=0.02,sum=0,norm=0; for(let i=0;i<oct;i++){ sum+=amp*noise2(x*freq,z*freq); norm+=amp; amp*=0.5; freq*=2; } return sum/norm; }
-
-const terrainSize = 600;
-const terrainSegments = 120;
-const terrain = new THREE.PlaneGeometry(terrainSize, terrainSize, terrainSegments, terrainSegments);
-terrain.rotateX(-Math.PI/2);
-const pos = terrain.attributes.position;
-const basePositions = Float32Array.from(pos.array);
-const cellSize = terrainSize / terrainSegments;
-const chunkSize = cellSize * 10;
-const terrainState = { offsetX: 0, offsetZ: 0 };
-function refreshTerrain(offsetX, offsetZ) {
-  for (let i = 0; i < pos.count; i++) {
-    const ix = i * 3;
-    const x = basePositions[ix];
-    const z = basePositions[ix + 2];
-    const worldX = x + offsetX;
-    const worldZ = z + offsetZ;
-    const y = fbm(worldX, worldZ) * 60 - 18;
-    pos.setY(i, y);
-  }
-  pos.needsUpdate = true;
-  terrain.computeVertexNormals();
-}
-refreshTerrain(terrainState.offsetX, terrainState.offsetZ);
-const terrainMesh = new THREE.Mesh(terrain, new THREE.MeshStandardMaterial({ color:0x2a8a4b, flatShading:true, metalness:0, roughness:1 }));
-terrainMesh.position.set(terrainState.offsetX, 0, terrainState.offsetZ);
-scene.add(terrainMesh);
-function snapToChunk(value) { return Math.round(value / chunkSize) * chunkSize; }
-
-const groundRay = new THREE.Raycaster();
-function createBlock(x, z) {
-  const size = 2;
-  const color = new THREE.Color().setHSL(Math.random() * 0.15, 0.9, 0.5 + Math.random() * 0.1);
-  const block = new THREE.Mesh(
-    new THREE.BoxGeometry(size, size, size),
-    new THREE.MeshStandardMaterial({ color })
-  );
-  groundRay.set(new THREE.Vector3(x, 100, z), new THREE.Vector3(0, -1, 0));
-  const hit = groundRay.intersectObject(terrainMesh);
-  const y = hit.length ? hit[0].point.y : 0;
-  block.position.set(x, y + size / 2, z);
-  block.castShadow = true;
-  block.receiveShadow = true;
-  scene.add(block);
-}
-
-const blockSpread = terrainSize * 0.48;
-async function generateBlocks(count) {
-  for (let i = 0; i < count; i++) {
-    const x = Math.random() * blockSpread * 2 - blockSpread;
-    const z = Math.random() * blockSpread * 2 - blockSpread;
-    createBlock(x, z);
-    if (i % 50 === 0) {
-      setProgress((i / count) * 100);
-      await new Promise(requestAnimationFrame);
+  const tempVec = new THREE.Vector3();
+  function updateBlocks(dt, time) {
+    const cameraPos = camera.position;
+    for (const block of floatingBlocks) {
+      const data = block.userData;
+      const bob = Math.sin(time * data.bobSpeed + data.phase) * data.bobAmp;
+      const desired = data.base.clone();
+      desired.y += bob;
+      tempVec.copy(cameraPos).sub(block.position);
+      const distance = tempVec.length();
+      if (distance < 60) {
+        const strength = (60 - distance) / 60;
+        tempVec.set(Math.random() - 0.5, (Math.random() - 0.5) * 0.3, Math.random() - 0.5).normalize();
+        data.windVelocity.addScaledVector(tempVec, strength * 18 * dt);
+      }
+      data.windVelocity.multiplyScalar(Math.max(0, 1 - dt * 2.4));
+      data.windOffset.addScaledVector(data.windVelocity, dt);
+      data.windOffset.multiplyScalar(0.94);
+      desired.add(data.windOffset);
+      block.position.lerp(desired, THREE.MathUtils.clamp(dt * 3, 0, 1));
     }
   }
-  setProgress(100);
-  loaderEl.remove();
-  console.log(`Terrain populated with ${count} blocks.`);
-}
 
-function updateControls(dt){
-  const yawInput = (keyState['ArrowRight'] ? 1 : 0) - (keyState['ArrowLeft'] ? 1 : 0);
-  const targetYawVelocity = yawInput * controls.turnSpeed;
-  controls.yawVelocity = THREE.MathUtils.damp(controls.yawVelocity, targetYawVelocity, controls.turnSmooth, dt);
-  controls.yaw += controls.yawVelocity * dt;
-  const forward = new THREE.Vector3(Math.sin(controls.yaw), 0, -Math.cos(controls.yaw));
-  let move = new THREE.Vector3();
-  if (keyState['ArrowUp']) move.add(forward);
-  if (keyState['ArrowDown']) move.add(forward.clone().multiplyScalar(-1));
-  if (move.lengthSq() > 0) {
-    move.normalize().multiplyScalar(controls.speed * dt);
-    const p = camera.position.clone().add(move);
-    p.y = controls.height;
-    camera.position.copy(p);
+  let last = performance.now();
+  function animate(){
+    const now = performance.now();
+    const dt = Math.min(0.05, (now - last) / 1000);
+    last = now;
+    if (stats?.begin) stats.begin();
+    updateControls(dt);
+    updateTerrainFollow();
+    updateBlocks(dt, now / 1000);
+    renderer.render(scene, camera);
+    if (stats?.end) stats.end();
+    requestAnimationFrame(animate);
   }
-  const lookTarget = camera.position.clone().add(forward);
-  camera.lookAt(lookTarget);
-}
 
-function updateTerrainFollow() {
-  const snappedX = snapToChunk(camera.position.x);
-  const snappedZ = snapToChunk(camera.position.z);
-  if (snappedX !== terrainState.offsetX || snappedZ !== terrainState.offsetZ) {
-    terrainState.offsetX = snappedX;
-    terrainState.offsetZ = snappedZ;
-    refreshTerrain(snappedX, snappedZ);
-    terrainMesh.position.set(snappedX, 0, snappedZ);
+  console.log('Terrain initialising...');
+  await generateBlocks(1000);
+  console.log('Terrain ready.');
+  animate();
+
+  const resolutionSelect = document.getElementById('resolution-select');
+  const resolutionDisplay = document.getElementById('resolution-display');
+  const fullscreenBtn = document.getElementById('fullscreen-btn');
+
+  let currentResolution = RESOLUTIONS[4];
+
+  function applyResolution(res) {
+    currentResolution = res;
+    renderer.setSize(res.width, res.height, false);
+    renderer.domElement.width = res.width;
+    renderer.domElement.height = res.height;
+    camera.aspect = res.width / res.height;
+    camera.updateProjectionMatrix();
+    resolutionDisplay.textContent = `${res.label} — ${res.width} × ${res.height}`;
+    updateCanvasLayout();
   }
-}
 
-let last = performance.now();
-function animate(){
-  const now = performance.now();
-  const dt = Math.min(0.05, (now - last) / 1000);
-  last = now;
-  if (stats?.begin) stats.begin();
-  updateControls(dt);
-  updateTerrainFollow();
-  renderer.render(scene, camera);
-  if (stats?.end) stats.end();
-  requestAnimationFrame(animate);
-}
+  function parseResolution(value) {
+    const [w, h] = value.split('x').map(Number);
+    return RESOLUTIONS.find(r => r.width === w && r.height === h) || RESOLUTIONS[0];
+  }
 
-console.log('Terrain initialising...');
-await generateBlocks(1000);
-console.log('Terrain ready.');
-animate();
+  function updateCanvasLayout() {
+    const aspect = currentResolution.width / currentResolution.height;
+    const availableWidth = window.innerWidth;
+    const availableHeight = window.innerHeight;
+    let displayWidth = availableWidth;
+    let displayHeight = displayWidth / aspect;
+    if (displayHeight > availableHeight) {
+      displayHeight = availableHeight;
+      displayWidth = displayHeight * aspect;
+    }
+    renderer.domElement.style.width = `${displayWidth}px`;
+    renderer.domElement.style.height = `${displayHeight}px`;
+  }
 
-window.addEventListener('resize', () => {
-  const w = window.innerWidth;
-  const h = window.innerHeight;
-  renderer.setSize(w, h);
-  camera.aspect = w / h;
-  camera.updateProjectionMatrix();
-});
-</script>
+  resolutionSelect.addEventListener('change', () => {
+    applyResolution(parseResolution(resolutionSelect.value));
+  });
+
+  function updateFullscreenButton() {
+    const isFullscreen = document.fullscreenElement != null;
+    fullscreenBtn.textContent = isFullscreen ? 'Exit Fullscreen' : 'Enter Fullscreen';
+    const shouldShow = isFullscreen || window.innerWidth >= 720;
+    fullscreenBtn.style.display = shouldShow ? 'inline-flex' : 'none';
+  }
+
+  fullscreenBtn.addEventListener('click', () => {
+    const isFullscreen = document.fullscreenElement != null;
+    if (isFullscreen) {
+      document.exitFullscreen();
+    } else {
+      const shell = document.getElementById('scene-shell');
+      if (shell.requestFullscreen) shell.requestFullscreen();
+    }
+  });
+
+  document.addEventListener('fullscreenchange', () => {
+    updateCanvasLayout();
+    updateFullscreenButton();
+  });
+
+  window.addEventListener('resize', () => {
+    updateCanvasLayout();
+    updateFullscreenButton();
+  });
+
+  applyResolution(currentResolution);
+  updateFullscreenButton();
+  updateCanvasLayout();
+  </script>
 </body>
 </html>
-
