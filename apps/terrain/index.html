@@ -926,14 +926,14 @@
       <label for="resolution-select">Resolution</label>
       <div class="select-wrap">
         <select id="resolution-select" aria-label="Resolution selector">
-        <option value="256x144">144p — 256 × 144</option>
-        <option value="426x240">240p — 426 × 240</option>
-        <option value="640x360">360p — 640 × 360</option>
-        <option value="854x480">480p — 854 × 480</option>
-        <option value="1280x720" selected>720p — 1280 × 720</option>
-        <option value="1920x1080">1080p — 1920 × 1080</option>
-        <option value="2560x1440">1440p — 2560 × 1440</option>
-        <option value="3840x2160">2160p — 3840 × 2160</option>
+        <option value="256x192">ZX Spectrum — 256 × 192</option>
+        <option value="320x200">Commodore 64 — 320 × 200</option>
+        <option value="320x256">Amiga 500 (PAL Lowres) — 320 × 256</option>
+        <option value="640x512">Amiga 500 (PAL HiRes) — 640 × 512</option>
+        <option value="640x480">VGA Era — 640 × 480</option>
+        <option value="800x600">SVGA Era — 800 × 600</option>
+        <option value="1280x720" selected>HD 720p — 1280 × 720</option>
+        <option value="1920x1080">Full HD — 1920 × 1080</option>
         </select>
       </div>
     </div>
@@ -1074,9 +1074,9 @@
   };
   const retroPalettes = {
     zx: [
-      0x000000, 0x0000d7, 0xd70000, 0xd700d7,
-      0x00d700, 0x00d7d7, 0xd7d700, 0xd7d7d7,
-      0x202020, 0x0000ff, 0xff0000, 0xff00ff,
+      0x000000, 0x0000cd, 0xcd0000, 0xcd00cd,
+      0x00cd00, 0x00cdcd, 0xcdcd00, 0xcdcdcd,
+      0x404040, 0x0000ff, 0xff0000, 0xff00ff,
       0x00ff00, 0x00ffff, 0xffff00, 0xffffff
     ],
     c64: [
@@ -1092,21 +1092,28 @@
       0xf5d32a, 0xf58b2a, 0xd6f52a, 0xc4c4c4
     ]
   };
+  const retroModeConfigs = {
+    default: { blockSize: 1, attributeMode: 'quantize' },
+    zx: { blockSize: 8, attributeMode: 'attribute' },
+    c64: { blockSize: 1, attributeMode: 'quantize' },
+    amiga: { blockSize: 1, attributeMode: 'quantize' }
+  };
   let currentRenderMode = 'default';
   const wireTerrainColor = new THREE.Color(0x8fd6ff);
   const wireBlockColor = new THREE.Color(0xffb86b);
   let defaultTerrainColor = null;
 
   const RESOLUTIONS = [
-    { label: '144p', width: 256, height: 144 },
-    { label: '240p', width: 426, height: 240 },
-    { label: '360p', width: 640, height: 360 },
-    { label: '480p', width: 854, height: 480 },
-    { label: '720p', width: 1280, height: 720 },
-    { label: '1080p', width: 1920, height: 1080 },
-    { label: '1440p', width: 2560, height: 1440 },
-    { label: '2160p', width: 3840, height: 2160 }
+    { label: 'ZX Spectrum', width: 256, height: 192 },
+    { label: 'Commodore 64', width: 320, height: 200 },
+    { label: 'Amiga 500 PAL Lowres', width: 320, height: 256 },
+    { label: 'Amiga 500 PAL HiRes', width: 640, height: 512 },
+    { label: 'VGA Era', width: 640, height: 480 },
+    { label: 'SVGA Era', width: 800, height: 600 },
+    { label: 'HD 720p', width: 1280, height: 720 },
+    { label: 'Full HD', width: 1920, height: 1080 }
   ];
+  const defaultResolution = RESOLUTIONS.find(r => r.width === 1280 && r.height === 720) || RESOLUTIONS[0];
 
   const loaderEl = document.getElementById('loader');
   const progressEl = document.getElementById('progress');
@@ -1270,7 +1277,7 @@
   renderer.domElement.tabIndex = 0;
   renderer.domElement.setAttribute('aria-label', 'Interactive terrain viewport');
 
-  const retroEffect = createRetroEffect(renderer, retroPalettes.zx);
+  const retroEffect = createRetroEffect(renderer, retroPalettes.zx, retroModeConfigs.zx);
 
   const scene = new THREE.Scene();
   const fogColor = new THREE.Color(0x020817);
@@ -1523,7 +1530,7 @@
     return texture;
   }
 
-  function createRetroEffect(renderer, initialPalette = []) {
+  function createRetroEffect(renderer, initialPalette = [], initialSettings = {}) {
     const paletteVectors = new Array(16).fill(null).map(() => new THREE.Vector3());
     const paletteColor = new THREE.Color();
 
@@ -1540,6 +1547,11 @@
 
     const resolution = new THREE.Vector2(1, 1);
     const blockCount = new THREE.Vector2(1, 1);
+    let targetWidth = 16;
+    let targetHeight = 16;
+    let currentBlockSize = Math.max(1, initialSettings.blockSize || 8);
+    const blockPixelSizeUniform = { value: currentBlockSize };
+    const attributeModeUniform = { value: initialSettings.attributeMode === 'attribute' ? 1 : 0 };
 
     const sceneTarget = new THREE.WebGLRenderTarget(16, 16, {
       minFilter: THREE.LinearFilter,
@@ -1578,7 +1590,8 @@
       sceneTexture: { value: null },
       resolution: { value: resolution },
       blockCount: { value: blockCount },
-      palette: { value: paletteVectors }
+      palette: { value: paletteVectors },
+      blockPixelSize: blockPixelSizeUniform
     };
 
     const attributeMaterial = new THREE.ShaderMaterial({
@@ -1590,9 +1603,9 @@
         uniform vec2 resolution;
         uniform vec2 blockCount;
         uniform vec3 palette[16];
+        uniform float blockPixelSize;
         varying vec2 vUv;
 
-        const float BLOCK_SIZE = 8.0;
         const float SAMPLE_GRID = 4.0;
 
         float colorDistance(vec3 a, vec3 b) {
@@ -1621,8 +1634,8 @@
 
         void main() {
           vec2 blockIndex = floor(vUv * blockCount);
-          vec2 blockBase = blockIndex * BLOCK_SIZE;
-          float sampleStep = BLOCK_SIZE / SAMPLE_GRID;
+          vec2 blockBase = blockIndex * blockPixelSize;
+          float sampleStep = blockPixelSize / SAMPLE_GRID;
           vec3 averageColor = vec3(0.0);
           float totalSamples = SAMPLE_GRID * SAMPLE_GRID;
 
@@ -1678,7 +1691,9 @@
       attributeTexture: { value: null },
       resolution: { value: resolution },
       blockCount: { value: blockCount },
-      palette: { value: paletteVectors }
+      palette: { value: paletteVectors },
+      blockPixelSize: blockPixelSizeUniform,
+      attributeMode: attributeModeUniform
     };
 
     const finalMaterial = new THREE.ShaderMaterial({
@@ -1691,6 +1706,8 @@
         uniform vec2 resolution;
         uniform vec2 blockCount;
         uniform vec3 palette[16];
+        uniform float blockPixelSize;
+        uniform float attributeMode;
         varying vec2 vUv;
 
         float colorDistance(vec3 a, vec3 b) {
@@ -1706,9 +1723,32 @@
           return palette[index];
         }
 
+        int nearestPaletteIndex(vec3 color) {
+          float bestDistance = 1e9;
+          int bestIndex = 0;
+          for (int i = 0; i < 16; i++) {
+            vec3 paletteColor = palette[i];
+            float dist = colorDistance(color, paletteColor);
+            if (dist < bestDistance) {
+              bestDistance = dist;
+              bestIndex = i;
+            }
+          }
+          return bestIndex;
+        }
+
         void main() {
+          vec3 sceneColor = texture2D(sceneTexture, vUv).rgb;
+
+          if (attributeMode < 0.5) {
+            int paletteIndex = nearestPaletteIndex(sceneColor);
+            vec3 quantizedColor = paletteColor(paletteIndex);
+            gl_FragColor = vec4(quantizedColor, 1.0);
+            return;
+          }
+
           vec2 pixelCoord = vUv * resolution;
-          vec2 blockCoord = floor(pixelCoord / 8.0);
+          vec2 blockCoord = floor(pixelCoord / blockPixelSize);
           blockCoord = clamp(blockCoord, vec2(0.0), blockCount - vec2(1.0));
           vec2 attributeUv = (blockCoord + 0.5) / blockCount;
 
@@ -1718,7 +1758,6 @@
           vec3 paperColor = paletteColor(paperIndex);
           vec3 inkColor = paletteColor(inkIndex);
 
-          vec3 sceneColor = texture2D(sceneTexture, vUv).rgb;
           float paperDist = colorDistance(sceneColor, paperColor);
           float inkDist = colorDistance(sceneColor, inkColor);
           vec3 finalColor = paperColor;
@@ -1744,6 +1783,17 @@
       setEnabled(value) {
         this.enabled = Boolean(value);
       },
+      setConfig(config = {}) {
+        if (typeof config.blockSize === 'number' && config.blockSize > 0) {
+          currentBlockSize = config.blockSize;
+        }
+        if (typeof config.attributeMode === 'string') {
+          attributeModeUniform.value = config.attributeMode === 'attribute' ? 1 : 0;
+        } else if (typeof config.attributeMode === 'number') {
+          attributeModeUniform.value = config.attributeMode;
+        }
+        this.setSize(targetWidth, targetHeight);
+      },
       setPalette(palette) {
         applyPalette(palette);
         attributeMaterial.needsUpdate = true;
@@ -1752,9 +1802,14 @@
       setSize(width, height) {
         const safeWidth = Math.max(1, Math.floor(width));
         const safeHeight = Math.max(1, Math.floor(height));
+        targetWidth = safeWidth;
+        targetHeight = safeHeight;
         sceneTarget.setSize(safeWidth, safeHeight);
-        const blockWidth = Math.max(1, Math.floor(safeWidth / 8));
-        const blockHeight = Math.max(1, Math.floor(safeHeight / 8));
+        const blockSize = Math.max(1, currentBlockSize);
+        blockPixelSizeUniform.value = blockSize;
+        const useAttribute = attributeModeUniform.value > 0.5;
+        const blockWidth = useAttribute ? Math.max(1, Math.floor(safeWidth / blockSize)) : 1;
+        const blockHeight = useAttribute ? Math.max(1, Math.floor(safeHeight / blockSize)) : 1;
         attributeTarget.setSize(blockWidth, blockHeight);
         resolution.set(safeWidth, safeHeight);
         blockCount.set(blockWidth, blockHeight);
@@ -1763,9 +1818,11 @@
         renderer.setRenderTarget(sceneTarget);
         renderer.render(scene, camera);
 
-        attributeUniforms.sceneTexture.value = sceneTarget.texture;
-        renderer.setRenderTarget(attributeTarget);
-        renderer.render(attributeScene, orthoCamera);
+        if (attributeModeUniform.value > 0.5) {
+          attributeUniforms.sceneTexture.value = sceneTarget.texture;
+          renderer.setRenderTarget(attributeTarget);
+          renderer.render(attributeScene, orthoCamera);
+        }
 
         finalUniforms.sceneTexture.value = sceneTarget.texture;
         finalUniforms.attributeTexture.value = attributeTarget.texture;
@@ -2308,7 +2365,10 @@
     updateCityRenderMode(isWire);
     retroEffect.setEnabled(useRetro);
     if (useRetro) {
+      retroEffect.setConfig(retroModeConfigs[mode] || retroModeConfigs.default);
       retroEffect.setPalette(retroPalette);
+    } else {
+      retroEffect.setConfig(retroModeConfigs.default);
     }
     updateRenderButtons(mode);
     if (announce && previousMode !== mode) {
@@ -2587,7 +2647,7 @@
     document.msFullscreenElement
   );
 
-  let currentResolution = RESOLUTIONS[4];
+  let currentResolution = defaultResolution;
   let vhsTimeoutId = null;
   const MOBILE_BREAKPOINT = 720;
   let isMobileLayout = null;
@@ -2691,7 +2751,7 @@
 
   function parseResolution(value) {
     const [w, h] = value.split('x').map(Number);
-    return RESOLUTIONS.find(r => r.width === w && r.height === h) || RESOLUTIONS[0];
+    return RESOLUTIONS.find(r => r.width === w && r.height === h) || defaultResolution;
   }
 
   function updateCanvasLayout() {
