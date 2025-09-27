@@ -1734,6 +1734,7 @@
   const fadeAttribute = new Float32Array(pos.count);
   const halfSize = terrainSize / 2;
   const fadeWidth = terrainSize * 0.22;
+  const colorAttribute = new THREE.BufferAttribute(new Float32Array(pos.count * 3), 3);
   for (let i = 0; i < pos.count; i++) {
     const ix = i * 3;
     const x = basePositions[ix];
@@ -1745,11 +1746,30 @@
     fadeAttribute[i] = fadeStrength * fadeStrength;
   }
   terrain.setAttribute('edgeFade', new THREE.BufferAttribute(fadeAttribute, 1));
+  terrain.setAttribute('color', colorAttribute);
   const cellSize = terrainSize / terrainSegments;
   const chunkSize = cellSize * 10;
   const terrainState = { offsetX: 0, offsetZ: 0 };
 
+  const chunkColorCache = new Map();
+  function chunkRandom(ix, iz, salt = 0) {
+    return hash(ix + salt * 19.19, iz + salt * 7.7);
+  }
+  function getChunkColor(cx, cz) {
+    const key = `${cx},${cz}`;
+    let color = chunkColorCache.get(key);
+    if (!color) {
+      const hue = chunkRandom(cx * 0.61, cz * 0.47, 1);
+      const saturation = 0.35 + chunkRandom(cx * 0.93, cz * 0.78, 2) * 0.3;
+      const lightness = 0.3 + chunkRandom(cx * 1.21, cz * 1.09, 3) * 0.28;
+      color = new THREE.Color().setHSL(hue, saturation, lightness);
+      chunkColorCache.set(key, color);
+    }
+    return color;
+  }
+
   function refreshTerrain(offsetX, offsetZ) {
+    const colors = colorAttribute.array;
     for (let i = 0; i < pos.count; i++) {
       const ix = i * 3;
       const x = basePositions[ix];
@@ -1758,8 +1778,15 @@
       const worldZ = z + offsetZ;
       const y = fbm(worldX, worldZ) * 60 - 18;
       pos.setY(i, y);
+      const chunkX = Math.round(worldX / chunkSize);
+      const chunkZ = Math.round(worldZ / chunkSize);
+      const chunkColor = getChunkColor(chunkX, chunkZ);
+      colors[ix] = chunkColor.r;
+      colors[ix + 1] = chunkColor.g;
+      colors[ix + 2] = chunkColor.b;
     }
     pos.needsUpdate = true;
+    colorAttribute.needsUpdate = true;
     terrain.computeVertexNormals();
     if (terrain.attributes.normal) {
       terrain.attributes.normal.needsUpdate = true;
@@ -1769,7 +1796,8 @@
   }
   refreshTerrain(terrainState.offsetX, terrainState.offsetZ);
   const terrainMaterial = new THREE.MeshStandardMaterial({
-    color: 0x2a8a4b,
+    color: 0xffffff,
+    vertexColors: true,
     flatShading: true,
     metalness: 0,
     roughness: 1
