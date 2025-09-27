@@ -1307,80 +1307,72 @@
   }
 
   function createCloudTexture() {
+    const pixelSize = 4;
+    const pixelWidth = 64;
+    const pixelHeight = 32;
     const canvas = document.createElement('canvas');
-    canvas.width = 256;
-    canvas.height = 128;
+    canvas.width = pixelWidth * pixelSize;
+    canvas.height = pixelHeight * pixelSize;
     const ctx = canvas.getContext('2d');
 
     ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.imageSmoothingEnabled = false;
 
-    const shadowColor = 'rgba(136, 176, 220, 0.28)';
-    const highlightColor = 'rgba(255, 255, 255, 0.9)';
+    const centerX = pixelWidth / 2;
+    const centerY = pixelHeight * 0.55;
 
-    const blobSets = [
-      { x: 68, y: 70, rx: 78, ry: 40, alpha: 0.9 },
-      { x: 110, y: 58, rx: 56, ry: 34, alpha: 0.78 },
-      { x: 154, y: 70, rx: 68, ry: 38, alpha: 0.82 },
-      { x: 206, y: 64, rx: 44, ry: 30, alpha: 0.68 },
-      { x: 92, y: 82, rx: 70, ry: 32, alpha: 0.86 },
-      { x: 138, y: 88, rx: 60, ry: 30, alpha: 0.8 }
-    ];
+    const random = (x, y) => {
+      const s = Math.sin(x * 127.1 + y * 311.7) * 43758.5453;
+      return s - Math.floor(s);
+    };
 
-    for (const blob of blobSets) {
-      ctx.beginPath();
-      ctx.ellipse(blob.x, blob.y, blob.rx, blob.ry, 0, 0, Math.PI * 2);
-      ctx.fillStyle = `rgba(244, 252, 255, ${blob.alpha})`;
-      ctx.fill();
+    for (let py = 0; py < pixelHeight; py++) {
+      for (let px = 0; px < pixelWidth; px++) {
+        const nx = (px - centerX) / (pixelWidth * 0.5);
+        const ny = (py - centerY) / (pixelHeight * 0.45);
+        const distance = Math.sqrt(nx * nx * 0.75 + ny * ny);
+        const falloff = Math.max(0, 1 - distance);
+        if (falloff <= 0.05) continue;
+
+        const noise =
+          Math.sin(px * 0.45) * 0.05 +
+          Math.cos(py * 0.55) * 0.04 +
+          Math.sin((px + py) * 0.12) * 0.03 +
+          random(px, py) * 0.08;
+
+        const value = falloff + noise - 0.08;
+        if (value <= 0) continue;
+
+        const highlight = Math.max(0, 1 - py / pixelHeight);
+        const shade = 0.78 + falloff * 0.22 + highlight * 0.18;
+        const blueTint = 0.88 + highlight * 0.08;
+        const alpha = Math.min(0.95, 0.32 + falloff * 0.6 + highlight * 0.18);
+
+        ctx.fillStyle = `rgba(${Math.floor(shade * 255)}, ${Math.floor(shade * 255)}, ${Math.floor(blueTint * 255)}, ${alpha})`;
+        ctx.fillRect(px * pixelSize, py * pixelSize, pixelSize, pixelSize);
+      }
     }
 
-    const highlightBands = [
-      { x: 104, y: 54, rx: 52, ry: 18 },
-      { x: 152, y: 58, rx: 44, ry: 16 },
-      { x: 188, y: 66, rx: 32, ry: 14 }
-    ];
-    ctx.globalAlpha = 1;
-    for (const band of highlightBands) {
-      ctx.beginPath();
-      ctx.ellipse(band.x, band.y, band.rx, band.ry, 0, 0, Math.PI * 2);
-      ctx.fillStyle = highlightColor;
-      ctx.fill();
+    ctx.globalCompositeOperation = 'lighter';
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.08)';
+    for (let i = 0; i < 14; i++) {
+      const px = Math.floor(random(i, i * 1.7) * pixelWidth);
+      const py = Math.floor(random(i * 2.1, i * 3.1) * pixelHeight * 0.6);
+      ctx.fillRect(px * pixelSize, py * pixelSize, pixelSize * 2, pixelSize);
     }
+    ctx.globalCompositeOperation = 'source-over';
 
-    ctx.globalAlpha = 1;
-    const undersideGradient = ctx.createLinearGradient(0, 72, 0, 128);
-    undersideGradient.addColorStop(0, 'rgba(165, 205, 255, 0.18)');
-    undersideGradient.addColorStop(1, 'rgba(120, 160, 220, 0.42)');
+    const undersideGradient = ctx.createLinearGradient(0, canvas.height * 0.55, 0, canvas.height);
+    undersideGradient.addColorStop(0, 'rgba(170, 200, 255, 0.12)');
+    undersideGradient.addColorStop(1, 'rgba(110, 140, 200, 0.35)');
     ctx.fillStyle = undersideGradient;
-    ctx.fillRect(0, 64, canvas.width, 64);
-
-    const shadowCaps = [
-      { x: 82, y: 90, rx: 70, ry: 28 },
-      { x: 140, y: 98, rx: 62, ry: 26 },
-      { x: 198, y: 92, rx: 52, ry: 24 }
-    ];
-    ctx.fillStyle = shadowColor;
-    for (const cap of shadowCaps) {
-      ctx.beginPath();
-      ctx.ellipse(cap.x, cap.y, cap.rx, cap.ry, 0, 0, Math.PI * 2);
-      ctx.fill();
-    }
-
-    const sparkleCount = 28;
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.55)';
-    for (let i = 0; i < sparkleCount; i++) {
-      const sx = 30 + Math.random() * (canvas.width - 60);
-      const sy = 40 + Math.random() * 28;
-      const radius = 1.2 + Math.random() * 1.2;
-      ctx.beginPath();
-      ctx.ellipse(sx, sy, radius, radius * 0.6, 0, 0, Math.PI * 2);
-      ctx.fill();
-    }
+    ctx.fillRect(0, canvas.height * 0.55, canvas.width, canvas.height * 0.45);
 
     const texture = new THREE.CanvasTexture(canvas);
     texture.center.set(0.5, 0.5);
     texture.generateMipmaps = false;
-    texture.magFilter = THREE.LinearFilter;
-    texture.minFilter = THREE.LinearFilter;
+    texture.magFilter = THREE.NearestFilter;
+    texture.minFilter = THREE.NearestFilter;
     texture.wrapS = THREE.ClampToEdgeWrapping;
     texture.wrapT = THREE.ClampToEdgeWrapping;
     texture.needsUpdate = true;
@@ -1533,7 +1525,10 @@
       driftSpeed: 0.06 + Math.random() * 0.06,
       bobSpeed: 0.4 + Math.random() * 0.3,
       baseOpacity: sprite.material.opacity,
-      phase: Math.random() * Math.PI * 2
+      phase: Math.random() * Math.PI * 2,
+      windAmplitude: 24 + Math.random() * 18,
+      windFrequencyX: 0.08 + Math.random() * 0.06,
+      windFrequencyZ: 0.1 + Math.random() * 0.05
     };
     cloudGroup.add(sprite);
     cloudSprites.push(sprite);
@@ -1753,6 +1748,8 @@
   const plateauHalfSize = chunkSize * 1.5;
   const plateauBlend = chunkSize * 0.8;
   const plateauLevel = 0;
+  const plateauColor = new THREE.Color(0xdde3f5);
+  const tileBorderWidth = chunkSize * 0.12;
 
   const chunkColorCache = new Map();
   function chunkRandom(ix, iz, salt = 0) {
@@ -1790,10 +1787,30 @@
       pos.setY(i, finalY);
       const chunkX = Math.round(worldX / chunkSize);
       const chunkZ = Math.round(worldZ / chunkSize);
-      const chunkColor = getChunkColor(chunkX, chunkZ);
-      colors[ix] = chunkColor.r;
-      colors[ix + 1] = chunkColor.g;
-      colors[ix + 2] = chunkColor.b;
+      const isPlateau = Math.abs(worldX) <= plateauHalfSize && Math.abs(worldZ) <= plateauHalfSize;
+      const baseColor = isPlateau ? plateauColor : getChunkColor(chunkX, chunkZ);
+
+      let r = baseColor.r;
+      let g = baseColor.g;
+      let b = baseColor.b;
+
+      const localX = THREE.MathUtils.euclideanModulo(worldX, chunkSize);
+      const localZ = THREE.MathUtils.euclideanModulo(worldZ, chunkSize);
+      const edgeDistX = Math.min(localX, chunkSize - localX);
+      const edgeDistZ = Math.min(localZ, chunkSize - localZ);
+      const edgeFactorX = 1 - THREE.MathUtils.clamp(edgeDistX / tileBorderWidth, 0, 1);
+      const edgeFactorZ = 1 - THREE.MathUtils.clamp(edgeDistZ / tileBorderWidth, 0, 1);
+      const edgeMix = Math.max(edgeFactorX, edgeFactorZ);
+      if (edgeMix > 0) {
+        const mixAmount = edgeMix * 0.85;
+        r = THREE.MathUtils.lerp(r, 1, mixAmount);
+        g = THREE.MathUtils.lerp(g, 1, mixAmount);
+        b = THREE.MathUtils.lerp(b, 1, mixAmount);
+      }
+
+      colors[ix] = r;
+      colors[ix + 1] = g;
+      colors[ix + 2] = b;
     }
     pos.needsUpdate = true;
     colorAttribute.needsUpdate = true;
@@ -1888,9 +1905,11 @@
         const x = startOffset + gx * spacing;
         const z = startOffset + gz * spacing;
         const isCenter = Math.abs(x) < chunkSize * 0.2 && Math.abs(z) < chunkSize * 0.2;
-        const width = chunkSize * (0.2 + Math.random() * 0.18);
-        const depth = chunkSize * (0.2 + Math.random() * 0.18);
-        const height = isCenter ? chunkSize * 1.6 : chunkSize * (0.8 + Math.random() * 1.1);
+        const baseScale = isCenter ? 0.16 : 0.08;
+        const variation = isCenter ? 0.08 : 0.07;
+        const width = chunkSize * (baseScale + Math.random() * variation);
+        const depth = chunkSize * (baseScale + Math.random() * variation);
+        const height = isCenter ? chunkSize * 0.9 : chunkSize * (0.35 + Math.random() * 0.55);
         const material = isCenter ? towerMaterial : buildingMaterials[(gx + gz) % buildingMaterials.length];
         const building = new THREE.Mesh(buildingGeometry.clone(), material);
         building.scale.set(width, height, depth);
@@ -1901,9 +1920,9 @@
         registerCityMesh(building);
 
         if (!isCenter && Math.random() > 0.5) {
-          const roofHeight = height * (0.55 + Math.random() * 0.2);
+          const roofHeight = height * (0.45 + Math.random() * 0.15);
           const roof = new THREE.Mesh(
-            new THREE.ConeGeometry(width * 0.4, height * 0.22, 4),
+            new THREE.ConeGeometry(width * 0.35, height * 0.16, 4),
             new THREE.MeshStandardMaterial({ color: new THREE.Color(0xffb347), metalness: 0.3, roughness: 0.5 })
           );
           roof.position.set(x, plateauLevel + roofHeight, z);
@@ -2117,8 +2136,10 @@
     for (const sprite of cloudSprites) {
       const data = sprite.userData;
       const angle = time * data.driftSpeed + data.phase;
-      const targetX = camera.position.x + Math.cos(angle) * data.radius;
-      const targetZ = camera.position.z + Math.sin(angle) * data.radius;
+      const windOffsetX = Math.sin(time * data.windFrequencyX + data.phase) * data.windAmplitude;
+      const windOffsetZ = Math.cos(time * data.windFrequencyZ + data.phase * 0.6) * data.windAmplitude;
+      const targetX = camera.position.x + Math.cos(angle) * data.radius + windOffsetX;
+      const targetZ = camera.position.z + Math.sin(angle) * data.radius + windOffsetZ;
       sprite.position.x = THREE.MathUtils.damp(sprite.position.x, targetX, 3.2, dt);
       sprite.position.z = THREE.MathUtils.damp(sprite.position.z, targetZ, 3.2, dt);
       const bob = Math.sin(time * data.bobSpeed + data.phase) * 14;
@@ -2127,7 +2148,7 @@
       const targetOpacity = data.baseOpacity + Math.sin(time * 0.32 + data.phase) * 0.1;
       const dampedOpacity = THREE.MathUtils.damp(sprite.material.opacity, targetOpacity, 2.8, dt);
       sprite.material.opacity = THREE.MathUtils.clamp(dampedOpacity, 0.28, 0.92);
-      sprite.material.rotation = Math.sin(time * 0.12 + data.phase) * 0.18;
+      sprite.material.rotation = Math.sin(time * 0.12 + data.phase) * 0.18 + Math.sin(time * data.windFrequencyX) * 0.05;
     }
   }
 
