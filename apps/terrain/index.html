@@ -1830,12 +1830,26 @@
   const cityGroup = new THREE.Group();
   cityGroup.name = 'PlateauCity';
   terrainMesh.add(cityGroup);
+  const cityMeshes = [];
+
+  function registerCityMesh(mesh) {
+    if (!mesh) return;
+    cityMeshes.push(mesh);
+    if (mesh.material && mesh.material.color) {
+      mesh.userData.baseColor = mesh.material.color.clone();
+    }
+  }
+
+  function updateCityAnchor() {
+    cityGroup.position.set(-terrainState.offsetX, 0, -terrainState.offsetZ);
+  }
 
   function buildCityOnPlateau() {
     cityGroup.clear();
+    cityMeshes.length = 0;
 
-    const plazaSize = plateauHalfSize * 2 - chunkSize * 0.4;
-    const plazaHeight = 1;
+    const plazaSize = plateauHalfSize * 1.25;
+    const plazaHeight = 0.7;
     const plaza = new THREE.Mesh(
       new THREE.BoxGeometry(plazaSize, plazaHeight, plazaSize),
       new THREE.MeshStandardMaterial({ color: new THREE.Color(0x1d2432), metalness: 0.2, roughness: 0.85 })
@@ -1843,17 +1857,20 @@
     plaza.position.y = plateauLevel - plazaHeight / 2;
     plaza.receiveShadow = true;
     cityGroup.add(plaza);
+    registerCityMesh(plaza);
 
     const pathway = new THREE.Mesh(
-      new THREE.BoxGeometry(plazaSize * 0.7, 0.4, chunkSize * 0.3),
+      new THREE.BoxGeometry(plazaSize * 0.6, 0.3, chunkSize * 0.2),
       new THREE.MeshStandardMaterial({ color: new THREE.Color(0x2c384a), metalness: 0.1, roughness: 0.7 })
     );
     pathway.position.y = plateauLevel + 0.01;
     cityGroup.add(pathway);
+    registerCityMesh(pathway);
 
     const crossPath = pathway.clone();
     crossPath.rotation.y = Math.PI / 2;
     cityGroup.add(crossPath);
+    registerCityMesh(crossPath);
 
     const buildingGeometry = new THREE.BoxGeometry(1, 1, 1);
     const towerMaterial = new THREE.MeshStandardMaterial({ color: new THREE.Color(0x8fb4ff), metalness: 0.55, roughness: 0.35, emissive: new THREE.Color(0x0b1b3c), emissiveIntensity: 0.12 });
@@ -1863,17 +1880,17 @@
       new THREE.MeshStandardMaterial({ color: new THREE.Color(0x6884a8), metalness: 0.3, roughness: 0.6 })
     ];
 
-    const gridCount = 4;
-    const spacing = chunkSize * 0.9;
+    const gridCount = 3;
+    const spacing = chunkSize * 0.55;
     const startOffset = -spacing * (gridCount - 1) / 2;
     for (let gx = 0; gx < gridCount; gx++) {
       for (let gz = 0; gz < gridCount; gz++) {
         const x = startOffset + gx * spacing;
         const z = startOffset + gz * spacing;
         const isCenter = Math.abs(x) < chunkSize * 0.2 && Math.abs(z) < chunkSize * 0.2;
-        const width = chunkSize * (0.32 + Math.random() * 0.24);
-        const depth = chunkSize * (0.32 + Math.random() * 0.24);
-        const height = isCenter ? chunkSize * 2.6 : chunkSize * (1.4 + Math.random() * 1.8);
+        const width = chunkSize * (0.2 + Math.random() * 0.18);
+        const depth = chunkSize * (0.2 + Math.random() * 0.18);
+        const height = isCenter ? chunkSize * 1.6 : chunkSize * (0.8 + Math.random() * 1.1);
         const material = isCenter ? towerMaterial : buildingMaterials[(gx + gz) % buildingMaterials.length];
         const building = new THREE.Mesh(buildingGeometry.clone(), material);
         building.scale.set(width, height, depth);
@@ -1881,24 +1898,26 @@
         building.castShadow = true;
         building.receiveShadow = true;
         cityGroup.add(building);
+        registerCityMesh(building);
 
         if (!isCenter && Math.random() > 0.5) {
-          const roofHeight = height * (0.6 + Math.random() * 0.25);
+          const roofHeight = height * (0.55 + Math.random() * 0.2);
           const roof = new THREE.Mesh(
-            new THREE.ConeGeometry(width * 0.35, height * 0.25, 4),
+            new THREE.ConeGeometry(width * 0.4, height * 0.22, 4),
             new THREE.MeshStandardMaterial({ color: new THREE.Color(0xffb347), metalness: 0.3, roughness: 0.5 })
           );
           roof.position.set(x, plateauLevel + roofHeight, z);
           roof.rotation.y = Math.PI / 4;
           roof.castShadow = true;
           cityGroup.add(roof);
+          registerCityMesh(roof);
         }
       }
     }
 
-    const borderHeight = 2.2;
-    const borderThickness = chunkSize * 0.22;
-    const borderLength = plateauHalfSize * 2;
+    const borderHeight = 1.6;
+    const borderThickness = chunkSize * 0.16;
+    const borderLength = plazaSize * 0.95;
     const borderMaterial = new THREE.MeshStandardMaterial({ color: new THREE.Color(0x2a3646), metalness: 0.25, roughness: 0.65 });
     for (let i = 0; i < 4; i++) {
       const wall = new THREE.Mesh(
@@ -1907,18 +1926,36 @@
       );
       wall.position.y = plateauLevel + borderHeight / 2;
       if (i < 2) {
-        wall.position.z = (i === 0 ? -1 : 1) * (plateauHalfSize - borderThickness / 2);
+        wall.position.z = (i === 0 ? -1 : 1) * (plazaSize / 2 - borderThickness / 2);
       } else {
         wall.rotation.y = Math.PI / 2;
-        wall.position.x = (i === 2 ? -1 : 1) * (plateauHalfSize - borderThickness / 2);
+        wall.position.x = (i === 2 ? -1 : 1) * (plazaSize / 2 - borderThickness / 2);
       }
       wall.castShadow = true;
       wall.receiveShadow = true;
       cityGroup.add(wall);
+      registerCityMesh(wall);
     }
+
+    updateCityAnchor();
   }
 
   buildCityOnPlateau();
+
+  function updateCityRenderMode(isWire) {
+    cityMeshes.forEach(mesh => {
+      if (!mesh.material) return;
+      mesh.material.wireframe = isWire;
+      if (mesh.userData.baseColor && mesh.material.color) {
+        if (isWire) {
+          mesh.material.color.copy(wireBlockColor);
+        } else {
+          mesh.material.color.copy(mesh.userData.baseColor);
+        }
+      }
+      mesh.material.needsUpdate = true;
+    });
+  }
 
   const groundRay = new THREE.Raycaster();
   const floatingBlocks = [];
@@ -1949,6 +1986,7 @@
       }
       block.material.needsUpdate = true;
     });
+    updateCityRenderMode(isWire);
     updateRenderButtons(mode);
     if (announce && previousMode !== mode) {
       const description = renderModeDescriptions[mode] || mode;
@@ -2117,6 +2155,7 @@
       terrainState.offsetZ = snappedZ;
       refreshTerrain(snappedX, snappedZ);
       terrainMesh.position.set(snappedX, 0, snappedZ);
+      updateCityAnchor();
       console.log(`Terrain recentered to chunk (${Math.round(snappedX / chunkSize)}, ${Math.round(snappedZ / chunkSize)}).`);
     }
   }
