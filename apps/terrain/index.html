@@ -97,15 +97,27 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      background: radial-gradient(circle at 50% 40%, rgba(19, 45, 86, 0.65), rgba(2, 8, 23, 0.92));
+      background: var(--navy-900);
       color: var(--text-white);
       font-family: 'Lucida Sans', 'Geneva', sans-serif;
       font-size: 2em;
       letter-spacing: 0.08em;
       text-transform: uppercase;
       z-index: 60;
+      overflow: hidden;
+    }
+    #loader::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(circle at 50% 40%, rgba(19, 45, 86, 0.75), rgba(2, 8, 23, 0.98));
+      opacity: 0.96;
+      pointer-events: none;
+      z-index: 0;
     }
     #loader .loader-content {
+      position: relative;
+      z-index: 1;
       display: grid;
       justify-items: center;
       gap: 20px;
@@ -126,23 +138,38 @@
       fill: none;
       stroke-linecap: round;
       stroke-linejoin: round;
-      animation: loader-torus-spin 5s linear infinite;
+      animation: loader-torus-spin 4.5s linear infinite;
       transform-origin: 50% 50%;
-      filter: drop-shadow(0 0 12px rgba(111, 208, 255, 0.45));
     }
-    #loader .loader-icon .torus-base {
-      opacity: 0.55;
+    #loader .loader-icon .torus-ring {
+      stroke: rgba(99, 179, 255, 0.45);
+      stroke-width: 12;
     }
-    #loader .loader-icon .torus-highlight {
-      animation: loader-torus-breathe 2.6s ease-in-out infinite;
+    #loader .loader-icon .torus-glow {
+      stroke: url(#loader-torus-gradient);
+      stroke-width: 12;
+      stroke-dasharray: 110 200;
+      stroke-linecap: round;
+      filter: drop-shadow(0 0 18px rgba(143, 214, 255, 0.6));
+      animation: loader-torus-sweep 1.9s ease-in-out infinite;
     }
     @keyframes loader-torus-spin {
       from { transform: rotate(0deg); }
       to { transform: rotate(360deg); }
     }
-    @keyframes loader-torus-breathe {
-      0%, 100% { opacity: 0.35; }
-      50% { opacity: 0.9; }
+    @keyframes loader-torus-sweep {
+      0% {
+        stroke-dashoffset: 300;
+        opacity: 0.35;
+      }
+      50% {
+        stroke-dashoffset: 150;
+        opacity: 1;
+      }
+      100% {
+        stroke-dashoffset: -10;
+        opacity: 0.6;
+      }
     }
     #loader .loader-text {
       font-size: 0.54em;
@@ -157,8 +184,8 @@
       #loader .loader-icon svg {
         animation-duration: 12s !important;
       }
-      #loader .loader-icon .torus-highlight {
-        animation-duration: 6s !important;
+      #loader .loader-icon .torus-glow {
+        animation-duration: 4s !important;
       }
     }
     #loader #progress {
@@ -970,17 +997,14 @@
     <div class="loader-content">
       <div class="loader-icon" aria-hidden="true">
         <svg viewBox="0 0 120 120" role="presentation">
-          <g class="torus-base" stroke="#2f8dff" stroke-width="3">
-            <ellipse cx="60" cy="60" rx="44" ry="28"></ellipse>
-            <ellipse cx="60" cy="60" rx="30" ry="18"></ellipse>
-            <ellipse cx="60" cy="60" rx="44" ry="28" transform="rotate(55 60 60)"></ellipse>
-            <ellipse cx="60" cy="60" rx="30" ry="18" transform="rotate(-55 60 60)"></ellipse>
-          </g>
-          <g class="torus-highlight" stroke="#8fd6ff" stroke-width="2.2">
-            <ellipse cx="60" cy="60" rx="44" ry="28" transform="rotate(-28 60 60)"></ellipse>
-            <ellipse cx="60" cy="60" rx="30" ry="18" transform="rotate(28 60 60)"></ellipse>
-            <circle cx="60" cy="60" r="7"></circle>
-          </g>
+          <defs>
+            <linearGradient id="loader-torus-gradient" x1="15%" y1="15%" x2="85%" y2="85%">
+              <stop offset="0%" stop-color="#8fd6ff" />
+              <stop offset="100%" stop-color="#2f8dff" />
+            </linearGradient>
+          </defs>
+          <circle class="torus-ring" cx="60" cy="60" r="34"></circle>
+          <circle class="torus-glow" cx="60" cy="60" r="34"></circle>
         </svg>
       </div>
       <div class="loader-text">Loading <span id="progress">0%</span></div>
