@@ -1827,99 +1827,6 @@
   defaultTerrainColor = terrainMesh.material.color.clone();
   function snapToChunk(value) { return Math.round(value / chunkSize) * chunkSize; }
 
-  const cityGroup = new THREE.Group();
-  cityGroup.name = 'PlateauCity';
-  terrainMesh.add(cityGroup);
-
-  function buildCityOnPlateau() {
-    cityGroup.clear();
-
-    const plazaSize = plateauHalfSize * 2 - chunkSize * 0.4;
-    const plazaHeight = 1;
-    const plaza = new THREE.Mesh(
-      new THREE.BoxGeometry(plazaSize, plazaHeight, plazaSize),
-      new THREE.MeshStandardMaterial({ color: new THREE.Color(0x1d2432), metalness: 0.2, roughness: 0.85 })
-    );
-    plaza.position.y = plateauLevel - plazaHeight / 2;
-    plaza.receiveShadow = true;
-    cityGroup.add(plaza);
-
-    const pathway = new THREE.Mesh(
-      new THREE.BoxGeometry(plazaSize * 0.7, 0.4, chunkSize * 0.3),
-      new THREE.MeshStandardMaterial({ color: new THREE.Color(0x2c384a), metalness: 0.1, roughness: 0.7 })
-    );
-    pathway.position.y = plateauLevel + 0.01;
-    cityGroup.add(pathway);
-
-    const crossPath = pathway.clone();
-    crossPath.rotation.y = Math.PI / 2;
-    cityGroup.add(crossPath);
-
-    const buildingGeometry = new THREE.BoxGeometry(1, 1, 1);
-    const towerMaterial = new THREE.MeshStandardMaterial({ color: new THREE.Color(0x8fb4ff), metalness: 0.55, roughness: 0.35, emissive: new THREE.Color(0x0b1b3c), emissiveIntensity: 0.12 });
-    const buildingMaterials = [
-      new THREE.MeshStandardMaterial({ color: new THREE.Color(0x3f5c7a), metalness: 0.4, roughness: 0.5 }),
-      new THREE.MeshStandardMaterial({ color: new THREE.Color(0x516b8c), metalness: 0.35, roughness: 0.55 }),
-      new THREE.MeshStandardMaterial({ color: new THREE.Color(0x6884a8), metalness: 0.3, roughness: 0.6 })
-    ];
-
-    const gridCount = 4;
-    const spacing = chunkSize * 0.9;
-    const startOffset = -spacing * (gridCount - 1) / 2;
-    for (let gx = 0; gx < gridCount; gx++) {
-      for (let gz = 0; gz < gridCount; gz++) {
-        const x = startOffset + gx * spacing;
-        const z = startOffset + gz * spacing;
-        const isCenter = Math.abs(x) < chunkSize * 0.2 && Math.abs(z) < chunkSize * 0.2;
-        const width = chunkSize * (0.32 + Math.random() * 0.24);
-        const depth = chunkSize * (0.32 + Math.random() * 0.24);
-        const height = isCenter ? chunkSize * 2.6 : chunkSize * (1.4 + Math.random() * 1.8);
-        const material = isCenter ? towerMaterial : buildingMaterials[(gx + gz) % buildingMaterials.length];
-        const building = new THREE.Mesh(buildingGeometry.clone(), material);
-        building.scale.set(width, height, depth);
-        building.position.set(x, plateauLevel + height / 2, z);
-        building.castShadow = true;
-        building.receiveShadow = true;
-        cityGroup.add(building);
-
-        if (!isCenter && Math.random() > 0.5) {
-          const roofHeight = height * (0.6 + Math.random() * 0.25);
-          const roof = new THREE.Mesh(
-            new THREE.ConeGeometry(width * 0.35, height * 0.25, 4),
-            new THREE.MeshStandardMaterial({ color: new THREE.Color(0xffb347), metalness: 0.3, roughness: 0.5 })
-          );
-          roof.position.set(x, plateauLevel + roofHeight, z);
-          roof.rotation.y = Math.PI / 4;
-          roof.castShadow = true;
-          cityGroup.add(roof);
-        }
-      }
-    }
-
-    const borderHeight = 2.2;
-    const borderThickness = chunkSize * 0.22;
-    const borderLength = plateauHalfSize * 2;
-    const borderMaterial = new THREE.MeshStandardMaterial({ color: new THREE.Color(0x2a3646), metalness: 0.25, roughness: 0.65 });
-    for (let i = 0; i < 4; i++) {
-      const wall = new THREE.Mesh(
-        new THREE.BoxGeometry(borderLength, borderHeight, borderThickness),
-        borderMaterial
-      );
-      wall.position.y = plateauLevel + borderHeight / 2;
-      if (i < 2) {
-        wall.position.z = (i === 0 ? -1 : 1) * (plateauHalfSize - borderThickness / 2);
-      } else {
-        wall.rotation.y = Math.PI / 2;
-        wall.position.x = (i === 2 ? -1 : 1) * (plateauHalfSize - borderThickness / 2);
-      }
-      wall.castShadow = true;
-      wall.receiveShadow = true;
-      cityGroup.add(wall);
-    }
-  }
-
-  buildCityOnPlateau();
-
   const groundRay = new THREE.Raycaster();
   const floatingBlocks = [];
 
@@ -1999,15 +1906,11 @@
   }
 
   const blockSpread = terrainSize * 0.48;
-  const cityExclusion = plateauHalfSize + chunkSize * 0.4;
   async function generateBlocks(count) {
     let created = 0;
     while (created < count) {
       const x = Math.random() * blockSpread * 2 - blockSpread;
       const z = Math.random() * blockSpread * 2 - blockSpread;
-      if (Math.abs(x) < cityExclusion && Math.abs(z) < cityExclusion) {
-        continue;
-      }
       createBlock(x, z);
       created++;
       if (created % 50 === 0) {
