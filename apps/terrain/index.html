@@ -966,8 +966,6 @@
       <button type="button" class="render-mode-btn is-active" data-render-mode="default" aria-pressed="true">Default</button>
       <button type="button" class="render-mode-btn" data-render-mode="wire" aria-pressed="false">Wired Vectors</button>
       <button type="button" class="render-mode-btn" data-render-mode="zx" aria-pressed="false">ZX Spectrum</button>
-      <button type="button" class="render-mode-btn" data-render-mode="c64" aria-pressed="false">C64 Raster</button>
-      <button type="button" class="render-mode-btn" data-render-mode="amiga" aria-pressed="false">Amiga 500</button>
     </div>
     <div class="hud-line"><span>Position</span><span class="hud-value" data-hud="position">0, 0, 0</span></div>
     <div class="hud-line"><span>Heading</span><span class="hud-value" data-hud="heading">0° / 0°</span></div>
@@ -1082,9 +1080,7 @@
   const renderModeDescriptions = {
     default: 'default shading',
     wire: 'wired vectors',
-    zx: 'ZX Spectrum palette',
-    c64: 'Commodore 64 palette',
-    amiga: 'Amiga 500 palette'
+    zx: 'ZX Spectrum wireframe'
   };
   const retroPalettes = {
     zx: [
@@ -1092,29 +1088,24 @@
       0x00cd00, 0x00cdcd, 0xcdcd00, 0xcdcdcd,
       0x404040, 0x0000ff, 0xff0000, 0xff00ff,
       0x00ff00, 0x00ffff, 0xffff00, 0xffffff
-    ],
-    c64: [
-      0x000000, 0xffffff, 0x68372b, 0x70a4b2,
-      0x6f3d86, 0x588d43, 0x352879, 0xb8c76f,
-      0x6f4f25, 0x433900, 0x9a6759, 0x444444,
-      0x6c6c6c, 0x9ad284, 0x6c5eb5, 0x959595
-    ],
-    amiga: [
-      0x0c0c0c, 0xf6f6f6, 0x1e32d6, 0x2ac4f5,
-      0xd62e2e, 0xf5b32a, 0x1cc248, 0x8ae65f,
-      0x8a2ae6, 0xf58bf5, 0x2a7bf5, 0x74b9f5,
-      0xf5d32a, 0xf58b2a, 0xd6f52a, 0xc4c4c4
     ]
   };
   const retroModeConfigs = {
     default: { blockSize: 1, attributeMode: 'quantize' },
-    zx: { blockSize: 8, attributeMode: 'attribute' },
-    c64: { blockSize: 1, attributeMode: 'quantize' },
-    amiga: { blockSize: 1, attributeMode: 'quantize' }
+    zx: { blockSize: 8, attributeMode: 'attribute' }
   };
   let currentRenderMode = 'default';
-  const wireTerrainColor = new THREE.Color(0x8fd6ff);
-  const wireBlockColor = new THREE.Color(0xffb86b);
+  const wireModePalette = {
+    wire: {
+      terrain: new THREE.Color(0x8fd6ff),
+      block: new THREE.Color(0xffb86b)
+    },
+    zx: {
+      terrain: new THREE.Color(0x00ffff),
+      block: new THREE.Color(0xffff00)
+    }
+  };
+  const getWireColorsForMode = (mode) => wireModePalette[mode] || wireModePalette.wire;
   let defaultTerrainColor = null;
 
   const RESOLUTIONS = [
@@ -1751,6 +1742,20 @@
           return bestIndex;
         }
 
+        float bayerDither(vec2 coord) {
+          vec2 pos = mod(coord, 4.0);
+          int x = int(pos.x);
+          int y = int(pos.y);
+          int index = x + y * 4;
+          const float bayer[16] = float[16](
+            0.0, 8.0, 2.0, 10.0,
+            12.0, 4.0, 14.0, 6.0,
+            3.0, 11.0, 1.0, 9.0,
+            15.0, 7.0, 13.0, 5.0
+          );
+          return (bayer[index] + 0.5) / 16.0;
+        }
+
         void main() {
           vec3 sceneColor = texture2D(sceneTexture, vUv).rgb;
 
@@ -1776,8 +1781,28 @@
           float inkDist = colorDistance(sceneColor, inkColor);
           vec3 finalColor = paperColor;
 
-          if (inkIndex != paperIndex && inkDist < paperDist) {
-            finalColor = inkColor;
+          if (inkIndex != paperIndex) {
+            float totalDist = max(paperDist + inkDist, 1e-5);
+            float paperWeight = clamp(inkDist / totalDist, 0.0, 1.0);
+            float inkWeight = 1.0 - paperWeight;
+            vec3 luminanceWeights = vec3(0.299, 0.587, 0.114);
+            float luminancePaper = dot(paperColor, luminanceWeights);
+            float luminanceInk = dot(inkColor, luminanceWeights);
+            float luminanceScene = dot(sceneColor, luminanceWeights);
+            float luminanceDiff = luminanceInk - luminancePaper;
+            float gradientWeight = inkWeight;
+            if (abs(luminanceDiff) > 1e-5) {
+              float grad = clamp((luminanceScene - luminancePaper) / luminanceDiff, 0.0, 1.0);
+              if (luminanceDiff < 0.0) {
+                grad = 1.0 - grad;
+              }
+              gradientWeight = mix(inkWeight, grad, 0.5);
+            }
+            gradientWeight = clamp(gradientWeight, 0.0, 1.0);
+            float pattern = bayerDither(pixelCoord);
+            if (gradientWeight > pattern) {
+              finalColor = inkColor;
+            }
           }
 
           gl_FragColor = vec4(finalColor, 1.0);
@@ -2330,13 +2355,14 @@
 
   buildCityOnPlateau();
 
-  function updateCityRenderMode(isWire) {
+  function updateCityRenderMode(isWire, wireColor) {
     cityMeshes.forEach(mesh => {
       if (!mesh.material) return;
       mesh.material.wireframe = isWire;
+      mesh.material.side = THREE.FrontSide;
       if (mesh.userData.baseColor && mesh.material.color) {
         if (isWire) {
-          mesh.material.color.copy(wireBlockColor);
+          mesh.material.color.copy(wireColor);
         } else {
           mesh.material.color.copy(mesh.userData.baseColor);
         }
@@ -2359,24 +2385,27 @@
   function applyRenderMode(mode, { announce = true } = {}) {
     const previousMode = currentRenderMode;
     currentRenderMode = mode;
-    const isWire = mode === 'wire';
+    const isWireMode = mode === 'wire' || mode === 'zx';
+    const wireColors = getWireColorsForMode(mode);
     const retroPalette = retroPalettes[mode];
     const useRetro = Boolean(retroPalette);
     if (defaultTerrainColor) {
-      terrainMesh.material.wireframe = isWire;
-      terrainMesh.material.color.copy(isWire ? wireTerrainColor : defaultTerrainColor);
+      terrainMesh.material.wireframe = isWireMode;
+      terrainMesh.material.side = THREE.FrontSide;
+      terrainMesh.material.color.copy(isWireMode ? wireColors.terrain : defaultTerrainColor);
       terrainMesh.material.needsUpdate = true;
     }
     floatingBlocks.forEach(block => {
-      block.material.wireframe = isWire;
-      if (isWire) {
-        block.material.color.copy(wireBlockColor);
+      block.material.wireframe = isWireMode;
+      block.material.side = THREE.FrontSide;
+      if (isWireMode) {
+        block.material.color.copy(wireColors.block);
       } else if (block.userData.baseColor) {
         block.material.color.copy(block.userData.baseColor);
       }
       block.material.needsUpdate = true;
     });
-    updateCityRenderMode(isWire);
+    updateCityRenderMode(isWireMode, wireColors.block);
     retroEffect.setEnabled(useRetro);
     if (useRetro) {
       retroEffect.setConfig(retroModeConfigs[mode] || retroModeConfigs.default);
@@ -2415,9 +2444,11 @@
     block.castShadow = true;
     block.receiveShadow = true;
     block.userData.baseColor = block.material.color.clone();
-    if (currentRenderMode === 'wire') {
+    if (currentRenderMode === 'wire' || currentRenderMode === 'zx') {
+      const activeWireColors = getWireColorsForMode(currentRenderMode);
       block.material.wireframe = true;
-      block.material.color.copy(wireBlockColor);
+      block.material.side = THREE.FrontSide;
+      block.material.color.copy(activeWireColors.block);
       block.material.needsUpdate = true;
     }
     block.userData.base = block.position.clone();
