@@ -609,7 +609,7 @@
       transform: translateX(-50%);
       display: grid;
       gap: 6px;
-      padding: 12px 16px;
+      padding: 14px 20px;
       background: rgba(2, 8, 23, 0.42);
       border: 1px solid rgba(255, 255, 255, 0.16);
       box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08), 0 12px 24px rgba(0, 0, 0, 0.35);
@@ -618,7 +618,8 @@
       color: var(--text-white);
       letter-spacing: 0.12em;
       text-transform: uppercase;
-      min-width: min(320px, 90vw);
+      min-width: min(420px, 94vw);
+      max-width: min(560px, 94vw);
       z-index: 42;
       backdrop-filter: blur(12px);
       pointer-events: auto;
@@ -641,7 +642,7 @@
     }
     .hud-render-modes {
       display: grid;
-      grid-auto-flow: column;
+      grid-template-columns: repeat(auto-fit, minmax(118px, 1fr));
       gap: 8px;
       justify-content: center;
       pointer-events: auto;
@@ -838,7 +839,7 @@
       display: none;
     }
     body.is-mobile .hud-render-modes {
-      grid-auto-flow: row;
+      grid-template-columns: 1fr;
       gap: 6px;
     }
     body.is-mobile .hud-render-modes button {
@@ -955,9 +956,11 @@
       <span>Orbital Metrics Stream — Vectors Locked</span>
     </div>
     <div class="hud-render-modes" role="group" aria-label="Rendering mode">
-      <button type="button" class="render-mode-btn is-active" data-render-mode="default">Default</button>
-      <button type="button" class="render-mode-btn" data-render-mode="wire">Wired Vectors</button>
-      <button type="button" class="render-mode-btn" data-render-mode="zx">ZX Spectrum</button>
+      <button type="button" class="render-mode-btn is-active" data-render-mode="default" aria-pressed="true">Default</button>
+      <button type="button" class="render-mode-btn" data-render-mode="wire" aria-pressed="false">Wired Vectors</button>
+      <button type="button" class="render-mode-btn" data-render-mode="zx" aria-pressed="false">ZX Spectrum</button>
+      <button type="button" class="render-mode-btn" data-render-mode="c64" aria-pressed="false">C64 Raster</button>
+      <button type="button" class="render-mode-btn" data-render-mode="amiga" aria-pressed="false">Amiga 500</button>
     </div>
     <div class="hud-line"><span>Position</span><span class="hud-value" data-hud="position">0, 0, 0</span></div>
     <div class="hud-line"><span>Heading</span><span class="hud-value" data-hud="heading">0° / 0°</span></div>
@@ -1065,7 +1068,29 @@
   const renderModeDescriptions = {
     default: 'default shading',
     wire: 'wired vectors',
-    zx: 'ZX Spectrum palette'
+    zx: 'ZX Spectrum palette',
+    c64: 'Commodore 64 palette',
+    amiga: 'Amiga 500 palette'
+  };
+  const retroPalettes = {
+    zx: [
+      0x000000, 0x0000d7, 0xd70000, 0xd700d7,
+      0x00d700, 0x00d7d7, 0xd7d700, 0xd7d7d7,
+      0x202020, 0x0000ff, 0xff0000, 0xff00ff,
+      0x00ff00, 0x00ffff, 0xffff00, 0xffffff
+    ],
+    c64: [
+      0x000000, 0xffffff, 0x68372b, 0x70a4b2,
+      0x6f3d86, 0x588d43, 0x352879, 0xb8c76f,
+      0x6f4f25, 0x433900, 0x9a6759, 0x444444,
+      0x6c6c6c, 0x9ad284, 0x6c5eb5, 0x959595
+    ],
+    amiga: [
+      0x0c0c0c, 0xf6f6f6, 0x1e32d6, 0x2ac4f5,
+      0xd62e2e, 0xf5b32a, 0x1cc248, 0x8ae65f,
+      0x8a2ae6, 0xf58bf5, 0x2a7bf5, 0x74b9f5,
+      0xf5d32a, 0xf58b2a, 0xd6f52a, 0xc4c4c4
+    ]
   };
   let currentRenderMode = 'default';
   const wireTerrainColor = new THREE.Color(0x8fd6ff);
@@ -1245,7 +1270,7 @@
   renderer.domElement.tabIndex = 0;
   renderer.domElement.setAttribute('aria-label', 'Interactive terrain viewport');
 
-  const zxEffect = createZxEffect(renderer);
+  const retroEffect = createRetroEffect(renderer, retroPalettes.zx);
 
   const scene = new THREE.Scene();
   const fogColor = new THREE.Color(0x020817);
@@ -1498,17 +1523,20 @@
     return texture;
   }
 
-  function createZxEffect(renderer) {
-    const paletteHex = [
-      0x202020, 0x1b37d6, 0xd62a2a, 0xd63ad6,
-      0x29d63a, 0x29d6d6, 0xd6d63a, 0xe0e0e0,
-      0x3a3a3a, 0x0000ff, 0xff0000, 0xff00ff,
-      0x00ff00, 0x00ffff, 0xffff00, 0xffffff
-    ];
-    const paletteVectors = paletteHex.map(hex => {
-      const color = new THREE.Color(hex);
-      return new THREE.Vector3(color.r, color.g, color.b);
-    });
+  function createRetroEffect(renderer, initialPalette = []) {
+    const paletteVectors = new Array(16).fill(null).map(() => new THREE.Vector3());
+    const paletteColor = new THREE.Color();
+
+    function applyPalette(palette) {
+      const source = Array.isArray(palette) && palette.length ? palette : [0x000000];
+      for (let i = 0; i < paletteVectors.length; i++) {
+        const hex = source[i % source.length];
+        paletteColor.set(hex);
+        paletteVectors[i].set(paletteColor.r, paletteColor.g, paletteColor.b);
+      }
+    }
+
+    applyPalette(initialPalette);
 
     const resolution = new THREE.Vector2(1, 1);
     const blockCount = new THREE.Vector2(1, 1);
@@ -1715,6 +1743,11 @@
       enabled: false,
       setEnabled(value) {
         this.enabled = Boolean(value);
+      },
+      setPalette(palette) {
+        applyPalette(palette);
+        attributeMaterial.needsUpdate = true;
+        finalMaterial.needsUpdate = true;
       },
       setSize(width, height) {
         const safeWidth = Math.max(1, Math.floor(width));
@@ -2240,7 +2273,8 @@
     const previousMode = currentRenderMode;
     currentRenderMode = mode;
     const isWire = mode === 'wire';
-    const isZx = mode === 'zx';
+    const retroPalette = retroPalettes[mode];
+    const useRetro = Boolean(retroPalette);
     if (defaultTerrainColor) {
       terrainMesh.material.wireframe = isWire;
       terrainMesh.material.color.copy(isWire ? wireTerrainColor : defaultTerrainColor);
@@ -2256,7 +2290,10 @@
       block.material.needsUpdate = true;
     });
     updateCityRenderMode(isWire);
-    zxEffect.setEnabled(isZx);
+    retroEffect.setEnabled(useRetro);
+    if (useRetro) {
+      retroEffect.setPalette(retroPalette);
+    }
     updateRenderButtons(mode);
     if (announce && previousMode !== mode) {
       const description = renderModeDescriptions[mode] || mode;
@@ -2489,8 +2526,8 @@
     updateBlocks(dt, now / 1000);
     updateSky(now / 1000, dt);
     updateLighting(dt, now / 1000, isCameraMoving);
-    if (zxEffect.enabled) {
-      zxEffect.render(scene, camera);
+    if (retroEffect.enabled) {
+      retroEffect.render(scene, camera);
     } else {
       renderer.render(scene, camera);
     }
@@ -2628,7 +2665,7 @@
     renderer.setSize(res.width, res.height, false);
     renderer.domElement.width = res.width;
     renderer.domElement.height = res.height;
-    zxEffect.setSize(res.width, res.height);
+    retroEffect.setSize(res.width, res.height);
     camera.aspect = res.width / res.height;
     camera.updateProjectionMatrix();
     resolutionDisplay.textContent = `${res.label} — ${res.width} × ${res.height}`;
