@@ -127,36 +127,43 @@
       width: 100%;
       height: 100%;
       fill: none;
-      stroke-linecap: round;
-      stroke-linejoin: round;
-      animation: loader-torus-spin 6.8s linear infinite;
+      animation: loader-octagon-spin 4.6s linear infinite;
       transform-origin: 50% 50%;
       transform-style: preserve-3d;
       transform-box: fill-box;
       will-change: transform;
       backface-visibility: hidden;
-      filter: drop-shadow(0 0 12px rgba(111, 208, 255, 0.45));
     }
-    #loader .loader-icon .torus-body {
-      opacity: 0.95;
+    #loader .loader-icon .octagon-back {
+      fill: url(#loaderOctagonEdge);
     }
-    #loader .loader-icon .torus-highlight {
-      stroke-dasharray: 62 160;
-      stroke-dashoffset: 0;
-      animation: loader-torus-glide 3.2s ease-in-out infinite;
-      mix-blend-mode: screen;
+    #loader .loader-icon .octagon-front {
+      fill: url(#loaderOctagonFront);
+      stroke: rgba(204, 234, 255, 0.65);
+      stroke-width: 1.6;
     }
-    @keyframes loader-torus-spin {
-      0% { transform: rotateX(22deg) rotateY(0deg) rotateZ(0deg); }
-      25% { transform: rotateX(10deg) rotateY(90deg) rotateZ(45deg); }
-      50% { transform: rotateX(-22deg) rotateY(180deg) rotateZ(90deg); }
-      75% { transform: rotateX(-10deg) rotateY(270deg) rotateZ(135deg); }
-      100% { transform: rotateX(22deg) rotateY(360deg) rotateZ(180deg); }
+    #loader .loader-icon .octagon-core {
+      fill: url(#loaderOctagonCore);
+      opacity: 0.92;
     }
-    @keyframes loader-torus-glide {
-      0% { stroke-dashoffset: 0; opacity: 0.35; }
-      50% { stroke-dashoffset: -80; opacity: 0.9; }
-      100% { stroke-dashoffset: -160; opacity: 0.35; }
+    #loader .loader-icon .octagon-glint {
+      fill: none;
+      stroke: rgba(255, 255, 255, 0.7);
+      stroke-width: 2.4;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      stroke-dasharray: 18 42;
+      animation: loader-octagon-glint 2.6s ease-in-out infinite;
+    }
+    @keyframes loader-octagon-spin {
+      0% { transform: rotateX(16deg) rotateY(-10deg) rotateZ(0deg); }
+      50% { transform: rotateX(16deg) rotateY(-10deg) rotateZ(180deg); }
+      100% { transform: rotateX(16deg) rotateY(-10deg) rotateZ(360deg); }
+    }
+    @keyframes loader-octagon-glint {
+      0% { stroke-dashoffset: 0; opacity: 0.15; }
+      50% { stroke-dashoffset: -28; opacity: 0.6; }
+      100% { stroke-dashoffset: -56; opacity: 0.15; }
     }
     #loader .loader-text {
       font-size: 0.54em;
@@ -169,10 +176,10 @@
     }
     @media (prefers-reduced-motion: reduce) {
       #loader .loader-icon svg {
-        animation-duration: 12s !important;
+        animation-duration: 10s !important;
       }
-      #loader .loader-icon .torus-highlight {
-        animation-duration: 7s !important;
+      #loader .loader-icon .octagon-glint {
+        animation-duration: 6s !important;
       }
     }
     #loader #progress {
@@ -989,34 +996,41 @@
       <div class="loader-icon" aria-hidden="true">
         <svg viewBox="0 0 120 120" role="presentation">
           <defs>
-            <radialGradient id="loaderTorusFill" cx="50%" cy="38%" r="60%">
-              <stop offset="0%" stop-color="#9ddcff" stop-opacity="0.9"></stop>
-              <stop offset="45%" stop-color="#3e84dd" stop-opacity="0.98"></stop>
-              <stop offset="100%" stop-color="#162f59" stop-opacity="1"></stop>
-            </radialGradient>
-            <linearGradient id="loaderTorusEdge" x1="20%" y1="0%" x2="80%" y2="100%">
-              <stop offset="0%" stop-color="#9bd6ff"></stop>
-              <stop offset="100%" stop-color="#2b5fa9"></stop>
+            <linearGradient id="loaderOctagonEdge" x1="32%" y1="0%" x2="78%" y2="92%">
+              <stop offset="0%" stop-color="#0a213d"></stop>
+              <stop offset="55%" stop-color="#133a63"></stop>
+              <stop offset="100%" stop-color="#061225"></stop>
             </linearGradient>
+            <linearGradient id="loaderOctagonFront" x1="30%" y1="10%" x2="70%" y2="90%">
+              <stop offset="0%" stop-color="#7fc4ff"></stop>
+              <stop offset="35%" stop-color="#3f8dd7"></stop>
+              <stop offset="100%" stop-color="#1a3766"></stop>
+            </linearGradient>
+            <radialGradient id="loaderOctagonCore" cx="48%" cy="38%" r="62%">
+              <stop offset="0%" stop-color="#d9f2ff" stop-opacity="0.9"></stop>
+              <stop offset="45%" stop-color="#7ab6ff" stop-opacity="0.75"></stop>
+              <stop offset="100%" stop-color="#0f2d54" stop-opacity="0.9"></stop>
+            </radialGradient>
           </defs>
-          <path
-            class="torus-body"
-            fill="url(#loaderTorusFill)"
-            stroke="url(#loaderTorusEdge)"
-            stroke-width="3"
-            fill-rule="evenodd"
-            d="M60 16c24.3 0 44 19.7 44 44s-19.7 44-44 44S16 84.3 16 60 35.7 16 60 16zm0 20c-13.3 0-24 10.7-24 24s10.7 24 24 24 24-10.7 24-24S73.3 36 60 36z"
-          ></path>
-          <circle
-            class="torus-highlight"
-            cx="60"
-            cy="60"
-            r="34"
-            fill="none"
-            stroke="#d8f4ff"
-            stroke-width="5"
-            stroke-linecap="round"
-          ></circle>
+          <g class="octagon-group">
+            <polygon
+              class="octagon-back"
+              points="60 16 91.11 28.89 104 60 91.11 91.11 60 104 28.89 91.11 16 60 28.89 28.89"
+              transform="translate(0 5)"
+            ></polygon>
+            <polygon
+              class="octagon-front"
+              points="60 16 91.11 28.89 104 60 91.11 91.11 60 104 28.89 91.11 16 60 28.89 28.89"
+            ></polygon>
+            <polygon
+              class="octagon-core"
+              points="60 28 82.63 37.37 92 60 82.63 82.63 60 92 37.37 82.63 28 60 37.37 37.37"
+            ></polygon>
+            <path
+              class="octagon-glint"
+              d="M28.89 28.89L60 16 91.11 28.89 104 60"
+            ></path>
+          </g>
         </svg>
       </div>
       <div class="loader-text">Loading <span id="progress">0%</span></div>
