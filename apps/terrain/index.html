@@ -1938,13 +1938,29 @@
   window.addEventListener('blur', () => { pointerState.active = false; renderer.domElement.style.cursor = 'grab'; });
 
   let touchStart = null;
+  const swipeTouchIgnoreSelector = [
+    '#control-pad',
+    '#canvas-wrap',
+    '#control-ui',
+    '#hud-overlay',
+    '#console-dock',
+    '#fullscreen-btn',
+    'button',
+    'select',
+    'input',
+    'label',
+    'a',
+    '[role="button"]'
+  ].join(', ');
+  const shouldIgnoreGlobalSwipe = (target) => Boolean(target?.closest(swipeTouchIgnoreSelector));
+
   window.addEventListener('touchstart', e => {
-    if (e.target.closest('#control-pad') || e.target.closest('#canvas-wrap')) return;
+    if (shouldIgnoreGlobalSwipe(e.target)) return;
     touchStart = e.touches[0];
     e.preventDefault();
   }, { passive: false });
   window.addEventListener('touchmove', e => {
-    if (!touchStart || e.target.closest('#control-pad') || e.target.closest('#canvas-wrap')) return;
+    if (!touchStart || shouldIgnoreGlobalSwipe(e.target)) return;
     const touch = e.touches[0];
     const dx = touch.clientX - touchStart.clientX;
     const dy = touch.clientY - touchStart.clientY;
@@ -1956,7 +1972,7 @@
     e.preventDefault();
   }, { passive: false });
   window.addEventListener('touchend', e => {
-    if (e.target.closest('#control-pad') || e.target.closest('#canvas-wrap')) return;
+    if (shouldIgnoreGlobalSwipe(e.target)) return;
     touchStart = null;
     keyState['ArrowLeft'] = keyState['ArrowRight'] = keyState['ArrowUp'] = keyState['ArrowDown'] = false;
     e.preventDefault();
