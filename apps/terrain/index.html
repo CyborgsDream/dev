@@ -119,6 +119,9 @@
     #loader .loader-icon {
       width: min(180px, 36vw);
       aspect-ratio: 1 / 1;
+      display: grid;
+      place-items: center;
+      perspective: 1200px;
     }
     #loader .loader-icon svg {
       width: 100%;
@@ -126,8 +129,12 @@
       fill: none;
       stroke-linecap: round;
       stroke-linejoin: round;
-      animation: loader-torus-spin 5s linear infinite;
+      animation: loader-torus-spin 6.8s linear infinite;
       transform-origin: 50% 50%;
+      transform-style: preserve-3d;
+      transform-box: fill-box;
+      will-change: transform;
+      backface-visibility: hidden;
       filter: drop-shadow(0 0 12px rgba(111, 208, 255, 0.45));
     }
     #loader .loader-icon .torus-base {
@@ -137,8 +144,11 @@
       animation: loader-torus-breathe 2.6s ease-in-out infinite;
     }
     @keyframes loader-torus-spin {
-      from { transform: rotate(0deg); }
-      to { transform: rotate(360deg); }
+      0% { transform: rotateX(22deg) rotateY(0deg) rotateZ(0deg); }
+      25% { transform: rotateX(10deg) rotateY(90deg) rotateZ(45deg); }
+      50% { transform: rotateX(-22deg) rotateY(180deg) rotateZ(90deg); }
+      75% { transform: rotateX(-10deg) rotateY(270deg) rotateZ(135deg); }
+      100% { transform: rotateX(22deg) rotateY(360deg) rotateZ(180deg); }
     }
     @keyframes loader-torus-breathe {
       0%, 100% { opacity: 0.35; }
@@ -1317,11 +1327,93 @@
     ctx.fillStyle = gradient;
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     const texture = new THREE.CanvasTexture(canvas);
+    texture.center.set(0.5, 0.5);
     texture.generateMipmaps = false;
     texture.magFilter = THREE.LinearFilter;
     texture.minFilter = THREE.LinearFilter;
     texture.wrapS = THREE.ClampToEdgeWrapping;
     texture.wrapT = THREE.ClampToEdgeWrapping;
+    return texture;
+  }
+
+  function createCloudTexture() {
+    const canvas = document.createElement('canvas');
+    canvas.width = 256;
+    canvas.height = 128;
+    const ctx = canvas.getContext('2d');
+
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    const shadowColor = 'rgba(136, 176, 220, 0.28)';
+    const highlightColor = 'rgba(255, 255, 255, 0.9)';
+
+    const blobSets = [
+      { x: 68, y: 70, rx: 78, ry: 40, alpha: 0.9 },
+      { x: 110, y: 58, rx: 56, ry: 34, alpha: 0.78 },
+      { x: 154, y: 70, rx: 68, ry: 38, alpha: 0.82 },
+      { x: 206, y: 64, rx: 44, ry: 30, alpha: 0.68 },
+      { x: 92, y: 82, rx: 70, ry: 32, alpha: 0.86 },
+      { x: 138, y: 88, rx: 60, ry: 30, alpha: 0.8 }
+    ];
+
+    for (const blob of blobSets) {
+      ctx.beginPath();
+      ctx.ellipse(blob.x, blob.y, blob.rx, blob.ry, 0, 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(244, 252, 255, ${blob.alpha})`;
+      ctx.fill();
+    }
+
+    const highlightBands = [
+      { x: 104, y: 54, rx: 52, ry: 18 },
+      { x: 152, y: 58, rx: 44, ry: 16 },
+      { x: 188, y: 66, rx: 32, ry: 14 }
+    ];
+    ctx.globalAlpha = 1;
+    for (const band of highlightBands) {
+      ctx.beginPath();
+      ctx.ellipse(band.x, band.y, band.rx, band.ry, 0, 0, Math.PI * 2);
+      ctx.fillStyle = highlightColor;
+      ctx.fill();
+    }
+
+    ctx.globalAlpha = 1;
+    const undersideGradient = ctx.createLinearGradient(0, 72, 0, 128);
+    undersideGradient.addColorStop(0, 'rgba(165, 205, 255, 0.18)');
+    undersideGradient.addColorStop(1, 'rgba(120, 160, 220, 0.42)');
+    ctx.fillStyle = undersideGradient;
+    ctx.fillRect(0, 64, canvas.width, 64);
+
+    const shadowCaps = [
+      { x: 82, y: 90, rx: 70, ry: 28 },
+      { x: 140, y: 98, rx: 62, ry: 26 },
+      { x: 198, y: 92, rx: 52, ry: 24 }
+    ];
+    ctx.fillStyle = shadowColor;
+    for (const cap of shadowCaps) {
+      ctx.beginPath();
+      ctx.ellipse(cap.x, cap.y, cap.rx, cap.ry, 0, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    const sparkleCount = 28;
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.55)';
+    for (let i = 0; i < sparkleCount; i++) {
+      const sx = 30 + Math.random() * (canvas.width - 60);
+      const sy = 40 + Math.random() * 28;
+      const radius = 1.2 + Math.random() * 1.2;
+      ctx.beginPath();
+      ctx.ellipse(sx, sy, radius, radius * 0.6, 0, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    const texture = new THREE.CanvasTexture(canvas);
+    texture.center.set(0.5, 0.5);
+    texture.generateMipmaps = false;
+    texture.magFilter = THREE.LinearFilter;
+    texture.minFilter = THREE.LinearFilter;
+    texture.wrapS = THREE.ClampToEdgeWrapping;
+    texture.wrapT = THREE.ClampToEdgeWrapping;
+    texture.needsUpdate = true;
     return texture;
   }
 
@@ -1341,6 +1433,38 @@
   skyCeiling.position.set(0, 420, 0);
   skyCeiling.renderOrder = -6;
   scene.add(skyCeiling);
+
+  const cloudTexture = createCloudTexture();
+  const cloudSprites = [];
+  const cloudGroup = new THREE.Group();
+  cloudGroup.renderOrder = -4;
+  const cloudMaterial = new THREE.SpriteMaterial({
+    map: cloudTexture,
+    transparent: true,
+    opacity: 0.68,
+    depthWrite: false,
+    depthTest: false
+  });
+  const cloudCount = 12;
+  for (let i = 0; i < cloudCount; i++) {
+    const sprite = new THREE.Sprite(cloudMaterial.clone());
+    const scale = 420 + Math.random() * 260;
+    const aspect = 0.58 + Math.random() * 0.12;
+    sprite.scale.set(scale, scale * aspect, 1);
+    sprite.renderOrder = -4;
+    sprite.material.opacity = 0.45 + Math.random() * 0.22;
+    sprite.userData = {
+      radius: 520 + Math.random() * 240,
+      heightOffset: 160 + Math.random() * 140,
+      driftSpeed: 0.06 + Math.random() * 0.06,
+      bobSpeed: 0.4 + Math.random() * 0.3,
+      baseOpacity: sprite.material.opacity,
+      phase: Math.random() * Math.PI * 2
+    };
+    cloudGroup.add(sprite);
+    cloudSprites.push(sprite);
+  }
+  scene.add(cloudGroup);
 
   const camera = new THREE.PerspectiveCamera(50, 16 / 9, 0.1, 3000);
   const controls = {
@@ -1679,6 +1803,22 @@
     skyCeiling.rotation.z = Math.sin(time * 0.18) * 0.08;
     const ceilingOpacity = 0.7 + (Math.sin(time * 0.35) + 1) * 0.12;
     skyCeilingMaterial.opacity = THREE.MathUtils.damp(skyCeilingMaterial.opacity, ceilingOpacity, 2.5, dt);
+
+    for (const sprite of cloudSprites) {
+      const data = sprite.userData;
+      const angle = time * data.driftSpeed + data.phase;
+      const targetX = camera.position.x + Math.cos(angle) * data.radius;
+      const targetZ = camera.position.z + Math.sin(angle) * data.radius;
+      sprite.position.x = THREE.MathUtils.damp(sprite.position.x, targetX, 3.2, dt);
+      sprite.position.z = THREE.MathUtils.damp(sprite.position.z, targetZ, 3.2, dt);
+      const bob = Math.sin(time * data.bobSpeed + data.phase) * 14;
+      const targetY = camera.position.y + data.heightOffset + bob;
+      sprite.position.y = THREE.MathUtils.damp(sprite.position.y, targetY, 2.4, dt);
+      const targetOpacity = data.baseOpacity + Math.sin(time * 0.32 + data.phase) * 0.1;
+      const dampedOpacity = THREE.MathUtils.damp(sprite.material.opacity, targetOpacity, 2.8, dt);
+      sprite.material.opacity = THREE.MathUtils.clamp(dampedOpacity, 0.28, 0.92);
+      sprite.material.rotation = Math.sin(time * 0.12 + data.phase) * 0.18;
+    }
   }
 
   function updateLighting(dt, time, isMoving) {
