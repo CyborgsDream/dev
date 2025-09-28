@@ -1044,6 +1044,7 @@
     zx: { blockSize: 8, attributeMode: 'attribute' },
     petscii: { blockSize: 8, attributeMode: 'petscii' }
   };
+  const zxGroundPalette = retroPalettes.zx.map(hex => new THREE.Color(hex));
   let currentRenderMode = 'default';
   const wireModePalette = {
     wire: {
@@ -1057,6 +1058,23 @@
   };
   const getWireColorsForMode = (mode) => wireModePalette[mode] || wireModePalette.wire;
   let defaultTerrainColor = null;
+
+  const paletteScratchColor = new THREE.Color();
+  function findNearestPaletteColor(color, palette) {
+    let closest = palette[0];
+    let smallestDistance = Infinity;
+    for (const swatch of palette) {
+      const dr = color.r - swatch.r;
+      const dg = color.g - swatch.g;
+      const db = color.b - swatch.b;
+      const distance = dr * dr + dg * dg + db * db;
+      if (distance < smallestDistance) {
+        smallestDistance = distance;
+        closest = swatch;
+      }
+    }
+    return closest;
+  }
 
   const renderModeFogColors = {
     default: 0x020817,
@@ -2471,6 +2489,7 @@
   const halfSize = terrainSize / 2;
   const fadeWidth = terrainSize * 0.22;
   const colorAttribute = new THREE.BufferAttribute(new Float32Array(pos.count * 3), 3);
+  const zxColorAttribute = new THREE.BufferAttribute(new Float32Array(pos.count * 3), 3);
   for (let i = 0; i < pos.count; i++) {
     const ix = i * 3;
     const x = basePositions[ix];
@@ -2483,6 +2502,7 @@
   }
   terrain.setAttribute('edgeFade', new THREE.BufferAttribute(fadeAttribute, 1));
   terrain.setAttribute('color', colorAttribute);
+  terrain.setAttribute('zxColor', zxColorAttribute);
   const cellSize = terrainSize / terrainSegments;
   const chunkSize = cellSize * 10;
   const terrainState = { offsetX: 0, offsetZ: 0 };
@@ -2511,6 +2531,7 @@
 
   function refreshTerrain(offsetX, offsetZ) {
     const colors = colorAttribute.array;
+    const zxColors = zxColorAttribute.array;
     for (let i = 0; i < pos.count; i++) {
       const ix = i * 3;
       const x = basePositions[ix];
@@ -2552,9 +2573,16 @@
       colors[ix] = r;
       colors[ix + 1] = g;
       colors[ix + 2] = b;
+
+      paletteScratchColor.setRGB(r, g, b);
+      const zxMatch = findNearestPaletteColor(paletteScratchColor, zxGroundPalette);
+      zxColors[ix] = zxMatch.r;
+      zxColors[ix + 1] = zxMatch.g;
+      zxColors[ix + 2] = zxMatch.b;
     }
     pos.needsUpdate = true;
     colorAttribute.needsUpdate = true;
+    zxColorAttribute.needsUpdate = true;
     terrain.computeVertexNormals();
     if (terrain.attributes.normal) {
       terrain.attributes.normal.needsUpdate = true;
@@ -2586,6 +2614,28 @@
   terrainMesh.position.set(terrainState.offsetX, 0, terrainState.offsetZ);
   scene.add(terrainMesh);
   defaultTerrainColor = terrainMesh.material.color.clone();
+  const terrainZXMaterial = new THREE.MeshBasicMaterial({
+    color: 0xffffff,
+    fog: true,
+    depthTest: true,
+    depthWrite: true,
+    polygonOffset: true,
+    polygonOffsetFactor: -1,
+    polygonOffsetUnits: -1
+  });
+  terrainZXMaterial.onBeforeCompile = shader => {
+    shader.vertexShader = shader.vertexShader
+      .replace('#include <common>', `#include <common>\nattribute vec3 zxColor;\nvarying vec3 vZXColor;`)
+      .replace('#include <begin_vertex>', `#include <begin_vertex>\nvZXColor = zxColor;`);
+    shader.fragmentShader = shader.fragmentShader
+      .replace('#include <common>', `#include <common>\nvarying vec3 vZXColor;`)
+      .replace('vec4 diffuseColor = vec4( diffuse, opacity );', 'vec4 diffuseColor = vec4( vZXColor, opacity );');
+  };
+  const terrainZXMesh = new THREE.Mesh(terrain, terrainZXMaterial);
+  terrainZXMesh.visible = false;
+  terrainZXMesh.renderOrder = -1;
+  terrainZXMesh.position.copy(terrainMesh.position);
+  scene.add(terrainZXMesh);
   function snapToChunk(value) { return Math.round(value / chunkSize) * chunkSize; }
 
   const cityGroup = new THREE.Group();
@@ -2744,6 +2794,9 @@
       terrainMesh.material.side = THREE.FrontSide;
       terrainMesh.material.color.copy(isWireMode ? wireColors.terrain : defaultTerrainColor);
       terrainMesh.material.needsUpdate = true;
+    }
+    if (terrainZXMesh) {
+      terrainZXMesh.visible = mode === 'zx';
     }
     floatingBlocks.forEach(block => {
       block.material.wireframe = isWireMode;
@@ -2944,6 +2997,9 @@
       terrainState.offsetZ = snappedZ;
       refreshTerrain(snappedX, snappedZ);
       terrainMesh.position.set(snappedX, 0, snappedZ);
+      if (terrainZXMesh) {
+        terrainZXMesh.position.copy(terrainMesh.position);
+      }
       updateCityAnchor();
       console.log(`Terrain recentered to chunk (${Math.round(snappedX / chunkSize)}, ${Math.round(snappedZ / chunkSize)}).`);
     }
