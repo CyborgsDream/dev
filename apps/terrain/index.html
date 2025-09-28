@@ -117,53 +117,37 @@
       backdrop-filter: blur(12px);
     }
     #loader .loader-icon {
-      width: min(180px, 36vw);
-      aspect-ratio: 1 / 1;
-      display: grid;
-      place-items: center;
-      perspective: 1200px;
+      width: 256px;
+      height: 192px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #0000d7;
+      border: 6px solid #d7d7d7;
+      box-shadow:
+        0 0 0 2px #000,
+        0 22px 36px rgba(0, 0, 0, 0.55);
+      position: relative;
+      image-rendering: pixelated;
     }
-    #loader .loader-icon svg {
+    #loader .loader-icon::after {
+      content: '';
+      position: absolute;
+      inset: 10px;
+      border: 2px solid #0000ff;
+      pointer-events: none;
+    }
+    #loader .loader-icon canvas {
       width: 100%;
       height: 100%;
-      fill: none;
-      animation: loader-octagon-spin 4.6s linear infinite;
-      transform-origin: 50% 50%;
-      transform-style: preserve-3d;
-      transform-box: fill-box;
-      will-change: transform;
-      backface-visibility: hidden;
+      display: block;
+      image-rendering: pixelated;
+      background: #000000;
     }
-    #loader .loader-icon .octagon-back {
-      fill: url(#loaderOctagonEdge);
-    }
-    #loader .loader-icon .octagon-front {
-      fill: url(#loaderOctagonFront);
-      stroke: rgba(204, 234, 255, 0.65);
-      stroke-width: 1.6;
-    }
-    #loader .loader-icon .octagon-core {
-      fill: url(#loaderOctagonCore);
-      opacity: 0.92;
-    }
-    #loader .loader-icon .octagon-glint {
-      fill: none;
-      stroke: rgba(255, 255, 255, 0.7);
-      stroke-width: 2.4;
-      stroke-linecap: round;
-      stroke-linejoin: round;
-      stroke-dasharray: 18 42;
-      animation: loader-octagon-glint 2.6s ease-in-out infinite;
-    }
-    @keyframes loader-octagon-spin {
-      0% { transform: rotateX(16deg) rotateY(-10deg) rotateZ(0deg); }
-      50% { transform: rotateX(16deg) rotateY(-10deg) rotateZ(180deg); }
-      100% { transform: rotateX(16deg) rotateY(-10deg) rotateZ(360deg); }
-    }
-    @keyframes loader-octagon-glint {
-      0% { stroke-dashoffset: 0; opacity: 0.15; }
-      50% { stroke-dashoffset: -28; opacity: 0.6; }
-      100% { stroke-dashoffset: -56; opacity: 0.15; }
+    @media (max-width: 620px) {
+      #loader .loader-icon {
+        transform: scale(0.82);
+      }
     }
     #loader .loader-text {
       font-size: 0.54em;
@@ -175,11 +159,8 @@
       color: rgba(255, 255, 255, 0.68);
     }
     @media (prefers-reduced-motion: reduce) {
-      #loader .loader-icon svg {
-        animation-duration: 10s !important;
-      }
-      #loader .loader-icon .octagon-glint {
-        animation-duration: 6s !important;
+      #loader .loader-icon {
+        transform: none;
       }
     }
     #loader #progress {
@@ -993,44 +974,7 @@
   <div id="loader">
     <div class="loader-content">
       <div class="loader-icon" aria-hidden="true">
-        <svg viewBox="0 0 120 120" role="presentation">
-          <defs>
-            <linearGradient id="loaderOctagonEdge" x1="32%" y1="0%" x2="78%" y2="92%">
-              <stop offset="0%" stop-color="#0a213d"></stop>
-              <stop offset="55%" stop-color="#133a63"></stop>
-              <stop offset="100%" stop-color="#061225"></stop>
-            </linearGradient>
-            <linearGradient id="loaderOctagonFront" x1="30%" y1="10%" x2="70%" y2="90%">
-              <stop offset="0%" stop-color="#7fc4ff"></stop>
-              <stop offset="35%" stop-color="#3f8dd7"></stop>
-              <stop offset="100%" stop-color="#1a3766"></stop>
-            </linearGradient>
-            <radialGradient id="loaderOctagonCore" cx="48%" cy="38%" r="62%">
-              <stop offset="0%" stop-color="#d9f2ff" stop-opacity="0.9"></stop>
-              <stop offset="45%" stop-color="#7ab6ff" stop-opacity="0.75"></stop>
-              <stop offset="100%" stop-color="#0f2d54" stop-opacity="0.9"></stop>
-            </radialGradient>
-          </defs>
-          <g class="octagon-group">
-            <polygon
-              class="octagon-back"
-              points="60 16 91.11 28.89 104 60 91.11 91.11 60 104 28.89 91.11 16 60 28.89 28.89"
-              transform="translate(0 5)"
-            ></polygon>
-            <polygon
-              class="octagon-front"
-              points="60 16 91.11 28.89 104 60 91.11 91.11 60 104 28.89 91.11 16 60 28.89 28.89"
-            ></polygon>
-            <polygon
-              class="octagon-core"
-              points="60 28 82.63 37.37 92 60 82.63 82.63 60 92 37.37 82.63 28 60 37.37 37.37"
-            ></polygon>
-            <path
-              class="octagon-glint"
-              d="M28.89 28.89L60 16 91.11 28.89 104 60"
-            ></path>
-          </g>
-        </svg>
+        <canvas id="loader-canvas" width="256" height="192" role="presentation"></canvas>
       </div>
       <div class="loader-text">Loading <span id="progress">0%</span></div>
       <div class="loader-meta">© 2025 Cyborgs Dream</div>
@@ -1143,6 +1087,173 @@
   const loaderEl = document.getElementById('loader');
   const progressEl = document.getElementById('progress');
   function setProgress(p){ progressEl.textContent = Math.round(p) + '%'; }
+
+  let stopLoaderAnimation = () => {};
+  {
+    const loaderCanvas = document.getElementById('loader-canvas');
+    if (loaderCanvas) {
+      const ctx = loaderCanvas.getContext('2d', { alpha: false });
+      const width = loaderCanvas.width;
+      const height = loaderCanvas.height;
+      ctx.imageSmoothingEnabled = false;
+
+      const zxFacePairs = [
+        { base: '#0000d7', bright: '#0000ff' },
+        { base: '#00d7d7', bright: '#00ffff' },
+        { base: '#d7d700', bright: '#ffff00' },
+        { base: '#d700d7', bright: '#ff00ff' },
+        { base: '#00d700', bright: '#00ff00' },
+        { base: '#d70000', bright: '#ff0000' },
+        { base: '#d7d7d7', bright: '#ffffff' },
+        { base: '#0000d7', bright: '#0000ff' },
+        { base: '#00d7d7', bright: '#00ffff' },
+        { base: '#d7d700', bright: '#ffff00' }
+      ];
+
+      const baseVertices = [];
+      const topApex = { x: 0, y: 1.52, z: 0 };
+      const bottomApex = { x: 0, y: -1.52, z: 0 };
+      baseVertices.push(topApex);
+
+      const ringRadius = 1.08;
+      const ringHeight = 0.46;
+      for (let i = 0; i < 5; i++) {
+        const angle = (i * Math.PI * 2) / 5;
+        baseVertices.push({
+          x: Math.cos(angle) * ringRadius,
+          y: ringHeight,
+          z: Math.sin(angle) * ringRadius
+        });
+      }
+      for (let i = 0; i < 5; i++) {
+        const angle = (i * Math.PI * 2) / 5 + Math.PI / 5;
+        baseVertices.push({
+          x: Math.cos(angle) * ringRadius,
+          y: -ringHeight,
+          z: Math.sin(angle) * ringRadius
+        });
+      }
+      baseVertices.push(bottomApex);
+
+      const faces = [];
+      for (let i = 0; i < 5; i++) {
+        const next = (i + 1) % 5;
+        faces.push([0, 1 + i, 6 + i, 1 + next]);
+        faces.push([11, 6 + i, 1 + next, 6 + next]);
+      }
+
+      function normalizeVec(v) {
+        const length = Math.hypot(v.x, v.y, v.z) || 1;
+        return { x: v.x / length, y: v.y / length, z: v.z / length };
+      }
+
+      const light = normalizeVec({ x: 0.6, y: 0.9, z: 0.4 });
+      const transformed = baseVertices.map(() => ({ x: 0, y: 0, z: 0 }));
+      const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      const spinSpeed = reduceMotion ? 0.00025 : 0.00062;
+      const tiltSpeed = reduceMotion ? 0.00018 : 0.00032;
+      const cameraDistance = 7.5;
+      const scale = 68;
+      let rafId = null;
+
+      function rotateVertex(v, rotX, rotY) {
+        const cosY = Math.cos(rotY);
+        const sinY = Math.sin(rotY);
+        const xz = v.x * cosY - v.z * sinY;
+        const zz = v.x * sinY + v.z * cosY;
+
+        const cosX = Math.cos(rotX);
+        const sinX = Math.sin(rotX);
+        const yz = v.y * cosX - zz * sinX;
+        const zy = v.y * sinX + zz * cosX;
+
+        return { x: xz, y: yz, z: zy };
+      }
+
+      function project(vertex) {
+        const perspective = cameraDistance / (cameraDistance - vertex.z);
+        return {
+          x: width / 2 + vertex.x * perspective * scale,
+          y: height / 2 - vertex.y * perspective * scale
+        };
+      }
+
+      function drawBackground() {
+        ctx.fillStyle = '#000000';
+        ctx.fillRect(0, 0, width, height);
+        ctx.fillStyle = '#0000d7';
+        for (let y = 0; y < height; y += 2) {
+          ctx.fillRect(0, y, width, 1);
+        }
+        ctx.strokeStyle = '#d7d7d7';
+        ctx.lineWidth = 1;
+        ctx.strokeRect(0.5, 0.5, width - 1, height - 1);
+      }
+
+      function getFaceNormal(v0, v1, v2) {
+        const ux = v1.x - v0.x;
+        const uy = v1.y - v0.y;
+        const uz = v1.z - v0.z;
+        const vx = v2.x - v0.x;
+        const vy = v2.y - v0.y;
+        const vz = v2.z - v0.z;
+        return normalizeVec({
+          x: uy * vz - uz * vy,
+          y: uz * vx - ux * vz,
+          z: ux * vy - uy * vx
+        });
+      }
+
+      function render(time) {
+        rafId = requestAnimationFrame(render);
+        const rotY = time * spinSpeed;
+        const rotX = 0.5 + Math.sin(time * tiltSpeed) * 0.35;
+
+        for (let i = 0; i < baseVertices.length; i++) {
+          transformed[i] = rotateVertex(baseVertices[i], rotX, rotY);
+        }
+
+        drawBackground();
+
+        const faceQueue = faces.map((indices, idx) => {
+          const verts = indices.map(i => transformed[i]);
+          const depth = verts.reduce((sum, v) => sum + v.z, 0) / verts.length;
+          const normal = getFaceNormal(verts[0], verts[1], verts[2]);
+          const brightness = Math.max(0, normal.x * light.x + normal.y * light.y + normal.z * light.z);
+          const palette = zxFacePairs[idx % zxFacePairs.length];
+          const fill = brightness > 0.55 ? palette.bright : palette.base;
+          return { verts, depth, fill, brightness };
+        }).sort((a, b) => b.depth - a.depth);
+
+        faceQueue.forEach(face => {
+          ctx.beginPath();
+          face.verts.forEach((vertex, index) => {
+            const p = project(vertex);
+            if (index === 0) ctx.moveTo(p.x, p.y);
+            else ctx.lineTo(p.x, p.y);
+          });
+          ctx.closePath();
+          ctx.fillStyle = face.fill;
+          ctx.fill();
+          ctx.strokeStyle = face.brightness > 0.55 ? '#ffffff' : '#000000';
+          ctx.lineWidth = face.brightness > 0.55 ? 1 : 1;
+          ctx.stroke();
+        });
+
+        ctx.strokeStyle = '#0000ff';
+        ctx.lineWidth = 1;
+        ctx.strokeRect(4.5, 4.5, width - 9, height - 9);
+      }
+
+      rafId = requestAnimationFrame(render);
+      stopLoaderAnimation = () => {
+        if (rafId !== null) {
+          cancelAnimationFrame(rafId);
+          rafId = null;
+        }
+      };
+    }
+  }
 
   const fpsHolder = document.getElementById('fps');
 
@@ -2630,7 +2741,10 @@
       }
     }
     setProgress(100);
-    if (loaderEl) loaderEl.remove();
+    if (loaderEl) {
+      stopLoaderAnimation();
+      loaderEl.remove();
+    }
     console.log(`Terrain populated with ${count} blocks.`);
   }
 
