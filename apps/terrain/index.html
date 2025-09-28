@@ -111,10 +111,10 @@
       gap: 20px;
       text-align: center;
       padding: 28px 32px;
-      border: 1px solid rgba(255, 255, 255, 0.08);
-      background: rgba(2, 8, 23, 0.65);
-      box-shadow: 0 28px 40px rgba(0, 0, 0, 0.45);
-      backdrop-filter: blur(12px);
+      border: none;
+      background: none;
+      box-shadow: none;
+      backdrop-filter: none;
     }
     #loader .loader-icon {
       width: 192px;
@@ -122,27 +122,23 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      background: #0000d7;
-      border: 5px solid #d7d7d7;
-      box-shadow:
-        0 0 0 2px #000,
-        0 22px 36px rgba(0, 0, 0, 0.55);
+      background: none;
+      border: none;
+      box-shadow: none;
       position: relative;
       image-rendering: pixelated;
     }
     #loader .loader-icon::after {
-      content: '';
-      position: absolute;
-      inset: 8px;
-      border: 2px solid #0000ff;
-      pointer-events: none;
+      display: none;
     }
     #loader .loader-icon canvas {
       width: 100%;
       height: 100%;
       display: block;
       image-rendering: pixelated;
-      background: #000000;
+      background: transparent;
+      border: none !important;
+      box-shadow: none !important;
     }
     @media (max-width: 620px) {
       #loader .loader-icon {
@@ -1122,13 +1118,16 @@
 
   const loaderEl = document.getElementById('loader');
   const progressEl = document.getElementById('progress');
-  function setProgress(p){ progressEl.textContent = Math.round(p) + '%'; }
+  function setProgress(p){
+    if (!progressEl) return;
+    progressEl.textContent = Math.round(p) + '%';
+  }
 
   let stopLoaderAnimation = () => {};
   {
     const loaderCanvas = document.getElementById('loader-canvas');
     if (loaderCanvas) {
-      const ctx = loaderCanvas.getContext('2d', { alpha: false });
+      const ctx = loaderCanvas.getContext('2d', { alpha: true });
       const width = loaderCanvas.width;
       const height = loaderCanvas.height;
       ctx.imageSmoothingEnabled = false;
@@ -1204,43 +1203,33 @@
       }
 
       const depths = new Float32Array(faceCount);
-      const faceFills = new Array(faceCount);
-      const edgeFlags = new Uint8Array(faceCount);
+      const faceBrightness = new Float32Array(faceCount);
       const faceOrder = new Uint8Array(faceCount);
       for (let i = 0; i < faceCount; i++) {
         faceOrder[i] = i;
       }
 
-      const EDGE_COLORS = ['#000000', '#ffffff'];
+      const hexToRgb = (hex) => {
+        const value = parseInt(hex.replace('#', ''), 16);
+        return [
+          (value >> 16) & 0xff,
+          (value >> 8) & 0xff,
+          value & 0xff
+        ];
+      };
 
-      const stripes = document.createElement('canvas');
-      stripes.width = 2;
-      stripes.height = 2;
-      const stripesCtx = stripes.getContext('2d');
-      stripesCtx.fillStyle = '#000000';
-      stripesCtx.fillRect(0, 0, 2, 2);
-      stripesCtx.fillStyle = '#0000d7';
-      stripesCtx.fillRect(0, 0, 2, 1);
+      const rgbToHex = (r, g, b) => {
+        const toComponent = (c) => Math.max(0, Math.min(255, Math.round(c))).toString(16).padStart(2, '0');
+        return `#${toComponent(r)}${toComponent(g)}${toComponent(b)}`;
+      };
 
-      const backgroundCanvas = document.createElement('canvas');
-      backgroundCanvas.width = width;
-      backgroundCanvas.height = height;
-      const bgCtx = backgroundCanvas.getContext('2d');
-      bgCtx.fillStyle = '#000000';
-      bgCtx.fillRect(0, 0, width, height);
-      const stripePattern = bgCtx.createPattern(stripes, 'repeat');
-      if (stripePattern) {
-        bgCtx.fillStyle = stripePattern;
-        bgCtx.fillRect(0, 0, width, height);
-      } else {
-        bgCtx.fillStyle = '#0000d7';
-        for (let y = 0; y < height; y += 2) {
-          bgCtx.fillRect(0, y, width, 1);
-        }
-      }
-      bgCtx.strokeStyle = '#d7d7d7';
-      bgCtx.lineWidth = 1;
-      bgCtx.strokeRect(0.5, 0.5, width - 1, height - 1);
+      const adjustColor = (hex, amount) => {
+        const [r, g, b] = hexToRgb(hex);
+        const adjust = (channel) => amount >= 0
+          ? channel + (255 - channel) * amount
+          : channel * (1 + amount);
+        return rgbToHex(adjust(r), adjust(g), adjust(b));
+      };
 
       const lightVector = (() => {
         const x = 0.62;
@@ -1344,14 +1333,12 @@
           const brightness = Math.max(0, nx * lightVector[0] + ny * lightVector[1] + nz * lightVector[2]);
 
           depths[face] = (az + bz + cz + dz) * 0.25;
-          const palette = facePalettes[face];
-          faceFills[face] = brightness > 0.58 ? palette[1] : palette[0];
-          edgeFlags[face] = brightness > 0.52 ? 1 : 0;
+          faceBrightness[face] = brightness;
         }
 
         sortFaces();
 
-        ctx.drawImage(backgroundCanvas, 0, 0);
+        ctx.clearRect(0, 0, width, height);
 
         for (let orderIndex = 0; orderIndex < faceCount; orderIndex++) {
           const face = faceOrder[orderIndex];
@@ -1361,21 +1348,48 @@
           const i2 = faceIndices[offset + 2];
           const i3 = faceIndices[offset + 3];
 
+          const p0x = projected[i0 * 2];
+          const p0y = projected[i0 * 2 + 1];
+          const p1x = projected[i1 * 2];
+          const p1y = projected[i1 * 2 + 1];
+          const p2x = projected[i2 * 2];
+          const p2y = projected[i2 * 2 + 1];
+          const p3x = projected[i3 * 2];
+          const p3y = projected[i3 * 2 + 1];
+
+          const centerX = (p0x + p1x + p2x + p3x) * 0.25;
+          const centerY = (p0y + p1y + p2y + p3y) * 0.25;
+          const radius = Math.max(
+            Math.hypot(p0x - centerX, p0y - centerY),
+            Math.hypot(p1x - centerX, p1y - centerY),
+            Math.hypot(p2x - centerX, p2y - centerY),
+            Math.hypot(p3x - centerX, p3y - centerY)
+          );
+
+          const palette = facePalettes[face];
+          const brightness = faceBrightness[face];
+          const highlightBoost = Math.min(1, 0.2 + brightness * 0.6);
+          const shadowDip = Math.max(-1, -(0.5 + (1 - brightness) * 0.4));
+          const highlight = adjustColor(palette[1], highlightBoost);
+          const shadow = adjustColor(palette[0], shadowDip);
+
+          const gradient = ctx.createRadialGradient(centerX, centerY, 0, centerX, centerY, Math.max(radius, 1));
+          gradient.addColorStop(0, highlight);
+          gradient.addColorStop(1, shadow);
+
           ctx.beginPath();
-          ctx.moveTo(projected[i0 * 2], projected[i0 * 2 + 1]);
-          ctx.lineTo(projected[i1 * 2], projected[i1 * 2 + 1]);
-          ctx.lineTo(projected[i2 * 2], projected[i2 * 2 + 1]);
-          ctx.lineTo(projected[i3 * 2], projected[i3 * 2 + 1]);
+          ctx.moveTo(p0x, p0y);
+          ctx.lineTo(p1x, p1y);
+          ctx.lineTo(p2x, p2y);
+          ctx.lineTo(p3x, p3y);
           ctx.closePath();
-          ctx.fillStyle = faceFills[face];
+          ctx.fillStyle = gradient;
           ctx.fill();
-          ctx.strokeStyle = EDGE_COLORS[edgeFlags[face]];
+
+          const edgeColor = brightness > 0.55 ? adjustColor(palette[1], 0.25) : adjustColor(palette[0], -0.45);
+          ctx.strokeStyle = edgeColor;
           ctx.stroke();
         }
-
-        ctx.strokeStyle = '#0000ff';
-        ctx.lineWidth = 1;
-        ctx.strokeRect(4.5, 4.5, width - 9, height - 9);
       }
 
       rafId = requestAnimationFrame(render);
@@ -3141,6 +3155,7 @@ wE8AAAAABAR/QAAAAAAEBPxEAAAAAIiIiIgAAAAAPzAwMAAAAADw8AAPAAAAABAQHPwAAAAANDQMAAAA
   const cityExclusion = plateauHalfSize + chunkSize * 0.4;
   async function generateBlocks(count) {
     let created = 0;
+    let lastYield = performance.now();
     while (created < count) {
       const x = Math.random() * blockSpread * 2 - blockSpread;
       const z = Math.random() * blockSpread * 2 - blockSpread;
@@ -3149,12 +3164,15 @@ wE8AAAAABAR/QAAAAAAEBPxEAAAAAIiIiIgAAAAAPzAwMAAAAADw8AAPAAAAABAQHPwAAAAANDQMAAAA
       }
       createBlock(x, z);
       created++;
-      if (created % 50 === 0) {
+      const now = performance.now();
+      if (now - lastYield >= 16 || created === count) {
         setProgress((created / count) * 100);
-        await new Promise(requestAnimationFrame);
+        await new Promise(resolve => requestAnimationFrame(resolve));
+        lastYield = now;
       }
     }
     setProgress(100);
+    await new Promise(resolve => requestAnimationFrame(resolve));
     if (loaderEl) {
       stopLoaderAnimation();
       loaderEl.remove();
