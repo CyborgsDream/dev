@@ -3,8 +3,77 @@
     return;
   }
 
-  const latin1Decoder = new TextDecoder('latin1');
-  const utf8Decoder = new TextDecoder('utf-8', { fatal: false });
+  function toUint8(bytes) {
+    return bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes);
+  }
+
+  function decodeLatin1(bytes) {
+    const view = toUint8(bytes);
+    let out = '';
+    for (let i = 0; i < view.length; i++) {
+      out += String.fromCharCode(view[i]);
+    }
+    return out;
+  }
+
+  function decodeUtf8(bytes) {
+    const view = toUint8(bytes);
+    let out = '';
+    for (let i = 0; i < view.length; i++) {
+      const byte1 = view[i];
+      if (byte1 < 0x80) {
+        out += String.fromCharCode(byte1);
+        continue;
+      }
+      if (byte1 >= 0xc0 && byte1 < 0xe0) {
+        if (i + 1 >= view.length) break;
+        const byte2 = view[++i] & 0x3f;
+        out += String.fromCharCode(((byte1 & 0x1f) << 6) | byte2);
+        continue;
+      }
+      if (byte1 >= 0xe0 && byte1 < 0xf0) {
+        if (i + 2 >= view.length) break;
+        const byte2 = view[++i] & 0x3f;
+        const byte3 = view[++i] & 0x3f;
+        out += String.fromCharCode(((byte1 & 0x0f) << 12) | (byte2 << 6) | byte3);
+        continue;
+      }
+      if (byte1 >= 0xf0) {
+        if (i + 3 >= view.length) break;
+        const byte2 = view[++i] & 0x3f;
+        const byte3 = view[++i] & 0x3f;
+        const byte4 = view[++i] & 0x3f;
+        let codePoint = ((byte1 & 0x07) << 18) | (byte2 << 12) | (byte3 << 6) | byte4;
+        codePoint -= 0x10000;
+        out += String.fromCharCode(0xd800 + (codePoint >> 10), 0xdc00 + (codePoint & 0x3ff));
+        continue;
+      }
+    }
+    return out;
+  }
+
+  function createDecoder(label, options) {
+    if (typeof TextDecoder === 'function') {
+      const candidates = label === 'latin1' ? ['latin1', 'iso-8859-1'] : [label];
+      for (const candidate of candidates) {
+        try {
+          return new TextDecoder(candidate, options);
+        } catch (err) {
+          // Try the next candidate or fallback implementation below.
+        }
+      }
+    }
+    if (label === 'latin1' || label === 'iso-8859-1') {
+      return { decode: decodeLatin1 };
+    }
+    if (label === 'utf-8') {
+      return { decode: decodeUtf8 };
+    }
+    return { decode: decodeLatin1 };
+  }
+
+  const latin1Decoder = createDecoder('latin1');
+  const utf8Decoder = createDecoder('utf-8', { fatal: false });
 
   function decodePdfString(raw) {
     let result = '';
