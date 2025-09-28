@@ -1,4 +1,20 @@
 (function(global) {
+  const hasDecompressionStream = typeof global.DecompressionStream === 'function';
+  if (!hasDecompressionStream) {
+    global.__scanxPdfjsLiteUnsupported = 'missing-decompression-stream';
+    if (!global.pdfjsLib || global.pdfjsLib.__scanxLite) {
+      if (!global.pdfjsLib) {
+        global.pdfjsLib = { __scanxLiteUnsupported: 'missing-decompression-stream' };
+      } else {
+        global.pdfjsLib.__scanxLiteUnsupported = 'missing-decompression-stream';
+      }
+    }
+    if (typeof console !== 'undefined' && console.warn) {
+      console.warn('ScanX lite PDF parser disabled: DecompressionStream is not available.');
+    }
+    return;
+  }
+
   if (global.pdfjsLib) {
     return;
   }
@@ -530,7 +546,7 @@
     }
   };
 
-  global.pdfjsLib = {
+  const liteApi = {
     getDocument(params) {
       const data = params && params.data ? params.data : null;
       if (!data) {
@@ -542,4 +558,6 @@
     GlobalWorkerOptions: { workerSrc: null },
     Util
   };
+  liteApi.__scanxLite = true;
+  global.pdfjsLib = liteApi;
 })(typeof window !== 'undefined' ? window : globalThis);

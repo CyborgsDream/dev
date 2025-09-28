@@ -270,14 +270,22 @@
     }
 
     async function ensurePdfJsLoaded() {
-      if (window.pdfjsLib) {
+      if (window.pdfjsLib && !window.pdfjsLib.__scanxLiteUnsupported) {
         configurePdfJs(PDFJS_SOURCES[0]);
         return window.pdfjsLib;
       }
       for (const source of PDFJS_SOURCES) {
         try {
           await loadScript(source.script);
+          if (window.__scanxPdfjsLiteUnsupported) {
+            delete window.__scanxPdfjsLiteUnsupported;
+            continue;
+          }
           if (window.pdfjsLib) {
+            if (window.pdfjsLib.__scanxLiteUnsupported) {
+              delete window.pdfjsLib;
+              continue;
+            }
             configurePdfJs(source);
             return window.pdfjsLib;
           }
