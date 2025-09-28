@@ -367,7 +367,7 @@
   function buildPages(objects, bytesView) {
     const pages = [];
     for (const obj of objects.values()) {
-      if (!/\/Type\s+\/Page/.test(obj.raw)) {
+      if (!/\/Type\s*\/Page\b/.test(obj.raw)) {
         continue;
       }
       pages.push(async () => {
