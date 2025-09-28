@@ -136,6 +136,17 @@
       font-size:14px;
       line-height:1.5;
     }
+    .page-card .page-meta {
+      margin:0 0 6px 0;
+      color:var(--accent);
+      font-weight:600;
+      font-size:14px;
+    }
+    .page-card .page-margins {
+      margin:0 0 10px 0;
+      color:var(--muted);
+      font-size:13px;
+    }
     .meta-row {
       display:flex;
       flex-wrap:wrap;
@@ -164,6 +175,7 @@
     <section class="meta-row" id="metaRow" hidden>
       <span id="metaFile"></span>
       <span id="metaPages"></span>
+      <span id="metaLayout"></span>
     </section>
     <section class="status" id="statusPanel">Select a PDF to begin.</section>
     <section class="actions">
@@ -244,6 +256,7 @@
     const metaRow = document.getElementById('metaRow');
     const metaFile = document.getElementById('metaFile');
     const metaPages = document.getElementById('metaPages');
+    const metaLayout = document.getElementById('metaLayout');
 
     let working = false;
     let currentDoc = null;
@@ -290,41 +303,283 @@
       })[ch]);
     }
 
-    function textItemsToParagraphs(items) {
-      const buffer = [];
-      let currentLine = '';
-      items.forEach(item => {
-        const chunk = item.str || '';
-        if (!chunk.trim()) {
-          currentLine += chunk;
-        } else {
-          currentLine += (currentLine.endsWith(' ') ? '' : (currentLine ? ' ' : '')) + chunk;
-        }
-        if (item.hasEOL) {
-          buffer.push(currentLine.trim());
-          currentLine = '';
-        }
-      });
-      if (currentLine.trim()) buffer.push(currentLine.trim());
-      const normalized = buffer.join('\n');
-      return normalized.split(/\n{2,}/).map(p => p.replace(/\s+/g, ' ').trim()).filter(Boolean);
-    }
+    const POINT_TO_MM = 25.4 / 72;
+    const LOREM_SOURCE = 'Lorem ipsum dolor sit amet consectetur adipiscing elit sed do eiusmod tempor incididunt ut labore et dolore magna aliqua Vivamus feugiat ligula at fringilla pharetra mauris neque fermentum velit eu consequat augue magna a magna Donec aliquet orci ut turpis imperdiet a tincidunt erat fermentum Praesent suscipit varius nulla nec vehicula nisl pharetra vitae';
+    const LOREM_WORDS = LOREM_SOURCE.split(/\s+/).filter(Boolean);
 
-    function paragraphsToHtml(paragraphs, pageIndex) {
-      if (!paragraphs.length) {
-        return `<p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Page ${pageIndex + 1} content placeholder.</p>`;
+    function loremWords(count) {
+      const safe = Math.max(12, Math.round(count || 0));
+      const words = [];
+      for (let i = 0; i < safe; i++) {
+        words.push(LOREM_WORDS[i % LOREM_WORDS.length]);
       }
-      return paragraphs.map(p => `<p>${escapeHtml(p)}</p>`).join('');
+      return words;
     }
 
-    function paragraphsToPreview(paragraphs) {
-      if (!paragraphs.length) return 'No textual content detected.';
-      const combined = paragraphs.join(' ');
+    function buildLoremParagraph(wordEstimate) {
+      const words = loremWords(Math.max(wordEstimate, 35));
+      const sentences = [];
+      const chunkSize = 18;
+      for (let i = 0; i < words.length; i += chunkSize) {
+        const slice = words.slice(i, i + chunkSize);
+        if (!slice.length) continue;
+        const sentence = slice.join(' ');
+        sentences.push(sentence.charAt(0).toUpperCase() + sentence.slice(1) + '.');
+      }
+      return sentences.join(' ');
+    }
+
+    function extractTextBoxes(textContent, viewport) {
+      const boxes = [];
+      const items = textContent.items || [];
+      const height = viewport.height;
+      items.forEach(item => {
+        const raw = typeof item.str === 'string' ? item.str.replace(/\s+/g, ' ') : '';
+        const text = raw.trim();
+        if (!text) return;
+        const transform = item.transform || [1, 0, 0, 1, 0, 0];
+        let glyphMatrix = transform;
+        try {
+          glyphMatrix = pdfjsLib.Util.transform(viewport.transform, transform);
+        } catch (err) {
+          // fallback to item transform if Util.transform is unavailable
+        }
+        const x = glyphMatrix[4];
+        const y = glyphMatrix[5];
+        const width = (item.width || 0) * viewport.scale;
+        const heightPx = Math.max(Math.hypot(glyphMatrix[1], glyphMatrix[3]) || Math.abs(glyphMatrix[3]) || 0, 0.1);
+        const top = height - y;
+        boxes.push({
+          text,
+          left: x,
+          right: x + width,
+          top,
+          bottom: top + heightPx,
+          width,
+          height: heightPx,
+          center: x + width / 2
+        });
+      });
+      return boxes;
+    }
+
+    function clusterColumns(boxes, pageWidth) {
+      if (!boxes.length) return [];
+      const sorted = boxes.slice().sort((a, b) => a.left - b.left);
+      const threshold = Math.max(pageWidth * 0.08, 24);
+      const columns = [];
+      sorted.forEach(box => {
+        let assigned = null;
+        for (const column of columns) {
+          const distance = Math.abs(box.center - column.center);
+          if (distance <= threshold) {
+            assigned = column;
+            break;
+          }
+        }
+        if (!assigned) {
+          assigned = {
+            boxes: [],
+            left: box.left,
+            right: box.right,
+            top: box.top,
+            bottom: box.bottom,
+            center: box.center
+          };
+          columns.push(assigned);
+        }
+        assigned.boxes.push(box);
+        assigned.left = Math.min(assigned.left, box.left);
+        assigned.right = Math.max(assigned.right, box.right);
+        assigned.top = Math.min(assigned.top, box.top);
+        assigned.bottom = Math.max(assigned.bottom, box.bottom);
+        assigned.center = (assigned.left + assigned.right) / 2;
+      });
+      columns.sort((a, b) => a.left - b.left);
+      while (columns.length > 4) {
+        let mergeIndex = 0;
+        let smallestGap = Infinity;
+        for (let i = 0; i < columns.length - 1; i++) {
+          const gap = columns[i + 1].left - columns[i].right;
+          if (gap < smallestGap) {
+            smallestGap = gap;
+            mergeIndex = i;
+          }
+        }
+        const target = columns[mergeIndex];
+        const neighbor = columns[mergeIndex + 1];
+        target.boxes.push(...neighbor.boxes);
+        target.left = Math.min(target.left, neighbor.left);
+        target.right = Math.max(target.right, neighbor.right);
+        target.top = Math.min(target.top, neighbor.top);
+        target.bottom = Math.max(target.bottom, neighbor.bottom);
+        target.center = (target.left + target.right) / 2;
+        columns.splice(mergeIndex + 1, 1);
+      }
+      if (columns.length > 1) {
+        const totalBoxes = boxes.length;
+        for (let i = columns.length - 1; i >= 0; i--) {
+          const col = columns[i];
+          const share = col.boxes.length / totalBoxes;
+          const widthShare = (col.right - col.left) / pageWidth;
+          if (share < 0.08 || widthShare < 0.08) {
+            const neighbor = i === 0 ? columns[1] : columns[i - 1];
+            neighbor.boxes.push(...col.boxes);
+            neighbor.left = Math.min(neighbor.left, col.left);
+            neighbor.right = Math.max(neighbor.right, col.right);
+            neighbor.top = Math.min(neighbor.top, col.top);
+            neighbor.bottom = Math.max(neighbor.bottom, col.bottom);
+            neighbor.center = (neighbor.left + neighbor.right) / 2;
+            columns.splice(i, 1);
+          }
+        }
+      }
+      columns.forEach(col => col.boxes.sort((a, b) => a.top - b.top || a.left - b.left));
+      return columns;
+    }
+
+    function buildColumnPlaceholder(column) {
+      if (!column.boxes.length) {
+        return {
+          html: `<p>${escapeHtml(buildLoremParagraph(40))}</p>`,
+          height: column.bottom - column.top
+        };
+      }
+      const heights = column.boxes.map(box => box.height);
+      const avgHeight = heights.reduce((sum, value) => sum + value, 0) / heights.length || 0;
+      const gapThreshold = Math.max(avgHeight * 1.6, 14);
+      const paragraphs = [];
+      let current = [];
+      let lastBottom = null;
+      column.boxes.forEach(box => {
+        if (lastBottom !== null && (box.top - lastBottom) > gapThreshold) {
+          if (current.length) paragraphs.push(current);
+          current = [];
+        }
+        current.push(box);
+        lastBottom = box.bottom;
+      });
+      if (current.length) paragraphs.push(current);
+      const html = paragraphs.map(group => {
+        const original = group.map(item => item.text).join(' ');
+        const words = original.split(/\s+/).filter(Boolean).length;
+        return `<p>${escapeHtml(buildLoremParagraph(Math.max(words, 35)))}</p>`;
+      }).join('') || `<p>${escapeHtml(buildLoremParagraph(40))}</p>`;
+      return {
+        html,
+        height: column.bottom - column.top
+      };
+    }
+
+    function buildPreviewText(boxes) {
+      if (!boxes.length) return 'No textual content detected.';
+      const ordered = boxes.slice().sort((a, b) => a.top - b.top || a.left - b.left);
+      const combined = ordered.map(box => box.text).join(' ');
       return combined.length > 220 ? combined.slice(0, 220) + '…' : combined;
     }
 
-    function buildDocument(pages, sourceName) {
+    function formatMeasurement(value) {
+      if (typeof value !== 'number' || !Number.isFinite(value)) return null;
+      const rounded = Math.round(value * 100) / 100;
+      return Number.isInteger(rounded) ? String(rounded) : rounded.toFixed(2);
+    }
+
+    function analyzePageLayout(page, textContent) {
+      const viewport = page.getViewport({ scale: 1 });
+      const boxes = extractTextBoxes(textContent, viewport);
+      const pageWidthPx = viewport.width;
+      const pageHeightPx = viewport.height;
+      const pageWidthMm = Number((pageWidthPx * POINT_TO_MM).toFixed(2));
+      const pageHeightMm = Number((pageHeightPx * POINT_TO_MM).toFixed(2));
+
+      if (!boxes.length) {
+        const placeholder = `<p>${escapeHtml(buildLoremParagraph(80))}</p>`;
+        return {
+          columns: 1,
+          windows: [placeholder],
+          windowLayout: [{ width: Number((pageWidthMm * 0.7).toFixed(2)), height: Number((pageHeightMm * 0.6).toFixed(2)) }],
+          html: placeholder,
+          preview: 'No textual content detected.',
+          metadata: {
+            pageSizeMm: { width: pageWidthMm, height: pageHeightMm },
+            marginsMm: { top: 15, right: 15, bottom: 15, left: 15 },
+            columnsMm: [],
+            averageGutterMm: 0
+          }
+        };
+      }
+
+      const columns = clusterColumns(boxes, pageWidthPx);
+      const columnData = columns.map(col => {
+        const placeholder = buildColumnPlaceholder(col);
+        return {
+          html: placeholder.html,
+          widthMm: Number(((col.right - col.left) * POINT_TO_MM).toFixed(2)),
+          heightMm: Number((placeholder.height * POINT_TO_MM).toFixed(2)),
+          startMm: Number((col.left * POINT_TO_MM).toFixed(2)),
+          topMm: Number((col.top * POINT_TO_MM).toFixed(2)),
+          bottomMm: Number((col.bottom * POINT_TO_MM).toFixed(2))
+        };
+      });
+
+      const windows = columnData.map(col => col.html);
+      const windowLayout = columnData.map(col => ({ width: col.widthMm, height: col.heightMm }));
+      const html = windows.join('');
+
+      const contentLeft = Math.min(...boxes.map(box => box.left));
+      const contentRight = Math.max(...boxes.map(box => box.right));
+      const contentTop = Math.min(...boxes.map(box => box.top));
+      const contentBottom = Math.max(...boxes.map(box => box.bottom));
+
+      const marginsMm = {
+        top: Number((contentTop * POINT_TO_MM).toFixed(2)),
+        bottom: Number(((pageHeightPx - contentBottom) * POINT_TO_MM).toFixed(2)),
+        left: Number((contentLeft * POINT_TO_MM).toFixed(2)),
+        right: Number(((pageWidthPx - contentRight) * POINT_TO_MM).toFixed(2))
+      };
+
+      const gutters = [];
+      for (let i = 0; i < columns.length - 1; i++) {
+        gutters.push(columns[i + 1].left - columns[i].right);
+      }
+      const averageGutterMm = gutters.length
+        ? Number(((gutters.reduce((acc, gap) => acc + gap, 0) / gutters.length) * POINT_TO_MM).toFixed(2))
+        : 0;
+
+      const metadata = {
+        pageSizeMm: { width: pageWidthMm, height: pageHeightMm },
+        marginsMm,
+        columnsMm: columnData.map(col => ({
+          start: col.startMm,
+          width: col.widthMm,
+          height: col.heightMm,
+          top: col.topMm,
+          bottom: col.bottomMm
+        })),
+        averageGutterMm
+      };
+
+      return {
+        columns: columnData.length || 1,
+        windows,
+        windowLayout,
+        html,
+        preview: buildPreviewText(boxes),
+        metadata
+      };
+    }
+
+    function buildDocument(pages, sourceName, summaries) {
       const timestamp = new Date();
+      const averageColumns = summaries.length
+        ? (summaries.reduce((total, entry) => total + (entry.columns || 0), 0) / summaries.length)
+        : 0;
+      const gutterSamples = summaries
+        .map(entry => (typeof entry.gutter === 'number' && Number.isFinite(entry.gutter)) ? entry.gutter : null)
+        .filter(value => value !== null);
+      const averageGutter = gutterSamples.length
+        ? gutterSamples.reduce((total, value) => total + value, 0) / gutterSamples.length
+        : null;
       return {
         version: '1.0.0',
         docVersion: '1.0.0',
@@ -334,7 +589,20 @@
           `Generated by ScanX from ${sourceName} on ${timestamp.toLocaleString()}.`,
           'Each page has been rebuilt for publishing-ready refinement in Docu Monster.'
         ],
-        pages
+        pages,
+        analysis: {
+          source: sourceName,
+          generatedAt: timestamp.toISOString(),
+          pageCount: pages.length,
+          averageColumns: Number.isFinite(averageColumns) ? Number(averageColumns.toFixed(2)) : 0,
+          averageGutterMm: averageGutter !== null ? Number(averageGutter.toFixed(2)) : null,
+          pages: summaries.map(entry => ({
+            index: entry.index,
+            columns: entry.columns || 0,
+            marginsMm: entry.margins || null,
+            averageGutterMm: typeof entry.gutter === 'number' ? entry.gutter : null
+          }))
+        }
       };
     }
 
@@ -357,8 +625,7 @@
         for (let pageIndex = 1; pageIndex <= pdf.numPages; pageIndex++) {
           const page = await pdf.getPage(pageIndex);
           const textContent = await page.getTextContent();
-          const paragraphs = textItemsToParagraphs(textContent.items || []);
-          const html = paragraphsToHtml(paragraphs, pageIndex - 1);
+          const layout = analyzePageLayout(page, textContent);
           pages.push({
             title: `ScanX Page ${pageIndex}`,
             subtitle: '',
@@ -366,27 +633,54 @@
             theme: 'standard',
             elements: [{
               type: 'columns',
-              columns: 1,
-              windows: [html],
-              windowLayout: [{ width: null, height: null }],
+              columns: layout.columns,
+              windows: layout.windows,
+              windowLayout: layout.windowLayout,
               style: 'standard',
-              html
+              html: layout.html
             }],
             footerLeft: 'Docu Monster Studio Pro',
-            footerRight: 'Page {{page}} of {{total}}'
+            footerRight: 'Page {{page}} of {{total}}',
+            layout: layout.metadata
           });
           summaries.push({
             index: pageIndex,
-            preview: paragraphsToPreview(paragraphs)
+            preview: layout.preview,
+            columns: layout.columns,
+            margins: layout.metadata?.marginsMm || null,
+            gutter: typeof layout.metadata?.averageGutterMm === 'number' ? layout.metadata.averageGutterMm : null
           });
         }
-        currentDoc = buildDocument(pages, file.name);
+        const averageColumns = summaries.length
+          ? summaries.reduce((total, entry) => total + (entry.columns || 0), 0) / summaries.length
+          : null;
+        const gutterSamples = summaries
+          .map(entry => (typeof entry.gutter === 'number' && Number.isFinite(entry.gutter)) ? entry.gutter : null)
+          .filter(value => value !== null);
+        const averageGutter = gutterSamples.length
+          ? gutterSamples.reduce((total, value) => total + value, 0) / gutterSamples.length
+          : null;
+        currentDoc = buildDocument(pages, file.name, summaries);
         currentFileName = file.name;
         renderSummary(summaries);
         metaFile.textContent = `Source: ${file.name}`;
         metaPages.textContent = `Pages detected: ${pages.length}`;
+        if (metaLayout) {
+          const parts = [];
+          const columnValue = averageColumns && averageColumns > 0 ? formatMeasurement(averageColumns) : null;
+          if (columnValue) parts.push(`Avg columns: ${columnValue}`);
+          const gutterValue = averageGutter !== null ? formatMeasurement(averageGutter) : null;
+          if (gutterValue) parts.push(`Avg gutter: ${gutterValue} mm`);
+          metaLayout.textContent = parts.length ? parts.join(' • ') : 'Layout analysis ready.';
+        }
         metaRow.hidden = false;
-        setStatus(`Scan complete. ${pages.length} page${pages.length === 1 ? '' : 's'} ready for Docu Monster.`, 'success');
+        const statusParts = [];
+        const statusColumns = averageColumns && averageColumns > 0 ? formatMeasurement(averageColumns) : null;
+        if (statusColumns) statusParts.push(`${statusColumns} avg columns`);
+        const statusGutter = averageGutter !== null ? formatMeasurement(averageGutter) : null;
+        if (statusGutter) statusParts.push(`~${statusGutter} mm gutters`);
+        const statusDetail = statusParts.length ? ` Detected ${statusParts.join(' • ')}.` : '';
+        setStatus(`Scan complete. ${pages.length} page${pages.length === 1 ? '' : 's'} ready for Docu Monster.${statusDetail}`, 'success');
       } catch (err) {
         console.error('ScanX failed', err);
         currentDoc = null;
@@ -397,12 +691,30 @@
     }
 
     function renderSummary(entries) {
-      summaryEl.innerHTML = entries.map(entry => `
+      summaryEl.innerHTML = entries.map(entry => {
+        const columnLabel = entry.columns === 1 ? 'Single-column layout' : `${entry.columns}-column layout`;
+        const gutterValue = formatMeasurement(entry.gutter);
+        const gutterLabel = gutterValue ? ` • Avg. gutter ${gutterValue} mm` : '';
+        let marginLabel = '';
+        if (entry.margins) {
+          const left = formatMeasurement(entry.margins.left);
+          const top = formatMeasurement(entry.margins.top);
+          const right = formatMeasurement(entry.margins.right);
+          const bottom = formatMeasurement(entry.margins.bottom);
+          if (left || top || right || bottom) {
+            marginLabel = `Margins L:${left ?? '—'} mm • T:${top ?? '—'} mm • R:${right ?? '—'} mm • B:${bottom ?? '—'} mm`;
+          }
+        }
+        const marginLine = marginLabel ? `<p class="page-margins">${escapeHtml(marginLabel)}</p>` : '';
+        return `
         <article class="page-card">
           <h3>Page ${entry.index}</h3>
+          <p class="page-meta">${escapeHtml(columnLabel + gutterLabel)}</p>
+          ${marginLine}
           <p>${escapeHtml(entry.preview)}</p>
         </article>
-      `).join('');
+      `;
+      }).join('');
     }
 
     function makeFileBaseName() {
@@ -438,11 +750,13 @@
       if (!currentDoc) return;
       setStatus('Sending document to Docu Monster…', 'processing');
       try {
+        const pageCount = Array.isArray(currentDoc?.pages) ? currentDoc.pages.length : 0;
         window.parent?.postMessage({
           type: 'scanx:open-document',
           payload: {
             document: currentDoc,
-            name: `${makeFileBaseName()}${DX_EXTENSION}`
+            name: `${makeFileBaseName()}${DX_EXTENSION}`,
+            pageCount
           }
         }, '*');
       } catch (err) {
@@ -455,6 +769,9 @@
       currentDoc = null;
       summaryEl.innerHTML = '';
       metaRow.hidden = true;
+      if (metaFile) metaFile.textContent = '';
+      if (metaPages) metaPages.textContent = '';
+      if (metaLayout) metaLayout.textContent = '';
       downloadBtn.disabled = true;
       saveLocalBtn.disabled = true;
       openDocBtn.disabled = true;
