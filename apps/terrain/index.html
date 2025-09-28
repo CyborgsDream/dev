@@ -91,6 +91,18 @@
       max-height: 100%;
       image-rendering: pixelated;
     }
+    body.terrain-fallback-mode #control-pad,
+    body.terrain-fallback-mode #fullscreen-btn,
+    body.terrain-fallback-mode #fps {
+      display: none;
+    }
+    body.terrain-fallback-mode #hud-overlay {
+      opacity: 0.78;
+    }
+    .render-mode-btn.is-disabled {
+      opacity: 0.45 !important;
+      cursor: not-allowed;
+    }
     #loader {
       position: fixed;
       inset: 0;
@@ -989,8 +1001,205 @@
     </div>
   </div>
   <script type="module">
-  import * as THREE from 'https://unpkg.com/three@0.160.0/build/three.module.js';
   import { initConsoleLogs } from '../../shared/consolelogs.js';
+
+  async function loadThreeModule() {
+    const sources = [
+      '../../shared/vendor/three/three.module.js',
+      'https://unpkg.com/three@0.160.0/build/three.module.js',
+      'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js',
+      'https://cdnjs.cloudflare.com/ajax/libs/three.js/r160/three.module.js'
+    ];
+
+    const errors = [];
+    for (const source of sources) {
+      try {
+        if (!source.startsWith('http')) {
+          const response = await fetch(source, { method: 'HEAD' });
+          if (!response.ok) {
+            throw new Error(`HTTP ${response.status} ${response.statusText}`);
+          }
+        }
+        const mod = await import(source);
+        const namespace = mod && mod.default ? mod.default : mod;
+        if (namespace && typeof namespace.Scene === 'function' && typeof namespace.WebGLRenderer === 'function') {
+          return { module: namespace, source };
+        }
+        errors.push({ source, error: new Error('Loaded module missing THREE exports.') });
+        console.warn(`Loaded module from ${source} but it is missing expected THREE.js exports.`);
+      } catch (err) {
+        errors.push({ source, error: err });
+        console.warn(`Failed to load THREE.js from ${source}`, err);
+      }
+    }
+
+    const aggregate = new Error('Unable to load THREE.js module from any configured source.');
+    aggregate.details = errors;
+    throw aggregate;
+  }
+
+  function activateTerrainFallback(error, { setConsoleFolded } = {}) {
+    console.warn('Switching to 2D fallback terrain visualiser.', error);
+
+    if (typeof setConsoleFolded === 'function') {
+      setConsoleFolded(false);
+    }
+
+    const loader = document.getElementById('loader');
+    const progress = document.getElementById('progress');
+    if (loader) {
+      loader.classList.add('is-error');
+      const loaderText = loader.querySelector('.loader-text');
+      if (loaderText) {
+        loaderText.textContent = 'Terrain offline mode';
+      }
+      if (progress) {
+        progress.textContent = 'Offline';
+      }
+      const meta = loader.querySelector('.loader-meta');
+      if (meta) {
+        meta.textContent = 'Fallback renderer active';
+      }
+      loader.style.transition = 'opacity 0.8s ease';
+      loader.style.pointerEvents = 'none';
+      setTimeout(() => {
+        loader.style.opacity = '0';
+      }, 600);
+      setTimeout(() => {
+        loader.remove();
+      }, 1600);
+    }
+
+    const canvasWrap = document.getElementById('canvas-wrap');
+    if (!canvasWrap) {
+      return;
+    }
+
+    canvasWrap.innerHTML = '';
+    const canvas = document.createElement('canvas');
+    const aspectRatio = 16 / 9;
+    let logicalWidth = 960;
+    let logicalHeight = 540;
+    canvas.width = logicalWidth;
+    canvas.height = logicalHeight;
+    canvas.setAttribute('role', 'img');
+    canvas.setAttribute('aria-label', 'Fallback terrain visualisation');
+    canvas.classList.add('terrain-fallback-canvas');
+    canvasWrap.appendChild(canvas);
+
+    const ctx = canvas.getContext('2d');
+    if (!ctx) {
+      return;
+    }
+
+    document.body.classList.add('terrain-fallback-mode');
+
+    document.querySelectorAll('[data-render-mode]').forEach(btn => {
+      btn.setAttribute('disabled', 'true');
+      btn.classList.add('is-disabled');
+      btn.setAttribute('aria-pressed', 'false');
+    });
+
+    const hudPosition = document.querySelector('[data-hud="position"]');
+    const hudHeading = document.querySelector('[data-hud="heading"]');
+    const hudChunk = document.querySelector('[data-hud="chunk"]');
+    const hudSpeed = document.querySelector('[data-hud="speed"]');
+    if (hudPosition) hudPosition.textContent = 'Offline';
+    if (hudHeading) hudHeading.textContent = '—';
+    if (hudChunk) hudChunk.textContent = '—';
+    if (hudSpeed) hudSpeed.textContent = '0 m/s';
+
+    const ridges = new Array(6).fill(null).map((_, idx) => ({
+      offset: idx * 60,
+      amplitude: 26 + idx * 9,
+      wavelength: 120 - idx * 6,
+      speed: 0.0009 + idx * 0.00035,
+      hue: 200 + idx * 12
+    }));
+
+    const canvasCtx = ctx;
+
+    function resizeCanvas() {
+      const wrapRect = canvasWrap.getBoundingClientRect();
+      const availableWidth = Math.max(320, Math.floor(wrapRect.width || window.innerWidth));
+      const availableHeight = Math.max(240, Math.floor(wrapRect.height || window.innerHeight));
+      let width = availableWidth;
+      let height = Math.floor(width / aspectRatio);
+      if (height > availableHeight) {
+        height = availableHeight;
+        width = Math.floor(height * aspectRatio);
+      }
+      logicalWidth = Math.max(320, width);
+      logicalHeight = Math.max(200, height);
+      const dpr = Math.min(2, window.devicePixelRatio || 1);
+      canvas.width = Math.floor(logicalWidth * dpr);
+      canvas.height = Math.floor(logicalHeight * dpr);
+      canvas.style.width = `${logicalWidth}px`;
+      canvas.style.height = `${logicalHeight}px`;
+      canvasCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    }
+
+    function draw(time = 0) {
+      const t = time;
+      canvasCtx.clearRect(0, 0, logicalWidth, logicalHeight);
+
+      const gradient = canvasCtx.createLinearGradient(0, 0, 0, logicalHeight);
+      gradient.addColorStop(0, '#040b1a');
+      gradient.addColorStop(0.45, '#071a2f');
+      gradient.addColorStop(1, '#0b1124');
+      canvasCtx.fillStyle = gradient;
+      canvasCtx.fillRect(0, 0, logicalWidth, logicalHeight);
+
+      canvasCtx.save();
+      canvasCtx.translate(0, logicalHeight * 0.55);
+      canvasCtx.globalCompositeOperation = 'lighter';
+
+      for (const ridge of ridges) {
+        canvasCtx.beginPath();
+        const amplitude = ridge.amplitude;
+        const wavelength = ridge.wavelength;
+        for (let x = 0; x <= logicalWidth; x += 6) {
+          const y = Math.sin((x + ridge.offset) / wavelength + t * ridge.speed) * amplitude;
+          const perspective = 1 + x / 900;
+          const px = x;
+          const py = y / perspective - ridge.offset * 0.12;
+          if (x === 0) {
+            canvasCtx.moveTo(px, py);
+          } else {
+            canvasCtx.lineTo(px, py);
+          }
+        }
+        canvasCtx.lineTo(logicalWidth, logicalHeight);
+        canvasCtx.lineTo(0, logicalHeight);
+        canvasCtx.closePath();
+        canvasCtx.fillStyle = `hsla(${ridge.hue}, 75%, 55%, 0.08)`;
+        canvasCtx.fill();
+        canvasCtx.lineWidth = 1.2;
+        canvasCtx.strokeStyle = `hsla(${ridge.hue}, 90%, 62%, 0.22)`;
+        canvasCtx.stroke();
+        ridge.offset += 0.12;
+      }
+
+      canvasCtx.restore();
+
+      canvasCtx.fillStyle = 'rgba(255, 255, 255, 0.04)';
+      for (let y = 0; y < logicalHeight; y += 4) {
+        canvasCtx.fillRect(0, y, logicalWidth, 1);
+      }
+
+      canvasCtx.fillStyle = 'rgba(255, 139, 47, 0.4)';
+      const markerY = (Math.sin(t * 0.0018) * 0.5 + 0.5) * logicalHeight * 0.9 + logicalHeight * 0.05;
+      canvasCtx.fillRect(0, markerY, logicalWidth, 2);
+
+      requestAnimationFrame(draw);
+    }
+
+    resizeCanvas();
+    window.addEventListener('resize', resizeCanvas);
+    requestAnimationFrame(draw);
+  }
+
+  (async () => {
 
   const consoleLogEl = document.getElementById('console-log');
   const consoleDock = document.getElementById('console-dock');
@@ -1028,6 +1237,24 @@
   };
   console.log('HUD telemetry overlay online.');
   console.log('Compact terrain interface scaling engaged.');
+
+  let THREE_NS = null;
+  let threeSource = null;
+  try {
+    const { module, source } = await loadThreeModule();
+    THREE_NS = module;
+    threeSource = source;
+  } catch (error) {
+    console.error('Unable to initialise THREE.js for the terrain demo.', error);
+    activateTerrainFallback(error, { setConsoleFolded });
+    return;
+  }
+
+  if (threeSource) {
+    console.log(`THREE.js loaded from ${threeSource}.`);
+  }
+
+  const THREE = THREE_NS;
 
   const renderModeButtons = document.querySelectorAll('[data-render-mode]');
   const renderModeDescriptions = {
@@ -3624,6 +3851,7 @@ wE8AAAAABAR/QAAAAAAEBPxEAAAAAIiIiIgAAAAAPzAwMAAAAADw8AAPAAAAABAQHPwAAAAANDQMAAAA
   applyResolution(currentResolution);
   updateFullscreenButton();
   updateCanvasLayout();
+  })();
   </script>
 </body>
 </html>
