@@ -117,13 +117,13 @@
       backdrop-filter: blur(12px);
     }
     #loader .loader-icon {
-      width: 256px;
-      height: 192px;
+      width: 192px;
+      height: 144px;
       display: flex;
       align-items: center;
       justify-content: center;
       background: #0000d7;
-      border: 6px solid #d7d7d7;
+      border: 5px solid #d7d7d7;
       box-shadow:
         0 0 0 2px #000,
         0 22px 36px rgba(0, 0, 0, 0.55);
@@ -133,7 +133,7 @@
     #loader .loader-icon::after {
       content: '';
       position: absolute;
-      inset: 10px;
+      inset: 8px;
       border: 2px solid #0000ff;
       pointer-events: none;
     }
@@ -974,7 +974,7 @@
   <div id="loader">
     <div class="loader-content">
       <div class="loader-icon" aria-hidden="true">
-        <canvas id="loader-canvas" width="256" height="192" role="presentation"></canvas>
+        <canvas id="loader-canvas" width="192" height="144" role="presentation"></canvas>
       </div>
       <div class="loader-text">Loading <span id="progress">0%</span></div>
       <div class="loader-meta">© 2025 Cyborgs Dream</div>
@@ -1096,149 +1096,246 @@
       const width = loaderCanvas.width;
       const height = loaderCanvas.height;
       ctx.imageSmoothingEnabled = false;
+      ctx.lineJoin = 'round';
+      ctx.lineCap = 'round';
+
+      const halfWidth = width * 0.5;
+      const halfHeight = height * 0.5;
 
       const zxFacePairs = [
-        { base: '#0000d7', bright: '#0000ff' },
-        { base: '#00d7d7', bright: '#00ffff' },
-        { base: '#d7d700', bright: '#ffff00' },
-        { base: '#d700d7', bright: '#ff00ff' },
-        { base: '#00d700', bright: '#00ff00' },
-        { base: '#d70000', bright: '#ff0000' },
-        { base: '#d7d7d7', bright: '#ffffff' },
-        { base: '#0000d7', bright: '#0000ff' },
-        { base: '#00d7d7', bright: '#00ffff' },
-        { base: '#d7d700', bright: '#ffff00' }
+        ['#0000d7', '#0000ff'],
+        ['#00d7d7', '#00ffff'],
+        ['#d7d700', '#ffff00'],
+        ['#d700d7', '#ff00ff'],
+        ['#00d700', '#00ff00'],
+        ['#d70000', '#ff0000'],
+        ['#d7d7d7', '#ffffff'],
+        ['#0000d7', '#0000ff'],
+        ['#00d7d7', '#00ffff'],
+        ['#d7d700', '#ffff00']
       ];
 
-      const baseVertices = [];
-      const topApex = { x: 0, y: 1.52, z: 0 };
-      const bottomApex = { x: 0, y: -1.52, z: 0 };
-      baseVertices.push(topApex);
+      const tau = Math.PI * 2;
+      const radius = 1;
+      const midHeight = 0.5;
+      const sinHalfStep = Math.sin(Math.PI / 10);
+      const edgeSquared = 4 * radius * radius * sinHalfStep * sinHalfStep + 4 * midHeight * midHeight;
+      const apexOffset = Math.sqrt(Math.max(1e-6, edgeSquared - radius * radius));
+      const apexHeight = midHeight + apexOffset;
 
-      const ringRadius = 1.08;
-      const ringHeight = 0.46;
+      const vertexCount = 12;
+      const vertices = new Float32Array(vertexCount * 3);
+      vertices[0] = 0;
+      vertices[1] = apexHeight;
+      vertices[2] = 0;
       for (let i = 0; i < 5; i++) {
-        const angle = (i * Math.PI * 2) / 5;
-        baseVertices.push({
-          x: Math.cos(angle) * ringRadius,
-          y: ringHeight,
-          z: Math.sin(angle) * ringRadius
-        });
+        const angle = (i * tau) / 5;
+        const offset = (1 + i) * 3;
+        vertices[offset] = radius * Math.cos(angle);
+        vertices[offset + 1] = midHeight;
+        vertices[offset + 2] = radius * Math.sin(angle);
       }
       for (let i = 0; i < 5; i++) {
-        const angle = (i * Math.PI * 2) / 5 + Math.PI / 5;
-        baseVertices.push({
-          x: Math.cos(angle) * ringRadius,
-          y: -ringHeight,
-          z: Math.sin(angle) * ringRadius
-        });
+        const angle = (i * tau) / 5 + Math.PI / 5;
+        const offset = (6 + i) * 3;
+        vertices[offset] = radius * Math.cos(angle);
+        vertices[offset + 1] = -midHeight;
+        vertices[offset + 2] = radius * Math.sin(angle);
       }
-      baseVertices.push(bottomApex);
+      const bottomIndex = vertexCount - 1;
+      vertices[bottomIndex * 3] = 0;
+      vertices[bottomIndex * 3 + 1] = -apexHeight;
+      vertices[bottomIndex * 3 + 2] = 0;
 
-      const faces = [];
-      for (let i = 0; i < 5; i++) {
-        const next = (i + 1) % 5;
-        faces.push([0, 1 + i, 6 + i, 1 + next]);
-        faces.push([11, 6 + i, 1 + next, 6 + next]);
+      const transformed = new Float32Array(vertices.length);
+      const projected = new Float32Array(vertexCount * 2);
+      const faceIndices = new Uint8Array([
+        0, 1, 6, 2,
+        0, 2, 7, 3,
+        0, 3, 8, 4,
+        0, 4, 9, 5,
+        0, 5, 10, 1,
+        11, 6, 2, 7,
+        11, 7, 3, 8,
+        11, 8, 4, 9,
+        11, 9, 5, 10,
+        11, 10, 1, 6
+      ]);
+      const faceCount = faceIndices.length / 4;
+      const facePalettes = new Array(faceCount);
+      for (let i = 0; i < faceCount; i++) {
+        facePalettes[i] = zxFacePairs[i % zxFacePairs.length];
       }
 
-      function normalizeVec(v) {
-        const length = Math.hypot(v.x, v.y, v.z) || 1;
-        return { x: v.x / length, y: v.y / length, z: v.z / length };
+      const depths = new Float32Array(faceCount);
+      const faceFills = new Array(faceCount);
+      const edgeFlags = new Uint8Array(faceCount);
+      const faceOrder = new Uint8Array(faceCount);
+      for (let i = 0; i < faceCount; i++) {
+        faceOrder[i] = i;
       }
 
-      const light = normalizeVec({ x: 0.6, y: 0.9, z: 0.4 });
-      const transformed = baseVertices.map(() => ({ x: 0, y: 0, z: 0 }));
+      const EDGE_COLORS = ['#000000', '#ffffff'];
+
+      const stripes = document.createElement('canvas');
+      stripes.width = 2;
+      stripes.height = 2;
+      const stripesCtx = stripes.getContext('2d');
+      stripesCtx.fillStyle = '#000000';
+      stripesCtx.fillRect(0, 0, 2, 2);
+      stripesCtx.fillStyle = '#0000d7';
+      stripesCtx.fillRect(0, 0, 2, 1);
+
+      const backgroundCanvas = document.createElement('canvas');
+      backgroundCanvas.width = width;
+      backgroundCanvas.height = height;
+      const bgCtx = backgroundCanvas.getContext('2d');
+      bgCtx.fillStyle = '#000000';
+      bgCtx.fillRect(0, 0, width, height);
+      const stripePattern = bgCtx.createPattern(stripes, 'repeat');
+      if (stripePattern) {
+        bgCtx.fillStyle = stripePattern;
+        bgCtx.fillRect(0, 0, width, height);
+      } else {
+        bgCtx.fillStyle = '#0000d7';
+        for (let y = 0; y < height; y += 2) {
+          bgCtx.fillRect(0, y, width, 1);
+        }
+      }
+      bgCtx.strokeStyle = '#d7d7d7';
+      bgCtx.lineWidth = 1;
+      bgCtx.strokeRect(0.5, 0.5, width - 1, height - 1);
+
+      const lightVector = (() => {
+        const x = 0.62;
+        const y = 0.9;
+        const z = 0.38;
+        const invLen = 1 / Math.sqrt(x * x + y * y + z * z);
+        return new Float32Array([x * invLen, y * invLen, z * invLen]);
+      })();
+
       const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-      const spinSpeed = reduceMotion ? 0.00025 : 0.00062;
-      const tiltSpeed = reduceMotion ? 0.00018 : 0.00032;
-      const cameraDistance = 7.5;
-      const scale = 68;
+      const spinSpeed = reduceMotion ? 0.38 : 0.85;
+      const tiltFrequency = reduceMotion ? 0.4 : 0.78;
+      const tiltAmplitude = reduceMotion ? 0.22 : 0.36;
+      const baseTilt = 0.55;
+      const cameraDistance = 7.2;
+      const scale = Math.min(width, height) * 0.354;
       let rafId = null;
 
-      function rotateVertex(v, rotX, rotY) {
-        const cosY = Math.cos(rotY);
-        const sinY = Math.sin(rotY);
-        const xz = v.x * cosY - v.z * sinY;
-        const zz = v.x * sinY + v.z * cosY;
-
-        const cosX = Math.cos(rotX);
-        const sinX = Math.sin(rotX);
-        const yz = v.y * cosX - zz * sinX;
-        const zy = v.y * sinX + zz * cosX;
-
-        return { x: xz, y: yz, z: zy };
-      }
-
-      function project(vertex) {
-        const perspective = cameraDistance / (cameraDistance - vertex.z);
-        return {
-          x: width / 2 + vertex.x * perspective * scale,
-          y: height / 2 - vertex.y * perspective * scale
-        };
-      }
-
-      function drawBackground() {
-        ctx.fillStyle = '#000000';
-        ctx.fillRect(0, 0, width, height);
-        ctx.fillStyle = '#0000d7';
-        for (let y = 0; y < height; y += 2) {
-          ctx.fillRect(0, y, width, 1);
+      function sortFaces() {
+        for (let i = 1; i < faceCount; i++) {
+          const current = faceOrder[i];
+          const depth = depths[current];
+          let j = i - 1;
+          while (j >= 0 && depths[faceOrder[j]] < depth) {
+            faceOrder[j + 1] = faceOrder[j];
+            j--;
+          }
+          faceOrder[j + 1] = current;
         }
-        ctx.strokeStyle = '#d7d7d7';
-        ctx.lineWidth = 1;
-        ctx.strokeRect(0.5, 0.5, width - 1, height - 1);
       }
 
-      function getFaceNormal(v0, v1, v2) {
-        const ux = v1.x - v0.x;
-        const uy = v1.y - v0.y;
-        const uz = v1.z - v0.z;
-        const vx = v2.x - v0.x;
-        const vy = v2.y - v0.y;
-        const vz = v2.z - v0.z;
-        return normalizeVec({
-          x: uy * vz - uz * vy,
-          y: uz * vx - ux * vz,
-          z: ux * vy - uy * vx
-        });
-      }
-
-      function render(time) {
+      function render(timeMs) {
         rafId = requestAnimationFrame(render);
-        const rotY = time * spinSpeed;
-        const rotX = 0.5 + Math.sin(time * tiltSpeed) * 0.35;
+        const t = timeMs * 0.001;
+        const rotY = t * spinSpeed;
+        const rotX = baseTilt + Math.sin(t * tiltFrequency) * tiltAmplitude;
 
-        for (let i = 0; i < baseVertices.length; i++) {
-          transformed[i] = rotateVertex(baseVertices[i], rotX, rotY);
+        const sinY = Math.sin(rotY);
+        const cosY = Math.cos(rotY);
+        const sinX = Math.sin(rotX);
+        const cosX = Math.cos(rotX);
+
+        for (let i = 0; i < vertexCount; i++) {
+          const vi = i * 3;
+          const x = vertices[vi];
+          const y = vertices[vi + 1];
+          const z = vertices[vi + 2];
+
+          const x1 = x * cosY - z * sinY;
+          const z1 = x * sinY + z * cosY;
+          const y1 = y * cosX - z1 * sinX;
+          const z2 = y * sinX + z1 * cosX;
+
+          transformed[vi] = x1;
+          transformed[vi + 1] = y1;
+          transformed[vi + 2] = z2;
+
+          const depth = cameraDistance - z2;
+          const perspective = cameraDistance / (depth > 1e-3 ? depth : 1e-3);
+          const pi = i * 2;
+          projected[pi] = halfWidth + x1 * perspective * scale;
+          projected[pi + 1] = halfHeight - y1 * perspective * scale;
         }
 
-        drawBackground();
+        for (let face = 0; face < faceCount; face++) {
+          const offset = face * 4;
+          const i0 = faceIndices[offset];
+          const i1 = faceIndices[offset + 1];
+          const i2 = faceIndices[offset + 2];
+          const i3 = faceIndices[offset + 3];
 
-        const faceQueue = faces.map((indices, idx) => {
-          const verts = indices.map(i => transformed[i]);
-          const depth = verts.reduce((sum, v) => sum + v.z, 0) / verts.length;
-          const normal = getFaceNormal(verts[0], verts[1], verts[2]);
-          const brightness = Math.max(0, normal.x * light.x + normal.y * light.y + normal.z * light.z);
-          const palette = zxFacePairs[idx % zxFacePairs.length];
-          const fill = brightness > 0.55 ? palette.bright : palette.base;
-          return { verts, depth, fill, brightness };
-        }).sort((a, b) => b.depth - a.depth);
+          const ax = transformed[i0 * 3];
+          const ay = transformed[i0 * 3 + 1];
+          const az = transformed[i0 * 3 + 2];
+          const bx = transformed[i1 * 3];
+          const by = transformed[i1 * 3 + 1];
+          const bz = transformed[i1 * 3 + 2];
+          const cx = transformed[i2 * 3];
+          const cy = transformed[i2 * 3 + 1];
+          const cz = transformed[i2 * 3 + 2];
+          const dx = transformed[i3 * 3];
+          const dy = transformed[i3 * 3 + 1];
+          const dz = transformed[i3 * 3 + 2];
 
-        faceQueue.forEach(face => {
+          const ux = bx - ax;
+          const uy = by - ay;
+          const uz = bz - az;
+          const vx = cx - ax;
+          const vy = cy - ay;
+          const vz = cz - az;
+
+          let nx = uy * vz - uz * vy;
+          let ny = uz * vx - ux * vz;
+          let nz = ux * vy - uy * vx;
+          const normalLengthSq = nx * nx + ny * ny + nz * nz;
+          const invLen = normalLengthSq > 1e-12 ? 1 / Math.sqrt(normalLengthSq) : 1;
+          nx *= invLen;
+          ny *= invLen;
+          nz *= invLen;
+
+          const brightness = Math.max(0, nx * lightVector[0] + ny * lightVector[1] + nz * lightVector[2]);
+
+          depths[face] = (az + bz + cz + dz) * 0.25;
+          const palette = facePalettes[face];
+          faceFills[face] = brightness > 0.58 ? palette[1] : palette[0];
+          edgeFlags[face] = brightness > 0.52 ? 1 : 0;
+        }
+
+        sortFaces();
+
+        ctx.drawImage(backgroundCanvas, 0, 0);
+
+        for (let orderIndex = 0; orderIndex < faceCount; orderIndex++) {
+          const face = faceOrder[orderIndex];
+          const offset = face * 4;
+          const i0 = faceIndices[offset];
+          const i1 = faceIndices[offset + 1];
+          const i2 = faceIndices[offset + 2];
+          const i3 = faceIndices[offset + 3];
+
           ctx.beginPath();
-          face.verts.forEach((vertex, index) => {
-            const p = project(vertex);
-            if (index === 0) ctx.moveTo(p.x, p.y);
-            else ctx.lineTo(p.x, p.y);
-          });
+          ctx.moveTo(projected[i0 * 2], projected[i0 * 2 + 1]);
+          ctx.lineTo(projected[i1 * 2], projected[i1 * 2 + 1]);
+          ctx.lineTo(projected[i2 * 2], projected[i2 * 2 + 1]);
+          ctx.lineTo(projected[i3 * 2], projected[i3 * 2 + 1]);
           ctx.closePath();
-          ctx.fillStyle = face.fill;
+          ctx.fillStyle = faceFills[face];
           ctx.fill();
-          ctx.strokeStyle = face.brightness > 0.55 ? '#ffffff' : '#000000';
-          ctx.lineWidth = face.brightness > 0.55 ? 1 : 1;
+          ctx.strokeStyle = EDGE_COLORS[edgeFlags[face]];
           ctx.stroke();
-        });
+        }
 
         ctx.strokeStyle = '#0000ff';
         ctx.lineWidth = 1;
