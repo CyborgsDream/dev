@@ -1005,11 +1005,28 @@
 
   const REMOTE_MODULE_TIMEOUT_MS = 8000;
 
-  function updateLoaderStatus(message) {
-    const progress = document.getElementById('progress');
-    if (progress && typeof message === 'string') {
-      progress.textContent = message;
+  let loaderProgressValue = 0;
+  let loaderStatusMessage = '';
+  let loaderProgressEl = null;
+  function refreshLoaderProgressText() {
+    const progress = loaderProgressEl || document.getElementById('progress');
+    if (!progress) {
+      return;
     }
+    loaderProgressEl = progress;
+    const percentText = `${Math.round(loaderProgressValue)}%`;
+    progress.textContent = loaderStatusMessage
+      ? `${percentText} (${loaderStatusMessage})`
+      : percentText;
+  }
+
+  function updateLoaderStatus(message) {
+    if (typeof message === 'string' && message.trim()) {
+      loaderStatusMessage = message.trim();
+    } else {
+      loaderStatusMessage = '';
+    }
+    refreshLoaderProgressText();
   }
 
   async function fetchModuleText(url, timeout = REMOTE_MODULE_TIMEOUT_MS) {
@@ -1083,12 +1100,16 @@
     ];
 
     const errors = [];
+    setLoaderPhaseRange(0, 35);
+    reportLoaderPhaseProgress(0);
     for (let i = 0; i < sources.length; i++) {
       const source = sources[i];
       try {
+        reportLoaderPhaseProgress(Math.min(1, (i + 0.2) / sources.length));
         const mod = await importThreeFromSource(source, i, sources.length);
         const namespace = mod && mod.default ? mod.default : mod;
         if (namespace && typeof namespace.Scene === 'function' && typeof namespace.WebGLRenderer === 'function') {
+          reportLoaderPhaseProgress(1);
           updateLoaderStatus('Preparing scene…');
           return { module: namespace, source };
         }
@@ -1102,6 +1123,7 @@
 
     const aggregate = new Error('Unable to load THREE.js module from any configured source.');
     aggregate.details = errors;
+    reportLoaderPhaseProgress(1);
     throw aggregate;
   }
 
@@ -1323,6 +1345,9 @@
 
   const THREE = THREE_NS;
 
+  setLoaderPhaseRange(35, 60);
+  reportLoaderPhaseProgress(0.1);
+
   const renderModeButtons = document.querySelectorAll('[data-render-mode]');
   const renderModeDescriptions = {
     default: 'default shading',
@@ -1338,7 +1363,10 @@
       0x00ff00, 0x00ffff, 0xffff00, 0xffffff
     ],
     petscii: [
-      0x000000, 0x00ff6a
+      0x000000, 0xffffff, 0x68372b, 0x70a4b2,
+      0x6f3d86, 0x588d43, 0x352879, 0xb8c76f,
+      0x6f4f25, 0x433900, 0x9a6759, 0x444444,
+      0x6c6c6c, 0x9ad284, 0x6c5eb5, 0x959595
     ]
   };
   const retroModeConfigs = {
@@ -1415,9 +1443,25 @@
 
   const loaderEl = document.getElementById('loader');
   const progressEl = document.getElementById('progress');
+  loaderProgressEl = progressEl || loaderProgressEl;
   function setProgress(p){
-    if (!progressEl) return;
-    progressEl.textContent = Math.round(p) + '%';
+    loaderProgressValue = Number.isFinite(p) ? Math.max(0, Math.min(100, p)) : 0;
+    refreshLoaderProgressText();
+  }
+
+  let loaderPhaseStart = 0;
+  let loaderPhaseEnd = 100;
+  function setLoaderPhaseRange(start, end) {
+    const safeStart = Number.isFinite(start) ? Math.max(0, Math.min(100, start)) : 0;
+    const safeEnd = Number.isFinite(end) ? Math.max(safeStart, Math.min(100, end)) : safeStart;
+    loaderPhaseStart = safeStart;
+    loaderPhaseEnd = safeEnd;
+  }
+  function reportLoaderPhaseProgress(fraction) {
+    const span = loaderPhaseEnd - loaderPhaseStart;
+    const safeFraction = Number.isFinite(fraction) ? Math.min(Math.max(fraction, 0), 1) : 0;
+    const percent = loaderPhaseStart + span * safeFraction;
+    setProgress(percent);
   }
 
   const GOURAUD_LEVELS = 6;
@@ -2213,6 +2257,7 @@ wE8AAAAABAR/QAAAAAAEBPxEAAAAAIiIiIgAAAAAPzAwMAAAAADw8AAPAAAAABAQHPwAAAAANDQMAAAA
 
   function createRetroEffect(renderer, initialPalette = [], initialSettings = {}) {
     const paletteVectors = new Array(16).fill(null).map(() => new THREE.Vector3());
+    const paletteRgb = new Float32Array(paletteVectors.length * 3);
     const paletteColor = new THREE.Color();
 
     function applyPalette(palette) {
@@ -2221,10 +2266,31 @@ wE8AAAAABAR/QAAAAAAEBPxEAAAAAIiIiIgAAAAAPzAwMAAAAADw8AAPAAAAABAQHPwAAAAANDQMAAAA
         const hex = source[i % source.length];
         paletteColor.set(hex);
         paletteVectors[i].set(paletteColor.r, paletteColor.g, paletteColor.b);
+        const offset = i * 3;
+        paletteRgb[offset] = paletteColor.r;
+        paletteRgb[offset + 1] = paletteColor.g;
+        paletteRgb[offset + 2] = paletteColor.b;
       }
     }
 
     applyPalette(initialPalette);
+
+    function nearestPaletteIndexRGB(r, g, b) {
+      let bestIndex = 0;
+      let bestDistance = Infinity;
+      for (let i = 0; i < paletteVectors.length; i++) {
+        const offset = i * 3;
+        const dr = r - paletteRgb[offset];
+        const dg = g - paletteRgb[offset + 1];
+        const db = b - paletteRgb[offset + 2];
+        const dist = dr * dr + dg * dg + db * db;
+        if (dist < bestDistance) {
+          bestDistance = dist;
+          bestIndex = i;
+        }
+      }
+      return bestIndex;
+    }
 
     const petsciiAtlas = createPetsciiAtlas();
     const petsciiCharRom = petsciiAtlas.rom;
@@ -2262,7 +2328,7 @@ wE8AAAAABAR/QAAAAAAEBPxEAAAAAIiIiIgAAAAAPzAwMAAAAADw8AAPAAAAABAQHPwAAAAANDQMAAAA
       const safeBlockWidth = Math.max(1, Math.floor(blockWidth));
       const safeBlockHeight = Math.max(1, Math.floor(blockHeight));
       const blockCount = safeBlockWidth * safeBlockHeight;
-      const requiredDataLength = blockCount * 2;
+      const requiredDataLength = blockCount * 4;
       let replacedData = false;
       if (!petsciiState.charBuffer || petsciiState.charBuffer.length !== requiredDataLength) {
         petsciiState.charBuffer = new Uint8Array(requiredDataLength);
@@ -2276,7 +2342,7 @@ wE8AAAAABAR/QAAAAAAEBPxEAAAAAIiIiIgAAAAAPzAwMAAAAADw8AAPAAAAABAQHPwAAAAANDQMAAAA
           petsciiState.charBuffer,
           safeBlockWidth,
           safeBlockHeight,
-          THREE.LuminanceAlphaFormat
+          THREE.RGBAFormat
         );
         petsciiState.charTexture.magFilter = THREE.NearestFilter;
         petsciiState.charTexture.minFilter = THREE.NearestFilter;
@@ -2334,6 +2400,14 @@ wE8AAAAABAR/QAAAAAAEBPxEAAAAAIiIiIgAAAAAPzAwMAAAAADw8AAPAAAAABAQHPwAAAAANDQMAAAA
           let lumSum = 0;
           let minLum = Infinity;
           let maxLum = -Infinity;
+          let onR = 0;
+          let onG = 0;
+          let onB = 0;
+          let onCount = 0;
+          let offR = 0;
+          let offG = 0;
+          let offB = 0;
+          let offCount = 0;
 
           for (let py = 0; py < blockSize; py++) {
             const pixelY = baseY + py;
@@ -2363,10 +2437,25 @@ wE8AAAAABAR/QAAAAAAEBPxEAAAAAIiIiIgAAAAAPzAwMAAAAADw8AAPAAAAABAQHPwAAAAANDQMAAAA
           lumIndex = 0;
           for (let py = 0; py < blockSize; py++) {
             let rowByte = 0;
+            const pixelY = baseY + py;
+            const clampedY = Math.min(pixelY, height - 1);
+            const rowOffset = clampedY * width;
             for (let px = 0; px < blockSize; px++) {
+              const pixelX = baseX + px;
+              const clampedX = Math.min(pixelX, width - 1);
+              const idx = (rowOffset + clampedX) * 4;
               const lum = luminances[lumIndex++];
               if (lum >= threshold) {
                 rowByte |= 1 << (7 - px);
+                onR += pixelData[idx];
+                onG += pixelData[idx + 1];
+                onB += pixelData[idx + 2];
+                onCount++;
+              } else {
+                offR += pixelData[idx];
+                offG += pixelData[idx + 1];
+                offB += pixelData[idx + 2];
+                offCount++;
               }
             }
             rowBits[py] = rowByte & 0xff;
@@ -2401,9 +2490,38 @@ wE8AAAAABAR/QAAAAAAEBPxEAAAAAIiIiIgAAAAAPzAwMAAAAADw8AAPAAAAABAQHPwAAAAANDQMAAAA
             }
           }
 
-          const dataIndex = (by * blockWidth + bx) * 2;
-          charBuffer[dataIndex] = bestChar & 0xff;
+          const inv255 = 1 / 255;
+          const brightR = (onCount > 0 ? onR / onCount : offR / Math.max(1, offCount)) * inv255;
+          const brightG = (onCount > 0 ? onG / onCount : offG / Math.max(1, offCount)) * inv255;
+          const brightB = (onCount > 0 ? onB / onCount : offB / Math.max(1, offCount)) * inv255;
+          const darkR = (offCount > 0 ? offR / offCount : onR / Math.max(1, onCount)) * inv255;
+          const darkG = (offCount > 0 ? offG / offCount : onG / Math.max(1, onCount)) * inv255;
+          const darkB = (offCount > 0 ? offB / offCount : onB / Math.max(1, onCount)) * inv255;
+
+          const inkIndexBase = nearestPaletteIndexRGB(
+            Math.max(0, Math.min(1, brightR)),
+            Math.max(0, Math.min(1, brightG)),
+            Math.max(0, Math.min(1, brightB))
+          );
+          const paperIndexBase = nearestPaletteIndexRGB(
+            Math.max(0, Math.min(1, darkR)),
+            Math.max(0, Math.min(1, darkG)),
+            Math.max(0, Math.min(1, darkB))
+          );
+
+          let paperIndex = paperIndexBase;
+          let inkIndex = inkIndexBase;
+          if (bestInvert) {
+            const swap = paperIndex;
+            paperIndex = inkIndex;
+            inkIndex = swap;
+          }
+
+          const dataIndex = (by * blockWidth + bx) * 4;
+          charBuffer[dataIndex] = Math.max(0, Math.min(255, bestChar & 0xff));
           charBuffer[dataIndex + 1] = bestInvert ? 255 : 0;
+          charBuffer[dataIndex + 2] = Math.max(0, Math.min(255, paperIndex & 0xff));
+          charBuffer[dataIndex + 3] = Math.max(0, Math.min(255, inkIndex & 0xff));
         }
       }
 
@@ -2666,9 +2784,11 @@ wE8AAAAABAR/QAAAAAAEBPxEAAAAAIiIiIgAAAAAPzAwMAAAAADw8AAPAAAAABAQHPwAAAAANDQMAAAA
 
           if (attributeMode > 1.5) {
             float charIndex = floor(attributeData.r * 255.0 + 0.5);
-            float invertFlag = step(0.5, attributeData.a);
-            vec3 paperColor = paletteColor(0);
-            vec3 inkColor = paletteColor(1);
+            float invertFlag = step(0.5, attributeData.g);
+            int paperIndex = decodeIndex(attributeData.b);
+            int inkIndex = decodeIndex(attributeData.a);
+            vec3 paperColor = paletteColor(paperIndex);
+            vec3 inkColor = paletteColor(inkIndex);
             float glyph = samplePetsciiPattern(charIndex, pixelCoord);
             if (invertFlag > 0.5) {
               glyph = 1.0 - glyph;
@@ -3448,6 +3568,7 @@ wE8AAAAABAR/QAAAAAAEBPxEAAAAAIiIiIgAAAAAPzAwMAAAAADw8AAPAAAAABAQHPwAAAAANDQMAAAA
   });
 
   applyRenderMode(currentRenderMode, { announce: false });
+  reportLoaderPhaseProgress(1);
 
   function createBlock(x, z) {
     const size = 2;
@@ -3498,12 +3619,12 @@ wE8AAAAABAR/QAAAAAAEBPxEAAAAAIiIiIgAAAAAPzAwMAAAAADw8AAPAAAAABAQHPwAAAAANDQMAAAA
       created++;
       const now = performance.now();
       if (now - lastYield >= 16 || created === count) {
-        setProgress((created / count) * 100);
+        reportLoaderPhaseProgress(created / count);
         await new Promise(resolve => requestAnimationFrame(resolve));
         lastYield = now;
       }
     }
-    setProgress(100);
+    reportLoaderPhaseProgress(1);
     await new Promise(resolve => requestAnimationFrame(resolve));
     if (loaderEl) {
       stopLoaderAnimation();
@@ -3687,7 +3808,10 @@ wE8AAAAABAR/QAAAAAAEBPxEAAAAAIiIiIgAAAAAPzAwMAAAAADw8AAPAAAAABAQHPwAAAAANDQMAAAA
 
   async function bootTerrain() {
     console.log('Terrain initialising...');
-    setProgress(0);
+    reportLoaderPhaseProgress(1);
+    setLoaderPhaseRange(60, 100);
+    reportLoaderPhaseProgress(0);
+    updateLoaderStatus('Populating terrain…');
     await generateBlocks(1000);
     applyRenderMode(currentRenderMode, { announce: false });
     console.log('Terrain ready.');
