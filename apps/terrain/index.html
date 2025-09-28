@@ -1084,10 +1084,10 @@
   };
   const retroPalettes = {
     zx: [
-      0x30343c, 0x1f1fd7, 0xd71f1f, 0xd71fd7,
-      0x1fd71f, 0x1fd7d7, 0xd7d71f, 0xd7d7d7,
-      0x8a8a8a, 0x2a2aff, 0xff2a2a, 0xff2aff,
-      0x2aff2a, 0x2affff, 0xffff2a, 0xffffff
+      0x000000, 0x0000d7, 0xd70000, 0xd700d7,
+      0x00d700, 0x00d7d7, 0xd7d700, 0xd7d7d7,
+      0x000000, 0x0000ff, 0xff0000, 0xff00ff,
+      0x00ff00, 0x00ffff, 0xffff00, 0xffffff
     ]
   };
   const retroModeConfigs = {
@@ -1102,7 +1102,7 @@
     },
     zx: {
       terrain: new THREE.Color(0x00ffff),
-      block: new THREE.Color(0xffff00)
+      block: new THREE.Color(0xff2aff)
     }
   };
   const getWireColorsForMode = (mode) => wireModePalette[mode] || wireModePalette.wire;
@@ -1111,13 +1111,13 @@
   const renderModeFogColors = {
     default: 0x020817,
     wire: 0x020817,
-    zx: 0xb5b5b5
+    zx: 0x0000d7
   };
 
   const renderModeCanvasBackgrounds = {
     default: '#020817',
     wire: '#020817',
-    zx: '#b5b5b5'
+    zx: '#0000d7'
   };
 
   const RESOLUTIONS = [
@@ -1885,6 +1885,20 @@
   }
 
   const { material: skyMaterial, uniforms: skyUniforms } = createSkyDomeMaterial();
+  const skyModeSettings = {
+    default: {
+      horizon: skyUniforms.horizonColor.value.clone(),
+      mid: skyUniforms.midColor.value.clone(),
+      zenith: skyUniforms.zenithColor.value.clone(),
+      glow: skyUniforms.glowColor.value.clone()
+    },
+    zx: {
+      horizon: new THREE.Color('#1f1fd7'),
+      mid: new THREE.Color('#2affff'),
+      zenith: new THREE.Color('#ffffff'),
+      glow: new THREE.Color('#ff2aff')
+    }
+  };
   const skyGeometry = new THREE.SphereGeometry(4200, 48, 24);
   const skyDome = new THREE.Mesh(skyGeometry, skyMaterial);
   skyDome.renderOrder = -6;
@@ -1892,6 +1906,10 @@
 
   const cloudTexture = createCloudTexture();
   const cloudSprites = [];
+  const cloudModeColors = {
+    default: new THREE.Color(0xffffff),
+    zx: new THREE.Color('#ffd71f')
+  };
   const cloudGroup = new THREE.Group();
   cloudGroup.renderOrder = -4;
   const cloudMaterial = new THREE.SpriteMaterial({
@@ -1924,6 +1942,20 @@
     cloudSprites.push(sprite);
   }
   scene.add(cloudGroup);
+
+  function applySkyAndAtmosphereMode(mode) {
+    const skySettings = skyModeSettings[mode] || skyModeSettings.default;
+    skyUniforms.horizonColor.value.copy(skySettings.horizon);
+    skyUniforms.midColor.value.copy(skySettings.mid);
+    skyUniforms.zenithColor.value.copy(skySettings.zenith);
+    skyUniforms.glowColor.value.copy(skySettings.glow);
+
+    const cloudColor = cloudModeColors[mode] || cloudModeColors.default;
+    cloudSprites.forEach(sprite => {
+      sprite.material.color.copy(cloudColor);
+      sprite.material.needsUpdate = true;
+    });
+  }
 
   const blackHoleTextures = {
     core: createBlackHoleCoreTexture(),
@@ -2428,6 +2460,7 @@
     } else {
       retroEffect.setConfig(retroModeConfigs.default);
     }
+    applySkyAndAtmosphereMode(mode);
     const fogHex = renderModeFogColors[mode] ?? renderModeFogColors.default;
     scene.fog.color.set(fogHex);
     edgeFadeUniform.value.set(fogHex);
