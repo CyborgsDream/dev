@@ -646,6 +646,9 @@
         let appData = null;
         let persistWindows = true;
         let windowStates = JSON.parse(localStorage.getItem('windowStates') || '{}');
+        const DOCUMONSTER_STORAGE_KEY = 'documonster-studiopro-autosave-v0-1';
+        const docuBridge = { frameWindow: null, ready: false, queue: [], lastWindowId: null };
+        const scanxFrames = new Set();
 
         function setTheme(theme) {
             const link = document.getElementById('theme-link');
@@ -736,7 +739,7 @@
                 link.href = `app-js/${safe}.js`;
                 document.head.appendChild(link);
             });
-            ['html-studio.html', 'cloud-storage.html', 'documonster.html'].forEach(p => {
+            ['html-studio.html', 'cloud-storage.html', 'documonster.html', 'scanx.html'].forEach(p => {
                 const l = document.createElement('link');
                 l.rel = 'prefetch';
                 l.href = p;
@@ -868,8 +871,26 @@
                 const loader = document.createElement('div');
                 loader.className = 'loading-overlay';
                 loader.textContent = 'Loading...';
-                winEl.querySelector('.window-content').appendChild(loader);
-                iframe.addEventListener('load', () => loader.remove());
+                const contentEl = winEl.querySelector('.window-content');
+                contentEl.appendChild(loader);
+                iframe.addEventListener('load', () => {
+                    loader.remove();
+                    if (type === 'document-editor') {
+                        docuBridge.frameWindow = iframe.contentWindow;
+                        docuBridge.ready = false;
+                    }
+                    if (type === 'scanx') {
+                        scanxFrames.add(iframe.contentWindow);
+                    }
+                });
+                if (type === 'document-editor') {
+                    docuBridge.frameWindow = iframe.contentWindow;
+                    docuBridge.ready = false;
+                    docuBridge.lastWindowId = id;
+                }
+                if (type === 'scanx') {
+                    scanxFrames.add(iframe.contentWindow);
+                }
             }
             if (type === 'console-log') {
                 // lazily load console log handler and keep restore callback
@@ -906,10 +927,135 @@
                 .replace(/\{CALENDAR_DAYS\}/g, calDays);
             return { title: cfg.title, content, width: cfg.width, height: cfg.height };
         }
+
+        function getDocuMonsterIframe() {
+            return document.querySelector('.window[data-window-type="document-editor"] iframe');
+        }
+
+        function ensureDocuMonsterWindow() {
+            const existingFrame = getDocuMonsterIframe();
+            if (existingFrame && existingFrame.contentWindow) {
+                docuBridge.frameWindow = existingFrame.contentWindow;
+                const hostWindow = existingFrame.closest('.window');
+                if (hostWindow) {
+                    hostWindow.style.display = 'flex';
+                    hostWindow.style.zIndex = ++state.zIndex;
+                }
+                return docuBridge.frameWindow;
+            }
+            const newId = openWindow('document-editor');
+            if (!newId) return null;
+            docuBridge.lastWindowId = newId;
+            const winEl = document.getElementById(newId);
+            const frame = winEl ? winEl.querySelector('iframe') : null;
+            if (frame && frame.contentWindow) {
+                docuBridge.frameWindow = frame.contentWindow;
+            }
+            return frame ? frame.contentWindow : null;
+        }
+
+        function flushDocuMonsterQueue() {
+            if (!docuBridge.ready || !docuBridge.frameWindow) return;
+            while (docuBridge.queue.length) {
+                const factory = docuBridge.queue.shift();
+                if (typeof factory !== 'function') continue;
+                try {
+                    docuBridge.frameWindow.postMessage(factory(), '*');
+                } catch (err) {
+                    console.error('Failed to deliver message to Docu Monster', err);
+                }
+            }
+        }
+
+        function sendToDocuMonster(factory) {
+            const target = ensureDocuMonsterWindow();
+            if (!target) return;
+            if (docuBridge.ready) {
+                try {
+                    target.postMessage(factory(), '*');
+                } catch (err) {
+                    console.error('Docu Monster communication error', err);
+                }
+            } else {
+                docuBridge.queue.push(factory);
+            }
+        }
+
+        function handleScanxDocument(payload) {
+            if (!payload || !payload.document) return;
+            try {
+                localStorage.setItem(DOCUMONSTER_STORAGE_KEY, JSON.stringify(payload.document));
+            } catch (err) {
+                console.warn('Unable to persist ScanX document', err);
+            }
+            const statusBar = document.getElementById('status-bar');
+            if (statusBar) {
+                statusBar.textContent = `ScanX prepared ${payload.name || 'a document'} for Docu Monster…`;
+            }
+            sendToDocuMonster(() => ({
+                type: 'documonster:load-document',
+                payload: {
+                    document: payload.document,
+                    meta: {
+                        source: 'ScanX',
+                        name: payload.name || 'scanx-import.dx',
+                        status: 'ScanX document loaded.',
+                        transient: false,
+                        persistToStorage: true
+                    }
+                }
+            }));
+        }
+
+        window.addEventListener('message', (event) => {
+            const data = event.data;
+            if (!data || typeof data !== 'object') return;
+            if (data.type === 'documonster:ready') {
+                if (event.source) {
+                    docuBridge.frameWindow = event.source;
+                }
+                docuBridge.ready = true;
+                flushDocuMonsterQueue();
+            } else if (data.type === 'documonster:document-loaded') {
+                if (data.payload && data.payload.source === 'ScanX') {
+                    scanxFrames.forEach(frame => {
+                        try {
+                            frame.postMessage({ type: 'scanx:documonster-confirm', payload: data.payload }, '*');
+                        } catch (err) {
+                            console.warn('Failed to notify ScanX frame', err);
+                        }
+                    });
+                    const statusBar = document.getElementById('status-bar');
+                    if (statusBar) {
+                        const name = data.payload.name || 'the document';
+                        const pages = data.payload.pageCount != null ? data.payload.pageCount : '?';
+                        statusBar.textContent = `Docu Monster opened ${name} from ScanX (${pages} pages).`;
+                    }
+                }
+            } else if (data.type === 'scanx:open-document') {
+                if (event.source) {
+                    scanxFrames.add(event.source);
+                }
+                handleScanxDocument(data.payload || {});
+            }
+        });
         
        function closeWindow(id) {
            const window = document.getElementById(id);
             if (!window) return;
+            const type = window.dataset.windowType;
+            if (type === 'document-editor') {
+                docuBridge.ready = false;
+                docuBridge.frameWindow = null;
+                docuBridge.lastWindowId = null;
+                docuBridge.queue.length = 0;
+            }
+            if (type === 'scanx') {
+                const frame = window.querySelector('iframe');
+                if (frame && frame.contentWindow) {
+                    scanxFrames.delete(frame.contentWindow);
+                }
+            }
             // run cleanup for special windows such as console log
             if (window._restoreConsole) {
                 window._restoreConsole();

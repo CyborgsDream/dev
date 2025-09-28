@@ -5,7 +5,8 @@ This document defines the JSON structure used by Docu Monster Studio Pro for sav
 ## 1. File container
 
 * **MIME type:** `application/json`
-* **Recommended extension:** `.json`
+* **Recommended extension:** `.dx`
+* **Legacy extension:** `.json` files remain compatible for backward interoperability.
 * **Root value:** a single JSON object referred to as the *document model*.
 * **Character encoding:** UTF-8.
 

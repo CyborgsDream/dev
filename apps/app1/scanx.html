@@ -1,0 +1,425 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>ScanX • Orbit OS</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg:#f4f6ff;
+      --panel:#ffffff;
+      --ink:#13224d;
+      --muted:#5c678a;
+      --accent:#3c7dff;
+      --border:#c7d4f5;
+      --success:#1e7e34;
+      --error:#b71c1c;
+    }
+    * { box-sizing:border-box; }
+    body {
+      margin:0;
+      font-family:"Segoe UI", system-ui, sans-serif;
+      background:var(--bg);
+      color:var(--ink);
+      min-height:100vh;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding:24px;
+    }
+    .scanx-shell {
+      width:100%;
+      max-width:960px;
+      background:var(--panel);
+      border:2px solid var(--border);
+      border-radius:16px;
+      box-shadow:0 18px 48px rgba(19,34,77,0.18);
+      padding:28px;
+      display:flex;
+      flex-direction:column;
+      gap:24px;
+    }
+    header h1 {
+      margin:0;
+      font-size:28px;
+      letter-spacing:0.04em;
+    }
+    header p {
+      margin:6px 0 0 0;
+      color:var(--muted);
+      font-size:15px;
+    }
+    .upload-row {
+      display:flex;
+      flex-wrap:wrap;
+      gap:12px;
+      align-items:center;
+    }
+    .upload-row input[type="file"] {
+      flex:1 1 260px;
+      padding:10px;
+      border:1px dashed var(--border);
+      border-radius:10px;
+      background:#f9fbff;
+    }
+    button {
+      font:600 15px "Segoe UI", system-ui, sans-serif;
+      border-radius:10px;
+      border:1px solid transparent;
+      padding:10px 18px;
+      cursor:pointer;
+      transition:transform 0.15s ease, box-shadow 0.15s ease, opacity 0.2s ease;
+      background:linear-gradient(145deg, var(--accent), #1d4bd8);
+      color:#fff;
+      box-shadow:0 8px 20px rgba(60,125,255,0.24);
+      min-width:150px;
+    }
+    button:disabled {
+      opacity:0.55;
+      cursor:not-allowed;
+      box-shadow:none;
+      transform:none;
+    }
+    button.secondary {
+      background:#fff;
+      color:var(--ink);
+      border-color:var(--border);
+      box-shadow:0 4px 12px rgba(19,34,77,0.08);
+    }
+    .actions {
+      display:flex;
+      flex-wrap:wrap;
+      gap:12px;
+    }
+    .status {
+      padding:14px 16px;
+      border-radius:12px;
+      background:#eef3ff;
+      border:1px solid var(--border);
+      font-size:15px;
+      line-height:1.5;
+    }
+    .status.success {
+      background:rgba(30,126,52,0.12);
+      border-color:rgba(30,126,52,0.4);
+      color:var(--success);
+    }
+    .status.error {
+      background:rgba(183,28,28,0.12);
+      border-color:rgba(183,28,28,0.4);
+      color:var(--error);
+    }
+    .status.processing {
+      background:rgba(60,125,255,0.12);
+      border-color:rgba(60,125,255,0.4);
+    }
+    .summary {
+      display:grid;
+      grid-template-columns:repeat(auto-fit,minmax(240px,1fr));
+      gap:16px;
+    }
+    .page-card {
+      border:1px solid var(--border);
+      border-radius:12px;
+      padding:14px 16px;
+      background:#f9fbff;
+      box-shadow:0 4px 14px rgba(19,34,77,0.08);
+    }
+    .page-card h3 {
+      margin:0 0 8px 0;
+      font-size:18px;
+    }
+    .page-card p {
+      margin:0;
+      color:var(--muted);
+      font-size:14px;
+      line-height:1.5;
+    }
+    .meta-row {
+      display:flex;
+      flex-wrap:wrap;
+      gap:12px;
+      font-size:14px;
+      color:var(--muted);
+    }
+    @media (max-width:640px) {
+      body { padding:12px; }
+      .scanx-shell { padding:20px; }
+      button { flex:1 1 100%; min-width:0; }
+      .upload-row input[type="file"] { flex:1 1 100%; }
+    }
+  </style>
+</head>
+<body>
+  <main class="scanx-shell">
+    <header>
+      <h1>ScanX Reconstruction Lab</h1>
+      <p>Transform source PDFs into clean Docu Monster layouts with one click.</p>
+    </header>
+    <section class="upload-row">
+      <input type="file" id="pdfInput" accept="application/pdf" />
+      <button id="analyzeBtn" disabled>Analyze PDF</button>
+    </section>
+    <section class="meta-row" id="metaRow" hidden>
+      <span id="metaFile"></span>
+      <span id="metaPages"></span>
+    </section>
+    <section class="status" id="statusPanel">Select a PDF to begin.</section>
+    <section class="actions">
+      <button id="downloadBtn" class="secondary" disabled>Download .dx</button>
+      <button id="saveLocalBtn" class="secondary" disabled>Save to Local Storage</button>
+      <button id="openDocBtn" disabled>Open in Docu Monster</button>
+    </section>
+    <section class="summary" id="summary"></section>
+  </main>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.2.67/pdf.min.js" integrity="sha512-5jEvhczHxVn9Yx8RJWb1x1oGf4bm/FYnGV8eK3opgDdGztqKqRR3YKHyCuXapnwYfJOLLmObEWj1vDLteA94Xw==" crossorigin="anonymous"></script>
+  <script>
+    const STORAGE_KEY = 'documonster-studiopro-autosave-v0-1';
+    const DX_MIME = 'application/vnd.orbit-documonster+json';
+    const DX_EXTENSION = '.dx';
+
+    const pdfInput = document.getElementById('pdfInput');
+    const analyzeBtn = document.getElementById('analyzeBtn');
+    const statusPanel = document.getElementById('statusPanel');
+    const downloadBtn = document.getElementById('downloadBtn');
+    const saveLocalBtn = document.getElementById('saveLocalBtn');
+    const openDocBtn = document.getElementById('openDocBtn');
+    const summaryEl = document.getElementById('summary');
+    const metaRow = document.getElementById('metaRow');
+    const metaFile = document.getElementById('metaFile');
+    const metaPages = document.getElementById('metaPages');
+
+    let working = false;
+    let currentDoc = null;
+    let currentFileName = '';
+
+    if (window.pdfjsLib) {
+      pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.2.67/pdf.worker.min.js';
+    }
+
+    function setStatus(message, mode = 'info') {
+      statusPanel.textContent = message;
+      statusPanel.classList.remove('success', 'error', 'processing');
+      if (mode === 'success') statusPanel.classList.add('success');
+      else if (mode === 'error') statusPanel.classList.add('error');
+      else if (mode === 'processing') statusPanel.classList.add('processing');
+    }
+
+    function toggleWorking(state) {
+      working = state;
+      analyzeBtn.disabled = state || !pdfInput.files.length;
+      downloadBtn.disabled = state || !currentDoc;
+      saveLocalBtn.disabled = state || !currentDoc;
+      openDocBtn.disabled = state || !currentDoc;
+      pdfInput.disabled = state;
+      if (state) {
+        setStatus('Analyzing PDF… this may take a moment.', 'processing');
+      }
+    }
+
+    function escapeHtml(input) {
+      return input.replace(/[&<>"']/g, ch => ({
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#39;'
+      })[ch]);
+    }
+
+    function textItemsToParagraphs(items) {
+      const buffer = [];
+      let currentLine = '';
+      items.forEach(item => {
+        const chunk = item.str || '';
+        if (!chunk.trim()) {
+          currentLine += chunk;
+        } else {
+          currentLine += (currentLine.endsWith(' ') ? '' : (currentLine ? ' ' : '')) + chunk;
+        }
+        if (item.hasEOL) {
+          buffer.push(currentLine.trim());
+          currentLine = '';
+        }
+      });
+      if (currentLine.trim()) buffer.push(currentLine.trim());
+      const normalized = buffer.join('\n');
+      return normalized.split(/\n{2,}/).map(p => p.replace(/\s+/g, ' ').trim()).filter(Boolean);
+    }
+
+    function paragraphsToHtml(paragraphs, pageIndex) {
+      if (!paragraphs.length) {
+        return `<p>ScanX imported page ${pageIndex + 1}. Add your layout flair here.</p>`;
+      }
+      return paragraphs.map(p => `<p>${escapeHtml(p)}</p>`).join('');
+    }
+
+    function paragraphsToPreview(paragraphs) {
+      if (!paragraphs.length) return 'No textual content detected.';
+      const combined = paragraphs.join(' ');
+      return combined.length > 220 ? combined.slice(0, 220) + '…' : combined;
+    }
+
+    function buildDocument(pages, sourceName) {
+      const timestamp = new Date();
+      return {
+        version: '1.0.0',
+        docVersion: '1.0.0',
+        codename: 'ScanX Reconstruction',
+        docName: 'Docu Monster Studio Pro',
+        releaseNotes: [
+          `Generated by ScanX from ${sourceName} on ${timestamp.toLocaleString()}.`,
+          'Each page has been recreated as a single-column article ready for refinement.'
+        ],
+        pages
+      };
+    }
+
+    async function analyzePdf(file) {
+      if (!window.pdfjsLib) {
+        setStatus('PDF.js failed to load. Please reload the window.', 'error');
+        return;
+      }
+      toggleWorking(true);
+      summaryEl.innerHTML = '';
+      metaRow.hidden = true;
+      try {
+        const arrayBuffer = await file.arrayBuffer();
+        const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
+        const pdf = await loadingTask.promise;
+        const pages = [];
+        const summaries = [];
+        for (let pageIndex = 1; pageIndex <= pdf.numPages; pageIndex++) {
+          const page = await pdf.getPage(pageIndex);
+          const textContent = await page.getTextContent();
+          const paragraphs = textItemsToParagraphs(textContent.items || []);
+          const html = paragraphsToHtml(paragraphs, pageIndex - 1);
+          pages.push({
+            title: `ScanX Page ${pageIndex}`,
+            subtitle: '',
+            deck: '',
+            theme: 'standard',
+            elements: [{
+              type: 'columns',
+              columns: 1,
+              windows: [html],
+              windowLayout: [{ width: null, height: null }],
+              style: 'standard',
+              html
+            }],
+            footerLeft: 'Docu Monster Studio Pro',
+            footerRight: 'Page {{page}} of {{total}}'
+          });
+          summaries.push({
+            index: pageIndex,
+            preview: paragraphsToPreview(paragraphs)
+          });
+        }
+        currentDoc = buildDocument(pages, file.name);
+        currentFileName = file.name;
+        renderSummary(summaries);
+        metaFile.textContent = `Source: ${file.name}`;
+        metaPages.textContent = `Pages detected: ${pages.length}`;
+        metaRow.hidden = false;
+        setStatus(`Scan complete. ${pages.length} page${pages.length === 1 ? '' : 's'} ready for Docu Monster.`, 'success');
+      } catch (err) {
+        console.error('ScanX failed', err);
+        currentDoc = null;
+        setStatus('ScanX could not analyze this PDF: ' + (err.message || err), 'error');
+      } finally {
+        toggleWorking(false);
+      }
+    }
+
+    function renderSummary(entries) {
+      summaryEl.innerHTML = entries.map(entry => `
+        <article class="page-card">
+          <h3>Page ${entry.index}</h3>
+          <p>${escapeHtml(entry.preview)}</p>
+        </article>
+      `).join('');
+    }
+
+    function makeFileBaseName() {
+      const base = currentFileName ? currentFileName.replace(/\.[^.]+$/, '') : 'scanx-output';
+      return base.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') || 'scanx-output';
+    }
+
+    function downloadDx() {
+      if (!currentDoc) return;
+      const blob = new Blob([JSON.stringify(currentDoc, null, 2)], { type: DX_MIME });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = `${makeFileBaseName()}${DX_EXTENSION}`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(a.href);
+      setStatus('DX file downloaded to your disk.', 'success');
+    }
+
+    function saveToLocalStorage() {
+      if (!currentDoc) return;
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(currentDoc));
+        setStatus('Document stored in local Orbit OS storage for Docu Monster.', 'success');
+      } catch (err) {
+        console.error('Local save failed', err);
+        setStatus('Unable to write to local storage: ' + (err.message || err), 'error');
+      }
+    }
+
+    function openInDocuMonster() {
+      if (!currentDoc) return;
+      setStatus('Sending document to Docu Monster…', 'processing');
+      try {
+        window.parent?.postMessage({
+          type: 'scanx:open-document',
+          payload: {
+            document: currentDoc,
+            name: `${makeFileBaseName()}${DX_EXTENSION}`
+          }
+        }, '*');
+      } catch (err) {
+        console.error('Bridge failed', err);
+        setStatus('Could not notify Docu Monster: ' + (err.message || err), 'error');
+      }
+    }
+
+    pdfInput.addEventListener('change', () => {
+      currentDoc = null;
+      summaryEl.innerHTML = '';
+      metaRow.hidden = true;
+      downloadBtn.disabled = true;
+      saveLocalBtn.disabled = true;
+      openDocBtn.disabled = true;
+      if (pdfInput.files.length) {
+        analyzeBtn.disabled = false;
+        setStatus('Ready to scan. Click “Analyze PDF” to continue.');
+      } else {
+        analyzeBtn.disabled = true;
+        setStatus('Select a PDF to begin.');
+      }
+    });
+
+    analyzeBtn.addEventListener('click', () => {
+      const file = pdfInput.files[0];
+      if (!file || working) return;
+      analyzePdf(file);
+    });
+
+    downloadBtn.addEventListener('click', downloadDx);
+    saveLocalBtn.addEventListener('click', saveToLocalStorage);
+    openDocBtn.addEventListener('click', openInDocuMonster);
+
+    window.addEventListener('message', (event) => {
+      const data = event.data;
+      if (!data || typeof data !== 'object') return;
+      if (data.type === 'scanx:documonster-confirm') {
+        setStatus(`Docu Monster opened ${data.payload?.name || 'the document'} (${data.payload?.pageCount ?? '?'} pages).`, 'success');
+      }
+    });
+  </script>
+</body>
+</html>
