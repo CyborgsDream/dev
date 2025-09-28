@@ -364,42 +364,143 @@
     return i;
   }
 
+  function resolveInheritedArray(entry, objects, key, visited = new Set()) {
+    let current = entry;
+    while (current) {
+      if (visited.has(current.id)) {
+        break;
+      }
+      visited.add(current.id);
+      const match = current.raw.match(new RegExp(`/${key}\\s*\\[([^\\]]+)\\]`));
+      if (match) {
+        const parts = match[1].trim().split(/\s+/).map(Number).filter(value => Number.isFinite(value));
+        if (parts.length) {
+          return parts;
+        }
+      }
+      const parentMatch = current.raw.match(/\/Parent\s+(\d+)\s+\d+\s+R/);
+      if (!parentMatch) {
+        break;
+      }
+      const parent = objects.get(parentMatch[1]);
+      if (!parent) {
+        break;
+      }
+      current = parent;
+    }
+    return null;
+  }
+
+  function resolveInheritedNumber(entry, objects, key, visited = new Set()) {
+    let current = entry;
+    while (current) {
+      if (visited.has(current.id)) {
+        break;
+      }
+      visited.add(current.id);
+      const match = current.raw.match(new RegExp(`/${key}\\s+(-?\\d+(?:\\.\\d+)?)`));
+      if (match) {
+        const value = Number(match[1]);
+        if (Number.isFinite(value)) {
+          return value;
+        }
+      }
+      const parentMatch = current.raw.match(/\/Parent\s+(\d+)\s+\d+\s+R/);
+      if (!parentMatch) {
+        break;
+      }
+      const parent = objects.get(parentMatch[1]);
+      if (!parent) {
+        break;
+      }
+      current = parent;
+    }
+    return null;
+  }
+
+  function extractPageGeometry(obj, objects) {
+    const mediaBox = resolveInheritedArray(obj, objects, 'MediaBox');
+    let width = 612;
+    let height = 792;
+    if (mediaBox && mediaBox.length >= 4) {
+      const [x1, y1, x2, y2] = mediaBox;
+      width = Math.max(Math.abs(x2 - x1), 1);
+      height = Math.max(Math.abs(y2 - y1), 1);
+    }
+    const rotation = resolveInheritedNumber(obj, objects, 'Rotate') || 0;
+    return { width, height, rotation };
+  }
+
   function buildPages(objects, bytesView) {
     const pages = [];
     for (const obj of objects.values()) {
       if (!/\/Type\s*\/Page\b/.test(obj.raw)) {
         continue;
       }
-      pages.push(async () => {
-        const contentObjs = extractPageContent(obj, objects);
-        const pageItems = [];
-        for (const streamObj of contentObjs) {
-          try {
-            const streamBytes = await extractStreamBytes(streamObj, bytesView);
-            if (!streamBytes) continue;
-            const streamText = decodeStreamToString(streamBytes);
-            const items = buildTextItemsFromStreamText(streamText);
-            pageItems.push(...items);
-          } catch (err) {
-            console.warn('ScanX lite parser skipped a content stream', err);
+      const geometry = extractPageGeometry(obj, objects);
+      pages.push({
+        geometry,
+        resolveText: async () => {
+          const contentObjs = extractPageContent(obj, objects);
+          const pageItems = [];
+          for (const streamObj of contentObjs) {
+            try {
+              const streamBytes = await extractStreamBytes(streamObj, bytesView);
+              if (!streamBytes) continue;
+              const streamText = decodeStreamToString(streamBytes);
+              const items = buildTextItemsFromStreamText(streamText);
+              pageItems.push(...items);
+            } catch (err) {
+              console.warn('ScanX lite parser skipped a content stream', err);
+            }
           }
+          return pageItems;
         }
-        return pageItems;
       });
     }
     return pages;
   }
 
-  function createDocumentProxy(pageResolvers) {
+  function buildViewport(page, params) {
+    const scale = params && typeof params.scale === 'number' ? params.scale : 1;
+    const extraRotation = params && typeof params.rotation === 'number' ? params.rotation : 0;
+    const baseRotation = page.geometry.rotation || 0;
+    let rotation = (baseRotation + extraRotation) % 360;
+    if (rotation < 0) {
+      rotation += 360;
+    }
+    const baseWidth = page.geometry.width;
+    const baseHeight = page.geometry.height;
+    const width = baseWidth * scale;
+    const height = baseHeight * scale;
+    const viewBox = [0, 0, baseWidth, baseHeight];
+    const transform = [scale, 0, 0, -scale, 0, height];
     return {
-      numPages: pageResolvers.length,
+      width,
+      height,
+      viewBox,
+      scale,
+      rotation,
+      transform,
+      offsetX: 0,
+      offsetY: 0
+    };
+  }
+
+  function createDocumentProxy(pageDescriptors) {
+    return {
+      numPages: pageDescriptors.length,
       getPage(index) {
-        if (index < 1 || index > pageResolvers.length) {
+        if (index < 1 || index > pageDescriptors.length) {
           return Promise.reject(new Error('Invalid page index'));
         }
+        const page = pageDescriptors[index - 1];
         return Promise.resolve({
           getTextContent() {
-            return pageResolvers[index - 1]().then(items => ({ items }));
+            return page.resolveText().then(items => ({ items }));
+          },
+          getViewport(params) {
+            return buildViewport(page, params || {});
           }
         });
       }
@@ -410,9 +511,24 @@
     const bytes = data instanceof ArrayBuffer ? new Uint8Array(data) : new Uint8Array(data.buffer, data.byteOffset, data.byteLength);
     const text = latin1Decoder.decode(bytes);
     const objects = collectObjects(text);
-    const pageResolvers = buildPages(objects, bytes);
-    return createDocumentProxy(pageResolvers);
+    const pageDescriptors = buildPages(objects, bytes);
+    return createDocumentProxy(pageDescriptors);
   }
+
+  const Util = {
+    transform(m1, m2) {
+      const [a1, b1, c1, d1, e1, f1] = m1;
+      const [a2, b2, c2, d2, e2, f2] = m2;
+      return [
+        a1 * a2 + c1 * b2,
+        b1 * a2 + d1 * b2,
+        a1 * c2 + c1 * d2,
+        b1 * c2 + d1 * d2,
+        a1 * e2 + c1 * f2 + e1,
+        b1 * e2 + d1 * f2 + f1
+      ];
+    }
+  };
 
   global.pdfjsLib = {
     getDocument(params) {
@@ -423,6 +539,7 @@
       const promise = parsePdf(data);
       return { promise };
     },
-    GlobalWorkerOptions: { workerSrc: null }
+    GlobalWorkerOptions: { workerSrc: null },
+    Util
   };
 })(typeof window !== 'undefined' ? window : globalThis);
