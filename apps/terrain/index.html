@@ -1084,10 +1084,10 @@
   };
   const retroPalettes = {
     zx: [
-      0x000000, 0x0000cd, 0xcd0000, 0xcd00cd,
-      0x00cd00, 0x00cdcd, 0xcdcd00, 0xcdcdcd,
-      0x404040, 0x0000ff, 0xff0000, 0xff00ff,
-      0x00ff00, 0x00ffff, 0xffff00, 0xffffff
+      0x30343c, 0x1f1fd7, 0xd71f1f, 0xd71fd7,
+      0x1fd71f, 0x1fd7d7, 0xd7d71f, 0xd7d7d7,
+      0x8a8a8a, 0x2a2aff, 0xff2a2a, 0xff2aff,
+      0x2aff2a, 0x2affff, 0xffff2a, 0xffffff
     ]
   };
   const retroModeConfigs = {
@@ -1107,6 +1107,18 @@
   };
   const getWireColorsForMode = (mode) => wireModePalette[mode] || wireModePalette.wire;
   let defaultTerrainColor = null;
+
+  const renderModeFogColors = {
+    default: 0x020817,
+    wire: 0x020817,
+    zx: 0xb5b5b5
+  };
+
+  const renderModeCanvasBackgrounds = {
+    default: '#020817',
+    wire: '#020817',
+    zx: '#b5b5b5'
+  };
 
   const RESOLUTIONS = [
     { label: 'ZX Spectrum', width: 256, height: 192 },
@@ -1281,13 +1293,13 @@
   renderer.domElement.style.touchAction = 'none';
   renderer.domElement.tabIndex = 0;
   renderer.domElement.setAttribute('aria-label', 'Interactive terrain viewport');
+  renderer.domElement.style.background = renderModeCanvasBackgrounds.default;
 
   const retroEffect = createRetroEffect(renderer, retroPalettes.zx, retroModeConfigs.zx);
 
   const scene = new THREE.Scene();
-  const fogColor = new THREE.Color(0x020817);
-  scene.fog = new THREE.Fog(fogColor, 380, 760);
-  renderer.setClearColor(fogColor);
+  scene.fog = new THREE.Fog(renderModeFogColors.default, 380, 760);
+  renderer.setClearColor(renderModeFogColors.default);
   scene.add(new THREE.AmbientLight(0x666666));
   const sunLight = new THREE.DirectionalLight(0xffffff, 1.2);
   sunLight.position.set(260, 220, -500);
@@ -2413,6 +2425,10 @@
     } else {
       retroEffect.setConfig(retroModeConfigs.default);
     }
+    const fogHex = renderModeFogColors[mode] ?? renderModeFogColors.default;
+    scene.fog.color.set(fogHex);
+    renderer.setClearColor(fogHex);
+    renderer.domElement.style.background = renderModeCanvasBackgrounds[mode] ?? renderModeCanvasBackgrounds.default;
     updateRenderButtons(mode);
     if (announce && previousMode !== mode) {
       const description = renderModeDescriptions[mode] || mode;
