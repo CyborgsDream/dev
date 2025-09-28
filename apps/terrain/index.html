@@ -2235,8 +2235,11 @@
     metalness: 0,
     roughness: 1
   });
+  const edgeFadeUniform = {
+    value: scene.fog ? scene.fog.color.clone() : new THREE.Color(renderModeFogColors.default)
+  };
   terrainMaterial.onBeforeCompile = shader => {
-    shader.uniforms.edgeFadeColor = { value: fogColor.clone() };
+    shader.uniforms.edgeFadeColor = edgeFadeUniform;
     shader.vertexShader = shader.vertexShader
       .replace('#include <common>', `#include <common>\nattribute float edgeFade;\nvarying float vEdgeFade;`)
       .replace('#include <begin_vertex>', `#include <begin_vertex>\nvEdgeFade = edgeFade;`);
@@ -2427,6 +2430,7 @@
     }
     const fogHex = renderModeFogColors[mode] ?? renderModeFogColors.default;
     scene.fog.color.set(fogHex);
+    edgeFadeUniform.value.set(fogHex);
     renderer.setClearColor(fogHex);
     renderer.domElement.style.background = renderModeCanvasBackgrounds[mode] ?? renderModeCanvasBackgrounds.default;
     updateRenderButtons(mode);
