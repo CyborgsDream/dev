@@ -920,8 +920,17 @@
         <option value="640x512">Amiga 500 (PAL HiRes) — 640 × 512</option>
         <option value="640x480">VGA Era — 640 × 480</option>
         <option value="800x600">SVGA Era — 800 × 600</option>
+        <option value="640x360">EDTV 360p — 640 × 360</option>
+        <option value="854x480">Wide 480p — 854 × 480</option>
+        <option value="960x540">qHD 540p — 960 × 540</option>
+        <option value="1024x576">WSVGA — 1024 × 576</option>
         <option value="1280x720" selected>HD 720p — 1280 × 720</option>
+        <option value="1366x768">HD 768p — 1366 × 768</option>
+        <option value="1600x900">HD+ — 1600 × 900</option>
         <option value="1920x1080">Full HD — 1920 × 1080</option>
+        <option value="2560x1440">Quad HD — 2560 × 1440</option>
+        <option value="3200x1800">QHD+ — 3200 × 1800</option>
+        <option value="3840x2160">4K Ultra HD — 3840 × 2160</option>
         </select>
       </div>
     </div>
@@ -1097,8 +1106,17 @@
     { label: 'Amiga 500 PAL HiRes', width: 640, height: 512 },
     { label: 'VGA Era', width: 640, height: 480 },
     { label: 'SVGA Era', width: 800, height: 600 },
+    { label: 'EDTV 360p', width: 640, height: 360 },
+    { label: 'Wide 480p', width: 854, height: 480 },
+    { label: 'qHD 540p', width: 960, height: 540 },
+    { label: 'WSVGA', width: 1024, height: 576 },
     { label: 'HD 720p', width: 1280, height: 720 },
-    { label: 'Full HD', width: 1920, height: 1080 }
+    { label: 'HD 768p', width: 1366, height: 768 },
+    { label: 'HD+', width: 1600, height: 900 },
+    { label: 'Full HD', width: 1920, height: 1080 },
+    { label: 'Quad HD', width: 2560, height: 1440 },
+    { label: 'QHD+', width: 3200, height: 1800 },
+    { label: '4K Ultra HD', width: 3840, height: 2160 }
   ];
   const defaultResolution = RESOLUTIONS.find(r => r.width === 1280 && r.height === 720) || RESOLUTIONS[0];
 
