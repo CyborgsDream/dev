@@ -1781,31 +1781,66 @@
     return texture;
   }
 
+  const PETSCII_CHAR_ROM_BASE64 = `
+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`;
+
+  function decodeBase64ToUint8Array(base64) {
+    if (typeof atob === 'function') {
+      const binary = atob(base64.replace(/\s+/g, ''));
+      const bytes = new Uint8Array(binary.length);
+      for (let i = 0; i < binary.length; i++) {
+        bytes[i] = binary.charCodeAt(i);
+      }
+      return bytes;
+    }
+    if (typeof Buffer !== 'undefined') {
+      const buf = Buffer.from(base64, 'base64');
+      return new Uint8Array(buf.buffer, buf.byteOffset, buf.byteLength);
+    }
+    throw new Error('Base64 decoding not supported in this environment.');
+  }
+
   function createPetsciiAtlas() {
-    const quadrantSize = 4;
-    const charSize = quadrantSize * 2;
-    const levels = 16;
-    const order = [
-      0x0, 0x8, 0x4, 0xc,
-      0x2, 0xa, 0x6, 0xe,
-      0x1, 0x9, 0x5, 0xd,
-      0x3, 0xb, 0x7, 0xf
-    ];
-    const data = new Uint8Array(charSize * charSize * levels);
+    const rom = decodeBase64ToUint8Array(PETSCII_CHAR_ROM_BASE64);
+    const charSize = 8;
+    const charStride = charSize;
+    const levels = Math.floor(rom.length / charStride);
+    const textureHeight = charSize * levels;
+    const textureData = new Uint8Array(charSize * textureHeight);
     let offset = 0;
-    for (let level = 0; level < levels; level++) {
-      const pattern = order[level];
-      for (let y = 0; y < charSize; y++) {
-        const quadY = y < quadrantSize ? 0 : 1;
-        for (let x = 0; x < charSize; x++) {
-          const quadX = x < quadrantSize ? 0 : 1;
-          const bitIndex = quadY * 2 + quadX;
-          const bit = (pattern >> bitIndex) & 1;
-          data[offset++] = bit ? 255 : 0;
+    for (let charIndex = 0; charIndex < levels; charIndex++) {
+      const charOffset = charIndex * charStride;
+      for (let row = 0; row < charSize; row++) {
+        const rowByte = rom[charOffset + row];
+        for (let col = 0; col < charSize; col++) {
+          const bit = (rowByte >> (7 - col)) & 1;
+          textureData[offset++] = bit ? 255 : 0;
         }
       }
     }
-    const texture = new THREE.DataTexture(data, charSize, charSize * levels, THREE.LuminanceFormat);
+    const texture = new THREE.DataTexture(textureData, charSize, textureHeight, THREE.LuminanceFormat);
     texture.magFilter = THREE.NearestFilter;
     texture.minFilter = THREE.NearestFilter;
     texture.wrapS = THREE.ClampToEdgeWrapping;
@@ -1815,7 +1850,7 @@
     if ('colorSpace' in texture && 'NoColorSpace' in THREE) {
       texture.colorSpace = THREE.NoColorSpace;
     }
-    return { texture, charSize, levels };
+    return { texture, charSize, levels, rom };
   }
 
   function createRetroEffect(renderer, initialPalette = [], initialSettings = {}) {
@@ -1834,6 +1869,198 @@
     applyPalette(initialPalette);
 
     const petsciiAtlas = createPetsciiAtlas();
+    const petsciiCharRom = petsciiAtlas.rom;
+    const petsciiCharStride = 8;
+    const petsciiCharCount = Math.floor(petsciiCharRom.length / petsciiCharStride);
+    const bitCountLut = new Uint8Array(256);
+    for (let i = 0; i < bitCountLut.length; i++) {
+      let count = 0;
+      let value = i;
+      while (value) {
+        value &= value - 1;
+        count++;
+      }
+      bitCountLut[i] = count;
+    }
+
+    const petsciiState = {
+      pixelBuffer: null,
+      luminances: null,
+      rowBits: null,
+      charBuffer: null,
+      charTexture: null,
+      blockWidth: 0,
+      blockHeight: 0
+    };
+
+    function ensurePixelBuffer(width, height) {
+      const required = Math.max(1, Math.floor(width) * Math.floor(height) * 4);
+      if (!petsciiState.pixelBuffer || petsciiState.pixelBuffer.length !== required) {
+        petsciiState.pixelBuffer = new Uint8Array(required);
+      }
+    }
+
+    function ensurePetsciiResources(blockWidth, blockHeight, blockSize) {
+      const safeBlockWidth = Math.max(1, Math.floor(blockWidth));
+      const safeBlockHeight = Math.max(1, Math.floor(blockHeight));
+      const blockCount = safeBlockWidth * safeBlockHeight;
+      const requiredDataLength = blockCount * 2;
+      let replacedData = false;
+      if (!petsciiState.charBuffer || petsciiState.charBuffer.length !== requiredDataLength) {
+        petsciiState.charBuffer = new Uint8Array(requiredDataLength);
+        replacedData = true;
+      }
+      const needsTextureResize = !petsciiState.charTexture ||
+        petsciiState.charTexture.image.width !== safeBlockWidth ||
+        petsciiState.charTexture.image.height !== safeBlockHeight;
+      if (needsTextureResize) {
+        petsciiState.charTexture = new THREE.DataTexture(
+          petsciiState.charBuffer,
+          safeBlockWidth,
+          safeBlockHeight,
+          THREE.LuminanceAlphaFormat
+        );
+        petsciiState.charTexture.magFilter = THREE.NearestFilter;
+        petsciiState.charTexture.minFilter = THREE.NearestFilter;
+        petsciiState.charTexture.wrapS = THREE.ClampToEdgeWrapping;
+        petsciiState.charTexture.wrapT = THREE.ClampToEdgeWrapping;
+        petsciiState.charTexture.generateMipmaps = false;
+        petsciiState.charTexture.needsUpdate = true;
+        if ('colorSpace' in petsciiState.charTexture && 'NoColorSpace' in THREE) {
+          petsciiState.charTexture.colorSpace = THREE.NoColorSpace;
+        }
+      } else if (replacedData && petsciiState.charTexture) {
+        petsciiState.charTexture.image.data = petsciiState.charBuffer;
+        petsciiState.charTexture.needsUpdate = true;
+      }
+      petsciiState.blockWidth = safeBlockWidth;
+      petsciiState.blockHeight = safeBlockHeight;
+      const luminanceSize = Math.max(1, blockSize * blockSize);
+      if (!petsciiState.luminances || petsciiState.luminances.length !== luminanceSize) {
+        petsciiState.luminances = new Float32Array(luminanceSize);
+      }
+      if (!petsciiState.rowBits || petsciiState.rowBits.length !== blockSize) {
+        petsciiState.rowBits = new Uint8Array(blockSize);
+      }
+    }
+
+    function updatePetsciiAttributes(blockWidth, blockHeight, blockSize) {
+      if (!blockWidth || !blockHeight) {
+        return;
+      }
+      ensurePixelBuffer(targetWidth, targetHeight);
+      ensurePetsciiResources(blockWidth, blockHeight, blockSize);
+
+      renderer.readRenderTargetPixels(
+        sceneTarget,
+        0,
+        0,
+        Math.floor(targetWidth),
+        Math.floor(targetHeight),
+        petsciiState.pixelBuffer
+      );
+
+      const pixelData = petsciiState.pixelBuffer;
+      const luminances = petsciiState.luminances;
+      const rowBits = petsciiState.rowBits;
+      const charBuffer = petsciiState.charBuffer;
+      const width = Math.floor(targetWidth);
+      const height = Math.floor(targetHeight);
+      const maxIndex = blockSize * blockSize;
+
+      for (let by = 0; by < blockHeight; by++) {
+        const baseY = by * blockSize;
+        for (let bx = 0; bx < blockWidth; bx++) {
+          const baseX = bx * blockSize;
+          let lumIndex = 0;
+          let lumSum = 0;
+          let minLum = Infinity;
+          let maxLum = -Infinity;
+
+          for (let py = 0; py < blockSize; py++) {
+            const pixelY = baseY + py;
+            const clampedY = Math.min(pixelY, height - 1);
+            const rowOffset = clampedY * width;
+            for (let px = 0; px < blockSize; px++) {
+              const pixelX = baseX + px;
+              const clampedX = Math.min(pixelX, width - 1);
+              const idx = (rowOffset + clampedX) * 4;
+              const r = pixelData[idx];
+              const g = pixelData[idx + 1];
+              const b = pixelData[idx + 2];
+              const lum = 0.299 * r + 0.587 * g + 0.114 * b;
+              luminances[lumIndex++] = lum;
+              lumSum += lum;
+              if (lum < minLum) minLum = lum;
+              if (lum > maxLum) maxLum = lum;
+            }
+          }
+
+          const pixelTotal = Math.max(1, Math.min(maxIndex, lumIndex));
+          let threshold = lumSum / pixelTotal;
+          if (maxLum - minLum < 1e-3) {
+            threshold = minLum;
+          }
+
+          lumIndex = 0;
+          for (let py = 0; py < blockSize; py++) {
+            let rowByte = 0;
+            for (let px = 0; px < blockSize; px++) {
+              const lum = luminances[lumIndex++];
+              if (lum >= threshold) {
+                rowByte |= 1 << (7 - px);
+              }
+            }
+            rowBits[py] = rowByte & 0xff;
+          }
+
+          let bestChar = 0;
+          let bestScore = Infinity;
+          let bestInvert = 0;
+
+          for (let charIndex = 0; charIndex < petsciiCharCount; charIndex++) {
+            const charOffset = charIndex * petsciiCharStride;
+            let diff = 0;
+            let diffInverted = 0;
+            for (let row = 0; row < blockSize; row++) {
+              const blockRow = rowBits[row];
+              const charRow = petsciiCharRom[charOffset + row];
+              diff += bitCountLut[blockRow ^ charRow];
+              diffInverted += bitCountLut[((~blockRow) & 0xff) ^ charRow];
+              if (diff >= bestScore && diffInverted >= bestScore) {
+                break;
+              }
+            }
+            if (diff < bestScore) {
+              bestScore = diff;
+              bestChar = charIndex;
+              bestInvert = 0;
+            }
+            if (diffInverted < bestScore) {
+              bestScore = diffInverted;
+              bestChar = charIndex;
+              bestInvert = 1;
+            }
+          }
+
+          const dataIndex = (by * blockWidth + bx) * 2;
+          charBuffer[dataIndex] = bestChar & 0xff;
+          charBuffer[dataIndex + 1] = bestInvert ? 255 : 0;
+        }
+      }
+
+      if (petsciiState.charTexture) {
+        petsciiState.charTexture.needsUpdate = true;
+      }
+    }
+
+    function updateAttributeTextureBinding(attributeValue) {
+      if (attributeValue > 1.5 && petsciiState.charTexture) {
+        finalUniforms.attributeTexture.value = petsciiState.charTexture;
+      } else {
+        finalUniforms.attributeTexture.value = attributeTarget.texture;
+      }
+    }
 
     const resolution = new THREE.Vector2(1, 1);
     const blockCount = new THREE.Vector2(1, 1);
@@ -2072,24 +2299,26 @@
           }
 
           vec2 pixelCoord = vUv * resolution;
+          vec2 blockCoord = floor(pixelCoord / max(blockPixelSize, 1.0));
+          vec2 maxBlock = max(blockCount - vec2(1.0), vec2(0.0));
+          blockCoord = clamp(blockCoord, vec2(0.0), maxBlock);
+          vec2 attributeUv = (blockCoord + 0.5) / blockCount;
+
+          vec4 attributeData = texture2D(attributeTexture, attributeUv);
 
           if (attributeMode > 1.5) {
-            vec3 luminanceWeights = vec3(0.299, 0.587, 0.114);
-            float luminance = dot(sceneColor, luminanceWeights);
-            float patternIndex = floor(clamp(luminance, 0.0, 1.0) * max(patternCount - 1.0, 0.0) + 0.5);
+            float charIndex = floor(attributeData.r * 255.0 + 0.5);
+            float invertFlag = step(0.5, attributeData.a);
             vec3 paperColor = paletteColor(0);
             vec3 inkColor = paletteColor(1);
-            float glyph = samplePetsciiPattern(patternIndex, pixelCoord);
+            float glyph = samplePetsciiPattern(charIndex, pixelCoord);
+            if (invertFlag > 0.5) {
+              glyph = 1.0 - glyph;
+            }
             vec3 finalColor = mix(paperColor, inkColor, step(0.5, glyph));
             gl_FragColor = vec4(finalColor, 1.0);
             return;
           }
-
-          vec2 blockCoord = floor(pixelCoord / blockPixelSize);
-          blockCoord = clamp(blockCoord, vec2(0.0), blockCount - vec2(1.0));
-          vec2 attributeUv = (blockCoord + 0.5) / blockCount;
-
-          vec4 attributeData = texture2D(attributeTexture, attributeUv);
           int paperIndex = decodeIndex(attributeData.r);
           int inkIndex = decodeIndex(attributeData.g);
           vec3 paperColor = paletteColor(paperIndex);
@@ -2155,6 +2384,7 @@
         } else if (typeof config.attributeMode === 'number') {
           attributeModeUniform.value = config.attributeMode;
         }
+        updateAttributeTextureBinding(attributeModeUniform.value);
         this.setSize(targetWidth, targetHeight);
       },
       setPalette(palette) {
@@ -2174,7 +2404,12 @@
         const blockWidth = Math.max(1, Math.floor(safeWidth / blockSize));
         const blockHeight = Math.max(1, Math.floor(safeHeight / blockSize));
         const useAttribute = attributeValue > 0.5 && attributeValue < 1.5;
+        const usePetscii = attributeValue > 1.5;
         attributeTarget.setSize(useAttribute ? blockWidth : 1, useAttribute ? blockHeight : 1);
+        if (usePetscii) {
+          ensurePetsciiResources(blockWidth, blockHeight, blockSize);
+        }
+        updateAttributeTextureBinding(attributeValue);
         resolution.set(safeWidth, safeHeight);
         blockCount.set(blockWidth, blockHeight);
       },
@@ -2183,14 +2418,25 @@
         renderer.render(scene, camera);
 
         const attributeValue = attributeModeUniform.value;
+        const blockSize = Math.max(1, Math.floor(blockPixelSizeUniform.value));
+        const blockWidth = Math.max(1, Math.floor(targetWidth / blockSize));
+        const blockHeight = Math.max(1, Math.floor(targetHeight / blockSize));
+
         if (attributeValue > 0.5 && attributeValue < 1.5) {
           attributeUniforms.sceneTexture.value = sceneTarget.texture;
           renderer.setRenderTarget(attributeTarget);
           renderer.render(attributeScene, orthoCamera);
+          finalUniforms.attributeTexture.value = attributeTarget.texture;
+        } else if (attributeValue > 1.5) {
+          updatePetsciiAttributes(blockWidth, blockHeight, blockSize);
+          if (petsciiState.charTexture) {
+            finalUniforms.attributeTexture.value = petsciiState.charTexture;
+          }
+        } else {
+          finalUniforms.attributeTexture.value = attributeTarget.texture;
         }
 
         finalUniforms.sceneTexture.value = sceneTarget.texture;
-        finalUniforms.attributeTexture.value = attributeTarget.texture;
 
         renderer.setRenderTarget(null);
         renderer.render(finalScene, orthoCamera);
