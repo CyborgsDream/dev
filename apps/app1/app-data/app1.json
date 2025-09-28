@@ -84,6 +84,10 @@
         {
           "label": "Docu Monster Studio Pro",
           "type": "document-editor"
+        },
+        {
+          "label": "ScanX Analyzer",
+          "type": "scanx"
         }
       ]
     },
@@ -143,6 +147,11 @@
         "type": "document-editor",
         "emoji": "📄",
         "label": "Docu Monster Studio Pro"
+      },
+      {
+        "type": "scanx",
+        "emoji": "🖨️",
+        "label": "ScanX"
       },
       {
         "type": "calculator",
@@ -261,6 +270,12 @@
       "content": "<iframe src=\"documonster.html\" style=\"width:100%;height:100%;border:none;background:#c0c0c0;\"></iframe>",
       "width": 1280,
       "height": 900
+    },
+    "scanx": {
+      "title": "ScanX Reconstruction Lab",
+      "content": "<iframe src=\"scanx.html\" style=\"width:100%;height:100%;border:none;background:#f4f6ff;\"></iframe>",
+      "width": 900,
+      "height": 640
     },
     "cloud-storage": {
       "title": "Cloud Storage",

@@ -563,7 +563,7 @@
       </div>
     </div>
   </div>
-  <input type="file" id="openFileInput" accept="application/json" hidden />
+  <input type="file" id="openFileInput" accept=".dx,.DX,.json,application/json" hidden />
 
 <script>
 (function(){
@@ -669,6 +669,9 @@
   const FRAME_STYLES = ['standard','outline','shadow','banner'];
   const COLUMN_STYLE_CLASSES = COLUMN_STYLES.filter(v=>v!=='standard').map(v=>'style-'+v);
   const FRAME_STYLE_CLASSES = FRAME_STYLES.filter(v=>v!=='standard').map(v=>'style-'+v);
+  const DX_MIME = 'application/vnd.orbit-documonster+json';
+  const DX_EXTENSION = '.dx';
+  const ACCEPTED_EXTENSIONS = ['.dx', '.json'];
   const ELEMENT_STYLE_OPTIONS = {
     columns:[
       { value:'standard', label:'Standard Body' },
@@ -1288,7 +1291,7 @@
     try{
       localStorage.setItem(STORAGE_KEY, JSON.stringify(docModel));
       markDirty(false);
-      setStatus('Saved to local storage.');
+      setStatus('Saved to local storage (.dx autosave).');
     }catch(err){
       console.error('Save failed', err);
       setStatus('Save failed: '+err.message, false);
@@ -2693,6 +2696,60 @@
     openTemplateChooser();
   }
 
+  function getFileExtension(name){
+    if(typeof name !== 'string') return '';
+    const idx = name.lastIndexOf('.');
+    return idx >= 0 ? name.slice(idx).toLowerCase() : '';
+  }
+
+  function suggestDownloadName(){
+    const base = (docModel && (docModel.codename || docModel.docName)) || 'documonster';
+    const slug = base.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/(^-|-$)/g,'') || 'documonster';
+    const timestamp = new Date().toISOString().replace(/[:T]/g,'-').split('.')[0];
+    return `${slug}-${timestamp}`;
+  }
+
+  function applyLoadedDocument(data, meta = {}){
+    let normalized;
+    try{
+      normalized = normalizeDocument(data);
+    }catch(err){
+      console.error('Invalid document payload', err);
+      setStatus('Failed to load document: '+err.message, false);
+      return false;
+    }
+    docModel = normalized;
+    markDirty(false);
+    updateVersionInfo();
+    renderDocument();
+    snapTo(0, true);
+    if(meta.persistToStorage){
+      try{
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(docModel));
+      }catch(err){
+        console.warn('Autosave write failed', err);
+      }
+    }
+    const statusMessage = meta.status || (meta.source ? meta.source+' document loaded.' : 'Document loaded.');
+    const transient = meta.hasOwnProperty('transient') ? !!meta.transient : false;
+    setStatus(statusMessage, transient);
+    if(window.parent && window.parent !== window){
+      window.parent.postMessage({ type:'documonster:document-loaded', payload:{ source: meta.source || 'external', name: meta.name || '', pageCount: getTotalPages() } }, '*');
+    }
+    return true;
+  }
+
+  function handleExternalDocumentLoad(payload){
+    if(!payload || typeof payload !== 'object') return;
+    const meta = Object.assign({ source:'External', transient:false }, payload.meta || {});
+    if(payload.meta && Object.prototype.hasOwnProperty.call(payload.meta, 'persistToStorage')){
+      meta.persistToStorage = !!payload.meta.persistToStorage;
+    }
+    meta.name = meta.name || (payload.meta && payload.meta.name) || '';
+    meta.status = meta.status || meta.note || (meta.source ? `Received document from ${meta.source}.` : 'Document received.');
+    applyLoadedDocument(payload.document, meta);
+  }
+
   function openDocumentFile(){
     openFileInput.value = '';
     openFileInput.click();
@@ -2701,23 +2758,39 @@
   openFileInput.addEventListener('change', ()=>{
     const file = openFileInput.files && openFileInput.files[0];
     if(!file) return;
+    const ext = getFileExtension(file.name);
+    if(ext && !ACCEPTED_EXTENSIONS.includes(ext)){
+      setStatus('Unsupported file type. Please choose a .dx document.', false);
+      return;
+    }
     const reader = new FileReader();
     reader.onload = ()=>{
+      let data;
       try{
-        const data = JSON.parse(reader.result);
-        docModel = normalizeDocument(data);
-        markDirty(false);
-        updateVersionInfo();
-        renderDocument();
-        snapTo(0, true);
-        setStatus('Document loaded.');
+        data = JSON.parse(reader.result);
       }catch(err){
-        console.error(err);
-        setStatus('Failed to open file: '+err.message, false);
+        console.error('Failed to parse document', err);
+        setStatus('Invalid document file: '+err.message, false);
+        return;
       }
+      applyLoadedDocument(data, { source:'File', name:file.name, status:'Loaded '+file.name, transient:false });
     };
     reader.readAsText(file);
   });
+
+  window.addEventListener('message', event=>{
+    const data = event.data;
+    if(!data || typeof data !== 'object') return;
+    if(data.type === 'documonster:load-document'){
+      handleExternalDocumentLoad(data.payload || {});
+    }
+  });
+
+  function notifyParentReady(){
+    if(window.parent && window.parent !== window){
+      window.parent.postMessage({ type:'documonster:ready' }, '*');
+    }
+  }
 
   function loadAutosave(){
     const saved = loadFromStorage();
@@ -2734,16 +2807,16 @@
   }
 
   function saveAsDocument(){
-    const blob = new Blob([JSON.stringify(docModel, null, 2)], { type:'application/json' });
+    const blob = new Blob([JSON.stringify(docModel, null, 2)], { type:DX_MIME });
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
-    a.download = 'documonster-protodesk-'+Date.now()+'.json';
+    a.download = `${suggestDownloadName()}${DX_EXTENSION}`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(a.href);
     markDirty(false);
-    setStatus('JSON downloaded.');
+    setStatus('DX file downloaded.');
   }
 
   function openMenu(id, anchor){
@@ -2997,6 +3070,7 @@
   updateVersionInfo();
   snapTo(0, true);
   setStatus('Ready.', false);
+  notifyParentReady();
   window.addEventListener('resize', ()=>{
     buildThumbnails();
     applyZoom();
