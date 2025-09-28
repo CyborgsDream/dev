@@ -1463,18 +1463,7 @@
       const halfWidth = width * 0.5;
       const halfHeight = height * 0.5;
 
-      const zxFacePairs = [
-        ['#0000d7', '#0000ff'],
-        ['#00d7d7', '#00ffff'],
-        ['#d7d700', '#ffff00'],
-        ['#d700d7', '#ff00ff'],
-        ['#00d700', '#00ff00'],
-        ['#d70000', '#ff0000'],
-        ['#d7d7d7', '#ffffff'],
-        ['#0000d7', '#0000ff'],
-        ['#00d7d7', '#00ffff'],
-        ['#d7d700', '#ffff00']
-      ];
+      const faceLabels = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'];
 
       const tau = Math.PI * 2;
       const radius = 1;
@@ -1523,13 +1512,11 @@
         11, 10, 1, 6
       ]);
       const faceCount = faceIndices.length / 4;
-      const facePalettes = new Array(faceCount);
-      for (let i = 0; i < faceCount; i++) {
-        facePalettes[i] = zxFacePairs[i % zxFacePairs.length];
-      }
 
       const depths = new Float32Array(faceCount);
       const faceBrightness = new Float32Array(faceCount);
+      const faceSpecular = new Float32Array(faceCount);
+      const faceCenters = new Float32Array(faceCount * 3);
       const faceOrder = new Uint8Array(faceCount);
       for (let i = 0; i < faceCount; i++) {
         faceOrder[i] = i;
@@ -1549,13 +1536,26 @@
         return `#${toComponent(r)}${toComponent(g)}${toComponent(b)}`;
       };
 
-      const adjustColor = (hex, amount) => {
-        const [r, g, b] = hexToRgb(hex);
-        const adjust = (channel) => amount >= 0
-          ? channel + (255 - channel) * amount
-          : channel * (1 + amount);
-        return rgbToHex(adjust(r), adjust(g), adjust(b));
-      };
+      const clampChannel = (value) => Math.max(0, Math.min(255, value));
+
+      const scaleColor = (color, factor) => [
+        clampChannel(color[0] * factor),
+        clampChannel(color[1] * factor),
+        clampChannel(color[2] * factor)
+      ];
+
+      const mixColor = (colorA, colorB, t) => [
+        clampChannel(colorA[0] * (1 - t) + colorB[0] * t),
+        clampChannel(colorA[1] * (1 - t) + colorB[1] * t),
+        clampChannel(colorA[2] * (1 - t) + colorB[2] * t)
+      ];
+
+      const baseColor = hexToRgb('#ff8c2f');
+      const ambient = 0.25;
+      const diffuseStrength = 0.78;
+      const specularStrength = 0.85;
+      const shininess = 28;
+      const highlightOffset = 0.55;
 
       const lightVector = (() => {
         const x = 0.62;
@@ -1586,6 +1586,15 @@
           faceOrder[j + 1] = current;
         }
       }
+
+      const projectPoint = (x, y, z) => {
+        const depth = cameraDistance - z;
+        const perspective = cameraDistance / (depth > 1e-3 ? depth : 1e-3);
+        return [
+          halfWidth + x * perspective * scale,
+          halfHeight - y * perspective * scale
+        ];
+      };
 
       function render(timeMs) {
         rafId = requestAnimationFrame(render);
@@ -1658,8 +1667,34 @@
 
           const brightness = Math.max(0, nx * lightVector[0] + ny * lightVector[1] + nz * lightVector[2]);
 
-          depths[face] = (az + bz + cz + dz) * 0.25;
+          const centerX3 = (ax + bx + cx + dx) * 0.25;
+          const centerY3 = (ay + by + cy + dy) * 0.25;
+          const centerZ3 = (az + bz + cz + dz) * 0.25;
+
+          const viewX = -centerX3;
+          const viewY = -centerY3;
+          const viewZ = cameraDistance - centerZ3;
+          const viewLenSq = viewX * viewX + viewY * viewY + viewZ * viewZ;
+          const invViewLen = viewLenSq > 1e-12 ? 1 / Math.sqrt(viewLenSq) : 1;
+          const viewNx = viewX * invViewLen;
+          const viewNy = viewY * invViewLen;
+          const viewNz = viewZ * invViewLen;
+
+          const halfX = lightVector[0] + viewNx;
+          const halfY = lightVector[1] + viewNy;
+          const halfZ = lightVector[2] + viewNz;
+          const halfLenSq = halfX * halfX + halfY * halfY + halfZ * halfZ;
+          const invHalfLen = halfLenSq > 1e-12 ? 1 / Math.sqrt(halfLenSq) : 1;
+          const specularDot = nx * (halfX * invHalfLen) + ny * (halfY * invHalfLen) + nz * (halfZ * invHalfLen);
+          const specular = Math.pow(Math.max(0, specularDot), shininess);
+
+          depths[face] = centerZ3;
           faceBrightness[face] = brightness;
+          faceSpecular[face] = specular;
+          const centerIndex = face * 3;
+          faceCenters[centerIndex] = centerX3;
+          faceCenters[centerIndex + 1] = centerY3;
+          faceCenters[centerIndex + 2] = centerZ3;
         }
 
         sortFaces();
@@ -1692,16 +1727,38 @@
             Math.hypot(p3x - centerX, p3y - centerY)
           );
 
-          const palette = facePalettes[face];
           const brightness = faceBrightness[face];
-          const highlightBoost = Math.min(1, 0.2 + brightness * 0.6);
-          const shadowDip = Math.max(-1, -(0.5 + (1 - brightness) * 0.4));
-          const highlight = adjustColor(palette[1], highlightBoost);
-          const shadow = adjustColor(palette[0], shadowDip);
+          const specular = faceSpecular[face];
+          const centerIndex = face * 3;
+          const center3x = faceCenters[centerIndex];
+          const center3y = faceCenters[centerIndex + 1];
+          const center3z = faceCenters[centerIndex + 2];
 
-          const gradient = ctx.createRadialGradient(centerX, centerY, 0, centerX, centerY, Math.max(radius, 1));
-          gradient.addColorStop(0, highlight);
-          gradient.addColorStop(1, shadow);
+          const diffuseFactor = Math.min(1, ambient + brightness * diffuseStrength);
+          const diffuseColor = scaleColor(baseColor, diffuseFactor);
+          const shadowFactor = Math.max(0.18, ambient * 0.45 + (1 - brightness) * 0.35);
+          const shadowColor = scaleColor(baseColor, shadowFactor);
+          const highlightMix = Math.min(1, 0.2 + specular * specularStrength);
+          const highlightColor = mixColor(diffuseColor, [255, 255, 255], highlightMix);
+
+          const highlightHex = rgbToHex(highlightColor[0], highlightColor[1], highlightColor[2]);
+          const diffuseHex = rgbToHex(diffuseColor[0], diffuseColor[1], diffuseColor[2]);
+          const shadowHex = rgbToHex(shadowColor[0], shadowColor[1], shadowColor[2]);
+
+          const highlightPoint = projectPoint(
+            center3x + lightVector[0] * highlightOffset,
+            center3y + lightVector[1] * highlightOffset,
+            center3z + lightVector[2] * highlightOffset
+          );
+          const highlightX = highlightPoint[0];
+          const highlightY = highlightPoint[1];
+
+          const innerRadius = Math.max(radius * 0.12, 4);
+          const outerRadius = Math.max(radius * 1.05, innerRadius + 1);
+          const gradient = ctx.createRadialGradient(highlightX, highlightY, innerRadius, centerX, centerY, outerRadius);
+          gradient.addColorStop(0, highlightHex);
+          gradient.addColorStop(0.4, diffuseHex);
+          gradient.addColorStop(1, shadowHex);
 
           ctx.beginPath();
           ctx.moveTo(p0x, p0y);
@@ -1712,9 +1769,37 @@
           ctx.fillStyle = gradient;
           ctx.fill();
 
-          const edgeColor = brightness > 0.55 ? adjustColor(palette[1], 0.25) : adjustColor(palette[0], -0.45);
-          ctx.strokeStyle = edgeColor;
+          const edgeColorArr = scaleColor(baseColor, Math.max(0.28, diffuseFactor * 0.65));
+          ctx.lineWidth = Math.max(2, radius * 0.08);
+          ctx.strokeStyle = rgbToHex(edgeColorArr[0], edgeColorArr[1], edgeColorArr[2]);
           ctx.stroke();
+
+          if (specular > 0.04) {
+            const glintRadius = Math.max(radius * (0.18 + specular * 0.12), 3);
+            const glintGradient = ctx.createRadialGradient(highlightX, highlightY, 0, highlightX, highlightY, glintRadius);
+            glintGradient.addColorStop(0, `rgba(255, 255, 255, ${Math.min(0.9, 0.35 + specular * 0.9)})`);
+            glintGradient.addColorStop(1, 'rgba(255, 255, 255, 0)');
+            ctx.fillStyle = glintGradient;
+            ctx.beginPath();
+            ctx.ellipse(highlightX, highlightY, glintRadius, glintRadius * 0.72, 0, 0, tau);
+            ctx.fill();
+          }
+
+          const label = faceLabels[face];
+          if (label) {
+            const textSize = Math.max(14, radius * 0.6);
+            ctx.save();
+            ctx.font = `700 ${textSize}px 'Space Grotesk', 'Fira Sans', sans-serif`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.lineJoin = 'round';
+            ctx.lineWidth = Math.max(1.5, textSize * 0.09);
+            ctx.strokeStyle = 'rgba(40, 18, 6, 0.85)';
+            ctx.fillStyle = 'rgba(255, 249, 236, 0.95)';
+            ctx.strokeText(label, centerX, centerY);
+            ctx.fillText(label, centerX, centerY);
+            ctx.restore();
+          }
         }
       }
 
