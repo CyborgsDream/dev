@@ -149,6 +149,9 @@
       font-size: 0.54em;
       letter-spacing: 0.28em;
     }
+    #loader.is-error .loader-text {
+      color: #ff5b5b;
+    }
     #loader .loader-meta {
       font-size: 0.36em;
       letter-spacing: 0.3em;
@@ -1121,6 +1124,35 @@
   function setProgress(p){
     if (!progressEl) return;
     progressEl.textContent = Math.round(p) + '%';
+  }
+
+  const GOURAUD_LEVELS = 6;
+
+  function applyGouraudQuantization(material, levels = GOURAUD_LEVELS) {
+    const cacheKey = `gouraud_${levels}`;
+    material.onBeforeCompile = (shader) => {
+      shader.fragmentShader = shader.fragmentShader.replace(
+        'gl_FragColor = vec4( outgoingLight, diffuseColor.a );',
+        `
+        vec3 gouraudColor = floor(outgoingLight * ${levels}.0 + 0.5) / ${levels}.0;
+        gl_FragColor = vec4( gouraudColor, diffuseColor.a );
+      `
+      );
+    };
+    material.customProgramCacheKey = () => cacheKey;
+    material.needsUpdate = true;
+  }
+
+  function createGouraudMaterial({ color = new THREE.Color(0xffffff), emissive = new THREE.Color(0x000000), emissiveIntensity = 1, vertexColors = false } = {}) {
+    const material = new THREE.MeshLambertMaterial({
+      color,
+      emissive,
+      emissiveIntensity,
+      vertexColors,
+      fog: true
+    });
+    applyGouraudQuantization(material);
+    return material;
   }
 
   let stopLoaderAnimation = () => {};
@@ -2869,12 +2901,10 @@ wE8AAAAABAR/QAAAAAAEBPxEAAAAAIiIiIgAAAAAPzAwMAAAAADw8AAPAAAAABAQHPwAAAAANDQMAAAA
     terrain.computeBoundingBox();
   }
   refreshTerrain(terrainState.offsetX, terrainState.offsetZ);
-  const terrainMaterial = new THREE.MeshStandardMaterial({
+  const terrainMaterial = new THREE.MeshLambertMaterial({
     color: 0xffffff,
     vertexColors: true,
-    flatShading: true,
-    metalness: 0,
-    roughness: 1
+    fog: true
   });
   const edgeFadeUniform = {
     value: scene.fog ? scene.fog.color.clone() : new THREE.Color(renderModeFogColors.default)
@@ -2886,8 +2916,14 @@ wE8AAAAABAR/QAAAAAAEBPxEAAAAAIiIiIgAAAAAPzAwMAAAAADw8AAPAAAAABAQHPwAAAAANDQMAAAA
       .replace('#include <begin_vertex>', `#include <begin_vertex>\nvEdgeFade = edgeFade;`);
     shader.fragmentShader = shader.fragmentShader
       .replace('#include <common>', `#include <common>\nvarying float vEdgeFade;\nuniform vec3 edgeFadeColor;`)
-      .replace('#include <dithering_fragment>', `#include <dithering_fragment>\n  gl_FragColor.rgb = mix(edgeFadeColor, gl_FragColor.rgb, vEdgeFade);`);
+      .replace('gl_FragColor = vec4( outgoingLight, diffuseColor.a );', `
+      vec3 gouraudColor = floor(outgoingLight * ${GOURAUD_LEVELS}.0 + 0.5) / ${GOURAUD_LEVELS}.0;
+      gl_FragColor = vec4( gouraudColor, diffuseColor.a );
+      gl_FragColor.rgb = mix(edgeFadeColor, gl_FragColor.rgb, vEdgeFade);
+    `);
   };
+  terrainMaterial.customProgramCacheKey = () => `terrain_gouraud_${GOURAUD_LEVELS}`;
+  terrainMaterial.needsUpdate = true;
   const terrainMesh = new THREE.Mesh(terrain, terrainMaterial);
   terrainMesh.position.set(terrainState.offsetX, 0, terrainState.offsetZ);
   scene.add(terrainMesh);
@@ -2941,7 +2977,7 @@ wE8AAAAABAR/QAAAAAAEBPxEAAAAAIiIiIgAAAAAPzAwMAAAAADw8AAPAAAAABAQHPwAAAAANDQMAAAA
     const plazaHeight = 0.7;
     const plaza = new THREE.Mesh(
       new THREE.BoxGeometry(plazaSize, plazaHeight, plazaSize),
-      new THREE.MeshStandardMaterial({ color: new THREE.Color(0x1d2432), metalness: 0.2, roughness: 0.85 })
+      createGouraudMaterial({ color: new THREE.Color(0x1d2432) })
     );
     plaza.position.y = plateauLevel - plazaHeight / 2;
     plaza.receiveShadow = true;
@@ -2950,7 +2986,7 @@ wE8AAAAABAR/QAAAAAAEBPxEAAAAAIiIiIgAAAAAPzAwMAAAAADw8AAPAAAAABAQHPwAAAAANDQMAAAA
 
     const pathway = new THREE.Mesh(
       new THREE.BoxGeometry(plazaSize * 0.6, 0.3, chunkSize * 0.2),
-      new THREE.MeshStandardMaterial({ color: new THREE.Color(0x2c384a), metalness: 0.1, roughness: 0.7 })
+      createGouraudMaterial({ color: new THREE.Color(0x2c384a) })
     );
     pathway.position.y = plateauLevel + 0.01;
     cityGroup.add(pathway);
@@ -2962,11 +2998,11 @@ wE8AAAAABAR/QAAAAAAEBPxEAAAAAIiIiIgAAAAAPzAwMAAAAADw8AAPAAAAABAQHPwAAAAANDQMAAAA
     registerCityMesh(crossPath);
 
     const buildingGeometry = new THREE.BoxGeometry(1, 1, 1);
-    const towerMaterial = new THREE.MeshStandardMaterial({ color: new THREE.Color(0x8fb4ff), metalness: 0.55, roughness: 0.35, emissive: new THREE.Color(0x0b1b3c), emissiveIntensity: 0.12 });
+    const towerMaterial = createGouraudMaterial({ color: new THREE.Color(0x8fb4ff), emissive: new THREE.Color(0x0b1b3c), emissiveIntensity: 0.12 });
     const buildingMaterials = [
-      new THREE.MeshStandardMaterial({ color: new THREE.Color(0x3f5c7a), metalness: 0.4, roughness: 0.5 }),
-      new THREE.MeshStandardMaterial({ color: new THREE.Color(0x516b8c), metalness: 0.35, roughness: 0.55 }),
-      new THREE.MeshStandardMaterial({ color: new THREE.Color(0x6884a8), metalness: 0.3, roughness: 0.6 })
+      createGouraudMaterial({ color: new THREE.Color(0x3f5c7a) }),
+      createGouraudMaterial({ color: new THREE.Color(0x516b8c) }),
+      createGouraudMaterial({ color: new THREE.Color(0x6884a8) })
     ];
 
     const gridCount = 3;
@@ -2995,7 +3031,7 @@ wE8AAAAABAR/QAAAAAAEBPxEAAAAAIiIiIgAAAAAPzAwMAAAAADw8AAPAAAAABAQHPwAAAAANDQMAAAA
           const roofHeight = height * (0.45 + Math.random() * 0.15);
           const roof = new THREE.Mesh(
             new THREE.ConeGeometry(width * 0.35, height * 0.16, 4),
-            new THREE.MeshStandardMaterial({ color: new THREE.Color(0xffb347), metalness: 0.3, roughness: 0.5 })
+            createGouraudMaterial({ color: new THREE.Color(0xffb347) })
           );
           roof.position.set(x, plateauLevel + roofHeight, z);
           roof.rotation.y = Math.PI / 4;
@@ -3009,7 +3045,7 @@ wE8AAAAABAR/QAAAAAAEBPxEAAAAAIiIiIgAAAAAPzAwMAAAAADw8AAPAAAAABAQHPwAAAAANDQMAAAA
     const borderHeight = 1.6;
     const borderThickness = chunkSize * 0.16;
     const borderLength = plazaSize * 0.95;
-    const borderMaterial = new THREE.MeshStandardMaterial({ color: new THREE.Color(0x2a3646), metalness: 0.25, roughness: 0.65 });
+    const borderMaterial = createGouraudMaterial({ color: new THREE.Color(0x2a3646) });
     for (let i = 0; i < 4; i++) {
       const wall = new THREE.Mesh(
         new THREE.BoxGeometry(borderLength, borderHeight, borderThickness),
@@ -3122,7 +3158,7 @@ wE8AAAAABAR/QAAAAAAEBPxEAAAAAIiIiIgAAAAAPzAwMAAAAADw8AAPAAAAABAQHPwAAAAANDQMAAAA
     const color = new THREE.Color().setHSL(Math.random() * 0.15, 0.9, 0.5 + Math.random() * 0.1);
     const block = new THREE.Mesh(
       new THREE.BoxGeometry(size, size, size),
-      new THREE.MeshStandardMaterial({ color })
+      createGouraudMaterial({ color })
     );
     groundRay.set(new THREE.Vector3(x, 100, z), new THREE.Vector3(0, -1, 0));
     const hit = groundRay.intersectObject(terrainMesh);
@@ -3353,11 +3389,25 @@ wE8AAAAABAR/QAAAAAAEBPxEAAAAAIiIiIgAAAAAPzAwMAAAAADw8AAPAAAAABAQHPwAAAAANDQMAAAA
     requestAnimationFrame(animate);
   }
 
-  console.log('Terrain initialising...');
-  await generateBlocks(1000);
-  applyRenderMode(currentRenderMode, { announce: false });
-  console.log('Terrain ready.');
-  animate();
+  async function bootTerrain() {
+    console.log('Terrain initialising...');
+    setProgress(0);
+    await generateBlocks(1000);
+    applyRenderMode(currentRenderMode, { announce: false });
+    console.log('Terrain ready.');
+    animate();
+  }
+
+  bootTerrain().catch(err => {
+    console.error('Terrain failed to initialise.', err);
+    if (progressEl) {
+      progressEl.textContent = 'ERR';
+    }
+    if (loaderEl) {
+      stopLoaderAnimation();
+      loaderEl.classList.add('is-error');
+    }
+  });
 
   const resolutionSelect = document.getElementById('resolution-select');
   const resolutionDisplay = document.getElementById('resolution-display');
