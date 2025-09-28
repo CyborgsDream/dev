@@ -312,7 +312,7 @@
 
     function paragraphsToHtml(paragraphs, pageIndex) {
       if (!paragraphs.length) {
-        return `<p>ScanX imported page ${pageIndex + 1}. Add your layout flair here.</p>`;
+        return `<p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Page ${pageIndex + 1} content placeholder.</p>`;
       }
       return paragraphs.map(p => `<p>${escapeHtml(p)}</p>`).join('');
     }
