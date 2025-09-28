@@ -966,6 +966,7 @@
       <button type="button" class="render-mode-btn is-active" data-render-mode="default" aria-pressed="true">Default</button>
       <button type="button" class="render-mode-btn" data-render-mode="wire" aria-pressed="false">Wired Vectors</button>
       <button type="button" class="render-mode-btn" data-render-mode="zx" aria-pressed="false">ZX Spectrum</button>
+      <button type="button" class="render-mode-btn" data-render-mode="petscii" aria-pressed="false">Commodore PETSCII</button>
     </div>
     <div class="hud-line"><span>Position</span><span class="hud-value" data-hud="position">0, 0, 0</span></div>
     <div class="hud-line"><span>Heading</span><span class="hud-value" data-hud="heading">0° / 0°</span></div>
@@ -1080,7 +1081,8 @@
   const renderModeDescriptions = {
     default: 'default shading',
     wire: 'wired vectors',
-    zx: 'ZX Spectrum wireframe'
+    zx: 'ZX Spectrum wireframe',
+    petscii: 'Commodore PETSCII mosaic'
   };
   const retroPalettes = {
     zx: [
@@ -1088,11 +1090,15 @@
       0x00d700, 0x00d7d7, 0xd7d700, 0xd7d7d7,
       0x000000, 0x0000ff, 0xff0000, 0xff00ff,
       0x00ff00, 0x00ffff, 0xffff00, 0xffffff
+    ],
+    petscii: [
+      0x000000, 0x00ff6a
     ]
   };
   const retroModeConfigs = {
     default: { blockSize: 1, attributeMode: 'quantize' },
-    zx: { blockSize: 8, attributeMode: 'attribute' }
+    zx: { blockSize: 8, attributeMode: 'attribute' },
+    petscii: { blockSize: 8, attributeMode: 'petscii' }
   };
   let currentRenderMode = 'default';
   const wireModePalette = {
@@ -1111,13 +1117,15 @@
   const renderModeFogColors = {
     default: 0x020817,
     wire: 0x020817,
-    zx: 0x0000d7
+    zx: 0x0000d7,
+    petscii: 0x00140a
   };
 
   const renderModeCanvasBackgrounds = {
     default: '#020817',
     wire: '#020817',
-    zx: '#0000d7'
+    zx: '#0000d7',
+    petscii: '#00140a'
   };
 
   const RESOLUTIONS = [
@@ -1547,6 +1555,43 @@
     return texture;
   }
 
+  function createPetsciiAtlas() {
+    const quadrantSize = 4;
+    const charSize = quadrantSize * 2;
+    const levels = 16;
+    const order = [
+      0x0, 0x8, 0x4, 0xc,
+      0x2, 0xa, 0x6, 0xe,
+      0x1, 0x9, 0x5, 0xd,
+      0x3, 0xb, 0x7, 0xf
+    ];
+    const data = new Uint8Array(charSize * charSize * levels);
+    let offset = 0;
+    for (let level = 0; level < levels; level++) {
+      const pattern = order[level];
+      for (let y = 0; y < charSize; y++) {
+        const quadY = y < quadrantSize ? 0 : 1;
+        for (let x = 0; x < charSize; x++) {
+          const quadX = x < quadrantSize ? 0 : 1;
+          const bitIndex = quadY * 2 + quadX;
+          const bit = (pattern >> bitIndex) & 1;
+          data[offset++] = bit ? 255 : 0;
+        }
+      }
+    }
+    const texture = new THREE.DataTexture(data, charSize, charSize * levels, THREE.LuminanceFormat);
+    texture.magFilter = THREE.NearestFilter;
+    texture.minFilter = THREE.NearestFilter;
+    texture.wrapS = THREE.ClampToEdgeWrapping;
+    texture.wrapT = THREE.ClampToEdgeWrapping;
+    texture.generateMipmaps = false;
+    texture.needsUpdate = true;
+    if ('colorSpace' in texture && 'NoColorSpace' in THREE) {
+      texture.colorSpace = THREE.NoColorSpace;
+    }
+    return { texture, charSize, levels };
+  }
+
   function createRetroEffect(renderer, initialPalette = [], initialSettings = {}) {
     const paletteVectors = new Array(16).fill(null).map(() => new THREE.Vector3());
     const paletteColor = new THREE.Color();
@@ -1562,13 +1607,21 @@
 
     applyPalette(initialPalette);
 
+    const petsciiAtlas = createPetsciiAtlas();
+
     const resolution = new THREE.Vector2(1, 1);
     const blockCount = new THREE.Vector2(1, 1);
     let targetWidth = 16;
     let targetHeight = 16;
     let currentBlockSize = Math.max(1, initialSettings.blockSize || 8);
     const blockPixelSizeUniform = { value: currentBlockSize };
-    const attributeModeUniform = { value: initialSettings.attributeMode === 'attribute' ? 1 : 0 };
+    const attributeModeUniform = {
+      value: initialSettings.attributeMode === 'attribute'
+        ? 1
+        : initialSettings.attributeMode === 'petscii'
+          ? 2
+          : 0
+    };
 
     const sceneTarget = new THREE.WebGLRenderTarget(16, 16, {
       minFilter: THREE.LinearFilter,
@@ -1710,7 +1763,10 @@
       blockCount: { value: blockCount },
       palette: { value: paletteVectors },
       blockPixelSize: blockPixelSizeUniform,
-      attributeMode: attributeModeUniform
+      attributeMode: attributeModeUniform,
+      patternTexture: { value: petsciiAtlas.texture },
+      patternCharSize: { value: petsciiAtlas.charSize },
+      patternCount: { value: petsciiAtlas.levels }
     };
 
     const finalMaterial = new THREE.ShaderMaterial({
@@ -1720,11 +1776,14 @@
         precision highp float;
         uniform sampler2D sceneTexture;
         uniform sampler2D attributeTexture;
+        uniform sampler2D patternTexture;
         uniform vec2 resolution;
         uniform vec2 blockCount;
         uniform vec3 palette[16];
         uniform float blockPixelSize;
         uniform float attributeMode;
+        uniform float patternCharSize;
+        uniform float patternCount;
         varying vec2 vUv;
 
         float colorDistance(vec3 a, vec3 b) {
@@ -1768,6 +1827,14 @@
           return (bayer[index] + 0.5) / 16.0;
         }
 
+        float samplePetsciiPattern(float patternIndex, vec2 pixelCoord) {
+          float charSize = max(patternCharSize, 1.0);
+          vec2 local = mod(pixelCoord, charSize);
+          float u = (local.x + 0.5) / charSize;
+          float v = (local.y + 0.5 + patternIndex * charSize) / (charSize * max(patternCount, 1.0));
+          return texture2D(patternTexture, vec2(u, v)).r;
+        }
+
         void main() {
           vec3 sceneColor = texture2D(sceneTexture, vUv).rgb;
 
@@ -1779,6 +1846,19 @@
           }
 
           vec2 pixelCoord = vUv * resolution;
+
+          if (attributeMode > 1.5) {
+            vec3 luminanceWeights = vec3(0.299, 0.587, 0.114);
+            float luminance = dot(sceneColor, luminanceWeights);
+            float patternIndex = floor(clamp(luminance, 0.0, 1.0) * max(patternCount - 1.0, 0.0) + 0.5);
+            vec3 paperColor = paletteColor(0);
+            vec3 inkColor = paletteColor(1);
+            float glyph = samplePetsciiPattern(patternIndex, pixelCoord);
+            vec3 finalColor = mix(paperColor, inkColor, step(0.5, glyph));
+            gl_FragColor = vec4(finalColor, 1.0);
+            return;
+          }
+
           vec2 blockCoord = floor(pixelCoord / blockPixelSize);
           blockCoord = clamp(blockCoord, vec2(0.0), blockCount - vec2(1.0));
           vec2 attributeUv = (blockCoord + 0.5) / blockCount;
@@ -1839,7 +1919,13 @@
           currentBlockSize = config.blockSize;
         }
         if (typeof config.attributeMode === 'string') {
-          attributeModeUniform.value = config.attributeMode === 'attribute' ? 1 : 0;
+          if (config.attributeMode === 'attribute') {
+            attributeModeUniform.value = 1;
+          } else if (config.attributeMode === 'petscii') {
+            attributeModeUniform.value = 2;
+          } else {
+            attributeModeUniform.value = 0;
+          }
         } else if (typeof config.attributeMode === 'number') {
           attributeModeUniform.value = config.attributeMode;
         }
@@ -1858,10 +1944,11 @@
         sceneTarget.setSize(safeWidth, safeHeight);
         const blockSize = Math.max(1, currentBlockSize);
         blockPixelSizeUniform.value = blockSize;
-        const useAttribute = attributeModeUniform.value > 0.5;
-        const blockWidth = useAttribute ? Math.max(1, Math.floor(safeWidth / blockSize)) : 1;
-        const blockHeight = useAttribute ? Math.max(1, Math.floor(safeHeight / blockSize)) : 1;
-        attributeTarget.setSize(blockWidth, blockHeight);
+        const attributeValue = attributeModeUniform.value;
+        const blockWidth = Math.max(1, Math.floor(safeWidth / blockSize));
+        const blockHeight = Math.max(1, Math.floor(safeHeight / blockSize));
+        const useAttribute = attributeValue > 0.5 && attributeValue < 1.5;
+        attributeTarget.setSize(useAttribute ? blockWidth : 1, useAttribute ? blockHeight : 1);
         resolution.set(safeWidth, safeHeight);
         blockCount.set(blockWidth, blockHeight);
       },
@@ -1869,7 +1956,8 @@
         renderer.setRenderTarget(sceneTarget);
         renderer.render(scene, camera);
 
-        if (attributeModeUniform.value > 0.5) {
+        const attributeValue = attributeModeUniform.value;
+        if (attributeValue > 0.5 && attributeValue < 1.5) {
           attributeUniforms.sceneTexture.value = sceneTarget.texture;
           renderer.setRenderTarget(attributeTarget);
           renderer.render(attributeScene, orthoCamera);
@@ -1897,6 +1985,12 @@
       mid: new THREE.Color('#2affff'),
       zenith: new THREE.Color('#ffffff'),
       glow: new THREE.Color('#ff2aff')
+    },
+    petscii: {
+      horizon: new THREE.Color('#001708'),
+      mid: new THREE.Color('#015f2a'),
+      zenith: new THREE.Color('#0bff6a'),
+      glow: new THREE.Color('#6aff9f')
     }
   };
   const skyGeometry = new THREE.SphereGeometry(4200, 48, 24);
@@ -1908,7 +2002,8 @@
   const cloudSprites = [];
   const cloudModeColors = {
     default: new THREE.Color(0xffffff),
-    zx: new THREE.Color('#ffd71f')
+    zx: new THREE.Color('#ffd71f'),
+    petscii: new THREE.Color('#00ff6a')
   };
   const cloudGroup = new THREE.Group();
   cloudGroup.renderOrder = -4;
