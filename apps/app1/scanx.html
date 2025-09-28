@@ -176,7 +176,8 @@
   <script>
     const PDFJS_SOURCES = [
       {
-        script: '../../shared/vendor/scanx/pdfjs-lite.js'
+        script: '../../shared/vendor/scanx/pdfjs-lite.js',
+        lite: true
       },
       {
         script: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.2.67/build/pdf.min.js',
@@ -210,21 +211,53 @@
     }
 
     async function ensurePdfJsLoaded() {
-      if (window.pdfjsLib) {
-        configurePdfJs(PDFJS_SOURCES[0]);
+      if (window.pdfjsLib && !window.pdfjsLib.__scanxLite) {
+        configurePdfJs(PDFJS_SOURCES.find(source => source.worker) || PDFJS_SOURCES[0]);
         return window.pdfjsLib;
       }
+
+      let liteLibrary = window.pdfjsLib && window.pdfjsLib.__scanxLite ? window.pdfjsLib : null;
+
+      if (liteLibrary) {
+        delete window.pdfjsLib;
+      }
+
       for (const source of PDFJS_SOURCES) {
         try {
-          await loadScript(source.script);
-          if (window.pdfjsLib) {
-            configurePdfJs(source);
-            return window.pdfjsLib;
+          if (source.lite && liteLibrary) {
+            continue;
+          }
+
+          if (source.lite && !liteLibrary) {
+            await loadScript(source.script);
+            if (window.pdfjsLib && window.pdfjsLib.__scanxLite) {
+              liteLibrary = window.pdfjsLib;
+              delete window.pdfjsLib;
+              continue;
+            }
+          } else {
+            await loadScript(source.script);
+            if (window.pdfjsLib) {
+              configurePdfJs(source);
+              if (window.pdfjsLib.__scanxLite) {
+                liteLibrary = window.pdfjsLib;
+                delete window.pdfjsLib;
+                continue;
+              }
+              return window.pdfjsLib;
+            }
           }
         } catch (err) {
           console.warn('PDF.js source failed', source.script, err);
         }
       }
+
+      if (liteLibrary) {
+        window.pdfjsLib = liteLibrary;
+        configurePdfJs(PDFJS_SOURCES[0]);
+        return window.pdfjsLib;
+      }
+
       throw new Error('PDF.js library could not be loaded');
     }
 

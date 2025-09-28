@@ -425,4 +425,5 @@
     },
     GlobalWorkerOptions: { workerSrc: null }
   };
+  global.pdfjsLib.__scanxLite = true;
 })(typeof window !== 'undefined' ? window : globalThis);
