@@ -136,6 +136,9 @@
       font-size:14px;
       line-height:1.5;
     }
+    .page-card .page-preview {
+      margin:10px 0 12px 0;
+    }
     .page-card .page-meta {
       margin:0 0 6px 0;
       color:var(--accent);
@@ -146,6 +149,51 @@
       margin:0 0 10px 0;
       color:var(--muted);
       font-size:13px;
+    }
+    .page-thumb {
+      position:relative;
+      width:100%;
+      aspect-ratio:3 / 4;
+      min-height:140px;
+      background:#fff;
+      border-radius:10px;
+      border:1px solid rgba(19,34,77,0.12);
+      overflow:hidden;
+      box-shadow:inset 0 0 0 1px rgba(19,34,77,0.04);
+    }
+    .page-thumb__content {
+      position:absolute;
+      inset:8% 6%;
+      border:1px dashed rgba(19,34,77,0.18);
+      border-radius:8px;
+      background:linear-gradient(180deg, rgba(60,125,255,0.05) 0%, rgba(60,125,255,0.05) 60%, transparent 100%);
+      overflow:hidden;
+    }
+    .page-thumb__content[data-style] {
+      inset:auto;
+    }
+    .page-thumb__column {
+      position:absolute;
+      background:repeating-linear-gradient(180deg, rgba(60,125,255,0.16), rgba(60,125,255,0.16) 6%, rgba(60,125,255,0.08) 6%, rgba(60,125,255,0.08) 12%);
+      border-radius:6px;
+      box-shadow:0 2px 4px rgba(19,34,77,0.08);
+    }
+    .page-thumb__column::after {
+      content:'';
+      position:absolute;
+      inset:8% 10%;
+      border-radius:4px;
+      background:repeating-linear-gradient(180deg, rgba(19,34,77,0.08), rgba(19,34,77,0.08) 6%, transparent 6%, transparent 12%);
+      opacity:0.9;
+    }
+    .page-thumb--empty {
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      color:var(--muted);
+      font-size:12px;
+      text-align:center;
+      padding:12px;
     }
     .meta-row {
       display:flex;
@@ -478,6 +526,54 @@
       return combined.length > 220 ? combined.slice(0, 220) + '…' : combined;
     }
 
+    function clampPercent(value) {
+      return Math.max(0, Math.min(100, value));
+    }
+
+    function safeNumber(value, fallback = 0) {
+      return (typeof value === 'number' && Number.isFinite(value)) ? value : fallback;
+    }
+
+    function percentOf(value, total) {
+      const safeTotal = total && Number.isFinite(total) && total !== 0 ? Math.abs(total) : 1;
+      return clampPercent((safeNumber(value) / safeTotal) * 100);
+    }
+
+    function buildPageThumbnail(layout) {
+      if (!layout || !layout.pageSizeMm) {
+        return '<div class="page-thumb page-thumb--empty">No layout detected</div>';
+      }
+      const pageWidth = safeNumber(layout.pageSizeMm.width, 210);
+      const pageHeight = safeNumber(layout.pageSizeMm.height, 297);
+      const margins = layout.marginsMm || {};
+      const marginStyles = {
+        left: percentOf(margins.left, pageWidth),
+        right: percentOf(margins.right, pageWidth),
+        top: percentOf(margins.top, pageHeight),
+        bottom: percentOf(margins.bottom, pageHeight)
+      };
+      const columns = Array.isArray(layout.columnsMm) ? layout.columnsMm : [];
+      const columnMarkup = columns.length ? columns.map((col, idx) => {
+        const left = percentOf(col.start, pageWidth);
+        const width = Math.max(6, percentOf(col.width, pageWidth));
+        const topValue = safeNumber(col.top, margins.top || 0);
+        const bottomValue = safeNumber(col.bottom, pageHeight - safeNumber(margins.bottom, 0));
+        const top = percentOf(topValue, pageHeight);
+        const delta = bottomValue - topValue;
+        const heightMm = delta > 0 ? delta : pageHeight * 0.6;
+        const height = Math.max(8, percentOf(heightMm, pageHeight));
+        return `<div class="page-thumb__column" style="left:${left}%;width:${width}%;top:${top}%;height:${height}%;"></div>`;
+      }).join('') : '<div class="page-thumb__column" style="left:15%;width:70%;top:12%;height:76%;"></div>';
+      const contentStyle = `left:${marginStyles.left}%;top:${marginStyles.top}%;right:${marginStyles.right}%;bottom:${marginStyles.bottom}%;`;
+      return `
+        <div class="page-thumb">
+          <div class="page-thumb__content" data-style="true" style="${contentStyle}">
+            ${columnMarkup}
+          </div>
+        </div>
+      `;
+    }
+
     function formatMeasurement(value) {
       if (typeof value !== 'number' || !Number.isFinite(value)) return null;
       const rounded = Math.round(value * 100) / 100;
@@ -648,7 +744,8 @@
             preview: layout.preview,
             columns: layout.columns,
             margins: layout.metadata?.marginsMm || null,
-            gutter: typeof layout.metadata?.averageGutterMm === 'number' ? layout.metadata.averageGutterMm : null
+            gutter: typeof layout.metadata?.averageGutterMm === 'number' ? layout.metadata.averageGutterMm : null,
+            layout: layout.metadata
           });
         }
         const averageColumns = summaries.length
@@ -711,6 +808,7 @@
           <h3>Page ${entry.index}</h3>
           <p class="page-meta">${escapeHtml(columnLabel + gutterLabel)}</p>
           ${marginLine}
+          <div class="page-preview">${buildPageThumbnail(entry.layout)}</div>
           <p>${escapeHtml(entry.preview)}</p>
         </article>
       `;
