@@ -236,15 +236,19 @@
   <script>
     const PDFJS_SOURCES = [
       {
-        script: '../../shared/vendor/scanx/pdfjs-lite.js'
-      },
-      {
+        label: 'jsdelivr',
         script: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.2.67/build/pdf.min.js',
         worker: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.2.67/build/pdf.worker.min.js'
       },
       {
+        label: 'cdnjs',
         script: 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.2.67/pdf.min.js',
         worker: 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.2.67/pdf.worker.min.js'
+      },
+      {
+        label: 'scanx-lite',
+        script: '../../shared/vendor/scanx/pdfjs-lite.js',
+        isLite: true
       }
     ];
 
@@ -259,31 +263,66 @@
       });
     }
 
+    let activePdfSource = null;
+
     function configurePdfJs(source) {
       try {
         if (window.pdfjsLib && source.worker) {
           window.pdfjsLib.GlobalWorkerOptions.workerSrc = source.worker;
         }
+        activePdfSource = source;
       } catch (err) {
         console.warn('Unable to configure PDF.js worker', err);
       }
     }
 
+    function isLitePdfJs(lib) {
+      return !!(lib && lib.__scanxLite);
+    }
+
+    function describePdfEngine() {
+      if (!window.pdfjsLib) return 'unloaded';
+      if (isLitePdfJs(window.pdfjsLib)) return 'ScanX lite parser';
+      return window.pdfjsLib.version ? `PDF.js ${window.pdfjsLib.version}` : 'PDF.js (full build)';
+    }
+
     async function ensurePdfJsLoaded() {
-      if (window.pdfjsLib) {
-        configurePdfJs(PDFJS_SOURCES[0]);
+      if (window.pdfjsLib && !isLitePdfJs(window.pdfjsLib)) {
+        configurePdfJs(activePdfSource || PDFJS_SOURCES[0]);
         return window.pdfjsLib;
+      }
+      if (window.pdfjsLib && isLitePdfJs(window.pdfjsLib)) {
+        console.warn('ScanX detected the lite PDF parser; attempting to upgrade to the full PDF.js build.');
+        try {
+          delete window.pdfjsLib;
+        } catch (err) {
+          console.warn('ScanX could not remove lite parser before upgrade', err);
+        }
       }
       for (const source of PDFJS_SOURCES) {
         try {
           await loadScript(source.script);
           if (window.pdfjsLib) {
             configurePdfJs(source);
+            if (isLitePdfJs(window.pdfjsLib) && !source.isLite) {
+              console.warn('ScanX source returned lite parser unexpectedly', source.script);
+              continue;
+            }
+            if (isLitePdfJs(window.pdfjsLib)) {
+              console.warn('ScanX is using its lite PDF parser. Complex PDFs may not be analyzed fully.');
+            } else {
+              console.info('ScanX PDF engine loaded', source.label || source.script, describePdfEngine());
+            }
             return window.pdfjsLib;
           }
         } catch (err) {
           console.warn('PDF.js source failed', source.script, err);
         }
+      }
+      if (window.pdfjsLib) {
+        configurePdfJs(PDFJS_SOURCES[PDFJS_SOURCES.length - 1]);
+        console.error('ScanX fell back to lite PDF parser after full builds failed to load.');
+        return window.pdfjsLib;
       }
       throw new Error('PDF.js library could not be loaded');
     }
@@ -721,6 +760,13 @@
         for (let pageIndex = 1; pageIndex <= pdf.numPages; pageIndex++) {
           const page = await pdf.getPage(pageIndex);
           const textContent = await page.getTextContent();
+          if (!textContent?.items?.length) {
+            console.warn('ScanX did not receive text items for page', pageIndex, {
+              itemCount: textContent?.items?.length || 0,
+              pdfEngine: describePdfEngine(),
+              source: activePdfSource?.label || activePdfSource?.script || 'unknown'
+            });
+          }
           const layout = analyzePageLayout(page, textContent);
           pages.push({
             title: `ScanX Page ${pageIndex}`,
@@ -739,6 +785,14 @@
             footerRight: 'Page {{page}} of {{total}}',
             layout: layout.metadata
           });
+          const previewHasText = layout.preview && layout.preview !== 'No textual content detected.';
+          if (!previewHasText) {
+            console.warn('ScanX produced a placeholder layout due to missing text content', {
+              pageIndex,
+              pdfEngine: describePdfEngine(),
+              source: activePdfSource?.label || activePdfSource?.script || 'unknown'
+            });
+          }
           summaries.push({
             index: pageIndex,
             preview: layout.preview,

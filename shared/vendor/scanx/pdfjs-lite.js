@@ -530,7 +530,7 @@
     }
   };
 
-  global.pdfjsLib = {
+  const pdfjsLite = {
     getDocument(params) {
       const data = params && params.data ? params.data : null;
       if (!data) {
@@ -542,4 +542,7 @@
     GlobalWorkerOptions: { workerSrc: null },
     Util
   };
+  pdfjsLite.__scanxLite = true;
+  pdfjsLite.version = 'scanx-lite';
+  global.pdfjsLib = pdfjsLite;
 })(typeof window !== 'undefined' ? window : globalThis);
