@@ -1003,6 +1003,77 @@
   <script type="module">
   import { initConsoleLogs } from '../../shared/consolelogs.js';
 
+  const REMOTE_MODULE_TIMEOUT_MS = 8000;
+
+  function updateLoaderStatus(message) {
+    const progress = document.getElementById('progress');
+    if (progress && typeof message === 'string') {
+      progress.textContent = message;
+    }
+  }
+
+  async function fetchModuleText(url, timeout = REMOTE_MODULE_TIMEOUT_MS) {
+    const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
+    let timedOut = false;
+    let timerId = null;
+
+    if (controller && Number.isFinite(timeout) && timeout > 0) {
+      timerId = setTimeout(() => {
+        timedOut = true;
+        try {
+          controller.abort();
+        } catch (abortError) {
+          console.warn('Failed to abort module fetch controller', abortError);
+        }
+      }, timeout);
+    }
+
+    try {
+      const response = await fetch(url, {
+        method: 'GET',
+        mode: 'cors',
+        credentials: 'omit',
+        cache: 'no-store',
+        signal: controller ? controller.signal : undefined
+      });
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status} ${response.statusText}`);
+      }
+      return await response.text();
+    } catch (error) {
+      if (timedOut && error && error.name === 'AbortError') {
+        const timeoutError = new Error(`Timed out fetching ${url} after ${timeout}ms.`);
+        timeoutError.name = 'TimeoutError';
+        timeoutError.cause = error;
+        throw timeoutError;
+      }
+      throw error;
+    } finally {
+      if (timerId !== null) {
+        clearTimeout(timerId);
+      }
+    }
+  }
+
+  async function importThreeFromSource(source, attemptIndex, totalAttempts) {
+    const isRemote = /^https?:\/\//i.test(source);
+    const resolved = isRemote ? source : new URL(source, document.baseURI).href;
+    updateLoaderStatus(`Attempt ${attemptIndex + 1} / ${totalAttempts}`);
+
+    if (!isRemote) {
+      return await import(/* webpackIgnore: true */ resolved);
+    }
+
+    const code = await fetchModuleText(resolved);
+    const blob = new Blob([code], { type: 'application/javascript' });
+    const blobUrl = URL.createObjectURL(blob);
+    try {
+      return await import(/* webpackIgnore: true */ blobUrl);
+    } finally {
+      URL.revokeObjectURL(blobUrl);
+    }
+  }
+
   async function loadThreeModule() {
     const sources = [
       '../../shared/vendor/three/three.module.js',
@@ -1012,17 +1083,13 @@
     ];
 
     const errors = [];
-    for (const source of sources) {
+    for (let i = 0; i < sources.length; i++) {
+      const source = sources[i];
       try {
-        if (!source.startsWith('http')) {
-          const response = await fetch(source, { method: 'HEAD' });
-          if (!response.ok) {
-            throw new Error(`HTTP ${response.status} ${response.statusText}`);
-          }
-        }
-        const mod = await import(source);
+        const mod = await importThreeFromSource(source, i, sources.length);
         const namespace = mod && mod.default ? mod.default : mod;
         if (namespace && typeof namespace.Scene === 'function' && typeof namespace.WebGLRenderer === 'function') {
+          updateLoaderStatus('Preparing scene…');
           return { module: namespace, source };
         }
         errors.push({ source, error: new Error('Loaded module missing THREE exports.') });
@@ -1820,7 +1887,7 @@
   renderer.domElement.setAttribute('aria-label', 'Interactive terrain viewport');
   renderer.domElement.style.background = renderModeCanvasBackgrounds.default;
 
-  const retroEffect = createRetroEffect(renderer, retroPalettes.zx, retroModeConfigs.zx);
+  let retroEffect = null;
 
   const scene = new THREE.Scene();
   scene.fog = new THREE.Fog(renderModeFogColors.default, 380, 760);
@@ -2734,6 +2801,8 @@ wE8AAAAABAR/QAAAAAAEBPxEAAAAAIiIiIgAAAAAPzAwMAAAAADw8AAPAAAAABAQHPwAAAAANDQMAAAA
       }
     };
   }
+
+  retroEffect = createRetroEffect(renderer, retroPalettes.zx, retroModeConfigs.zx);
 
   const { material: skyMaterial, uniforms: skyUniforms } = createSkyDomeMaterial();
   const skyModeSettings = {
