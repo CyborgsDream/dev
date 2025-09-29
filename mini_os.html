@@ -736,19 +736,6 @@
         <div class="task-bar" id="task-bar"></div>
         <div class="taskbar-menu" id="taskbar-menu" style="display:none;"></div>
         
-        <!-- Theme selection dialog -->
-        <div class="dialog" id="theme-dialog" style="display:none;">
-            <div class="window-header">
-                <div class="window-title">Select Theme</div>
-            </div>
-            <div class="dialog-content">
-                <div class="dialog-buttons">
-                    <div class="dialog-btn" data-theme="retro">Retro</div>
-                    <div class="dialog-btn" data-theme="futuristic">Futuristic</div>
-                </div>
-            </div>
-        </div>
-
         <!-- Welcome dialog -->
         <div class="dialog" id="welcome-dialog" style="display:none;">
             <div class="window-header">
@@ -1316,25 +1303,10 @@
             }
         }
         
-        function selectThemeDialog() {
-            return new Promise(resolve => {
-                const dialog = document.getElementById('theme-dialog');
-                dialog.style.display = 'block';
-                dialog.querySelectorAll('.dialog-btn').forEach(btn => {
-                    btn.onclick = () => {
-                        const theme = btn.dataset.theme;
-                        setTheme(theme);
-                        closeDialog('theme-dialog');
-                        resolve(theme);
-                    };
-                });
-            });
-        }
-
         function closeDialog(id) {
             document.getElementById(id).style.display = 'none';
         }
-        
+
         // Initialize everything
         async function init() {
             showBootLoader('Initializing video BIOS…');
@@ -1367,7 +1339,6 @@
             await delay(280);
             await hideBootLoader();
 
-            await selectThemeDialog();
             buildWelcome(appData.welcome);
             openWindow('console-log');
             bootLoaderBusy = false;
