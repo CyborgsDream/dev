@@ -63,6 +63,10 @@
           "type": "console-log"
         },
         {
+          "label": "Show Loading Demo",
+          "action": "show-boot-loader"
+        },
+        {
           "label": "Disk Doctor"
         },
         {
