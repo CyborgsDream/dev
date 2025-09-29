@@ -292,29 +292,40 @@
   }
 
   function extractPageContent(pageObj, objects) {
-    const contentsMatch = pageObj.raw.match(/\/Contents\s+([^\n\r]+)/);
     const streams = [];
-    if (contentsMatch) {
-      const token = contentsMatch[1].trim();
-      if (token.startsWith('[')) {
-        const refs = token
-          .replace(/^[\[]|[\]]$/g, '')
-          .split(/\s+/)
-          .filter(Boolean)
-          .filter(entry => entry.endsWith('R'))
-          .map(entry => entry.replace(/R$/, '').trim());
-        for (const ref of refs) {
-          const [id] = ref.split(' ');
-          const target = objects.get(id);
+    const seen = new Set();
+    const raw = pageObj.raw || '';
+    const contentsPattern = /\/Contents\b/g;
+    let match;
+    while ((match = contentsPattern.exec(raw))) {
+      let slice = raw.slice(match.index + match[0].length);
+      const terminatorIndex = slice.search(/(?:\/[A-Za-z#]|>>|endobj)/);
+      if (terminatorIndex !== -1) {
+        slice = slice.slice(0, terminatorIndex);
+      }
+      const refRegex = /(\d+)\s+(\d+)\s+R/g;
+      let refMatch;
+      let foundRef = false;
+      while ((refMatch = refRegex.exec(slice))) {
+        foundRef = true;
+        const objectId = refMatch[1];
+        if (seen.has(objectId)) {
+          continue;
+        }
+        seen.add(objectId);
+        const target = objects.get(objectId);
+        if (target && target.streamRange) {
+          streams.push(target);
+        }
+      }
+      if (!foundRef) {
+        const trimmed = slice.trim();
+        if (/^\d+$/.test(trimmed) && !seen.has(trimmed)) {
+          seen.add(trimmed);
+          const target = objects.get(trimmed);
           if (target && target.streamRange) {
             streams.push(target);
           }
-        }
-      } else if (token.endsWith('R')) {
-        const [id] = token.replace(/R$/, '').trim().split(' ');
-        const target = objects.get(id);
-        if (target && target.streamRange) {
-          streams.push(target);
         }
       }
     }
