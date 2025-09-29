@@ -236,17 +236,21 @@
   <script>
     const PDFJS_SOURCES = [
       {
-        script: '../../shared/vendor/scanx/pdfjs-lite.js'
-      },
-      {
         script: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.2.67/build/pdf.min.js',
         worker: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.2.67/build/pdf.worker.min.js'
       },
       {
         script: 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.2.67/pdf.min.js',
         worker: 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.2.67/pdf.worker.min.js'
+      },
+      {
+        script: '../../shared/vendor/scanx/pdfjs-lite.js',
+        lite: true
       }
     ];
+
+    const HAS_NATIVE_DECOMPRESSION = typeof DecompressionStream === 'function';
+    let activePdfSource = null;
 
     function loadScript(src) {
       return new Promise((resolve, reject) => {
@@ -261,8 +265,9 @@
 
     function configurePdfJs(source) {
       try {
-        if (window.pdfjsLib && source.worker) {
-          window.pdfjsLib.GlobalWorkerOptions.workerSrc = source.worker;
+        const target = source || activePdfSource;
+        if (window.pdfjsLib && target && target.worker && window.pdfjsLib.GlobalWorkerOptions) {
+          window.pdfjsLib.GlobalWorkerOptions.workerSrc = target.worker;
         }
       } catch (err) {
         console.warn('Unable to configure PDF.js worker', err);
@@ -271,21 +276,30 @@
 
     async function ensurePdfJsLoaded() {
       if (window.pdfjsLib && !window.pdfjsLib.__scanxLiteUnsupported) {
-        configurePdfJs(PDFJS_SOURCES[0]);
+        if (!activePdfSource) {
+          activePdfSource = PDFJS_SOURCES.find(src => !src.lite) || PDFJS_SOURCES[0];
+        }
+        configurePdfJs();
         return window.pdfjsLib;
       }
       for (const source of PDFJS_SOURCES) {
+        if (source.lite && !HAS_NATIVE_DECOMPRESSION) {
+          continue;
+        }
         try {
           await loadScript(source.script);
-          if (window.__scanxPdfjsLiteUnsupported) {
-            delete window.__scanxPdfjsLiteUnsupported;
-            continue;
+          if (source.lite) {
+            if (window.__scanxPdfjsLiteUnsupported) {
+              delete window.__scanxPdfjsLiteUnsupported;
+              continue;
+            }
           }
           if (window.pdfjsLib) {
             if (window.pdfjsLib.__scanxLiteUnsupported) {
               delete window.pdfjsLib;
               continue;
             }
+            activePdfSource = source;
             configurePdfJs(source);
             return window.pdfjsLib;
           }
@@ -387,24 +401,43 @@
 
     function extractTextBoxes(textContent, viewport) {
       const boxes = [];
-      const items = textContent.items || [];
-      const height = viewport.height;
+      const items = Array.isArray(textContent && textContent.items) ? textContent.items : [];
+      const height = viewport && typeof viewport.height === 'number' ? viewport.height : 0;
       items.forEach(item => {
-        const raw = typeof item.str === 'string' ? item.str.replace(/\s+/g, ' ') : '';
+        const rawSource =
+          (typeof item.str === 'string' && item.str) ? item.str :
+          (typeof item.text === 'string' && item.text) ? item.text :
+          (typeof item.unicode === 'string' && item.unicode) ? item.unicode :
+          '';
+        const raw = rawSource.replace(/\s+/g, ' ');
         const text = raw.trim();
         if (!text) return;
-        const transform = item.transform || [1, 0, 0, 1, 0, 0];
+        const transform = Array.isArray(item.transform) && item.transform.length === 6
+          ? item.transform
+          : [1, 0, 0, 1, 0, 0];
         let glyphMatrix = transform;
         try {
-          glyphMatrix = pdfjsLib.Util.transform(viewport.transform, transform);
+          if (window.pdfjsLib && window.pdfjsLib.Util && viewport && viewport.transform) {
+            glyphMatrix = window.pdfjsLib.Util.transform(viewport.transform, transform);
+          }
         } catch (err) {
           // fallback to item transform if Util.transform is unavailable
         }
-        const x = glyphMatrix[4];
-        const y = glyphMatrix[5];
-        const width = (item.width || 0) * viewport.scale;
-        const heightPx = Math.max(Math.hypot(glyphMatrix[1], glyphMatrix[3]) || Math.abs(glyphMatrix[3]) || 0, 0.1);
-        const top = height - y;
+        const x = Number.isFinite(glyphMatrix[4]) ? glyphMatrix[4] : 0;
+        const y = Number.isFinite(glyphMatrix[5]) ? glyphMatrix[5] : 0;
+        let width = 0;
+        if (typeof item.width === 'number' && Number.isFinite(item.width) && viewport && typeof viewport.scale === 'number') {
+          width = item.width * viewport.scale;
+        } else if (typeof transform[0] === 'number' && viewport && typeof viewport.scale === 'number') {
+          width = Math.abs(transform[0]) * (text.length || 1) * viewport.scale;
+        }
+        if (!Number.isFinite(width) || width <= 0) {
+          const span = Math.abs(glyphMatrix[0] || 0) + Math.abs(glyphMatrix[2] || 0);
+          width = span > 0 ? span : Math.max(text.length * 2, 4);
+        }
+        const heightVector = Math.hypot(glyphMatrix[1] || 0, glyphMatrix[3] || 0);
+        const heightPx = Math.max(heightVector || Math.abs(glyphMatrix[3] || 0) || 0, 0.1);
+        const top = height ? Math.max(height - y - heightPx, 0) : 0;
         boxes.push({
           text,
           left: x,
@@ -722,7 +755,7 @@
       metaRow.hidden = true;
       try {
         const arrayBuffer = await file.arrayBuffer();
-        const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
+        const loadingTask = window.pdfjsLib.getDocument({ data: arrayBuffer });
         const pdf = await loadingTask.promise;
         const pages = [];
         const summaries = [];
