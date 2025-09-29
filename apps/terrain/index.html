@@ -968,6 +968,7 @@
       <button type="button" class="render-mode-btn" data-render-mode="wire" aria-pressed="false">Wired Vectors</button>
       <button type="button" class="render-mode-btn" data-render-mode="zx" aria-pressed="false">ZX Spectrum</button>
       <button type="button" class="render-mode-btn" data-render-mode="petscii" aria-pressed="false">Commodore PETSCII</button>
+      <button type="button" class="render-mode-btn" data-render-mode="signature" aria-pressed="false">Signature 8</button>
     </div>
     <div class="hud-line"><span>Position</span><span class="hud-value" data-hud="position">0, 0, 0</span></div>
     <div class="hud-line"><span>Heading</span><span class="hud-value" data-hud="heading">0° / 0°</span></div>
@@ -1096,6 +1097,10 @@
       0x6f3d86, 0x588d43, 0x352879, 0xb8c76f,
       0x6f4f25, 0x433900, 0x9a6759, 0x444444,
       0x6c6c6c, 0x9ad284, 0x6c5eb5, 0x959595
+    ],
+    signature: [
+      0xda291c, 0xf6eb61, 0x00b140, 0x00a9e0,
+      0x005eb8, 0xff6a13, 0xffffff, 0x000000
     ]
   };
 
@@ -1103,14 +1108,16 @@
     default: [0.02, 0.08, 0.15],
     wire: [0.02, 0.08, 0.15],
     zx: [0.0, 0.0, 0.52],
-    petscii: [0.0, 0.08, 0.05]
+    petscii: [0.0, 0.08, 0.05],
+    signature: [0.0, 0.102, 0.2]
   };
 
   const renderModeCanvasBackgrounds = {
     default: '#020817',
     wire: '#020817',
     zx: '#0000d7',
-    petscii: '#00140a'
+    petscii: '#00140a',
+    signature: '#001933'
   };
 
   let stopLoaderAnimation = () => {};
@@ -1332,9 +1339,15 @@
     ((hex >> 8) & 255) / 255,
     (hex & 255) / 255
   ]);
+  const SIGNATURE_PALETTE = retroPalettes.signature.map(hex => [
+    ((hex >> 16) & 255) / 255,
+    ((hex >> 8) & 255) / 255,
+    (hex & 255) / 255
+  ]);
 
   const flattenedZX = new Float32Array(ZX_PALETTE.flat());
   const flattenedPET = new Float32Array(PET_PALETTE.flat());
+  const flattenedSignature = new Float32Array(SIGNATURE_PALETTE.flat());
 
   function createShader(type, source) {
     const shader = gl.createShader(type);
@@ -1541,6 +1554,8 @@
 `
     + `uniform vec3 uPetsciiPalette[16];
 `
+    + `uniform vec3 uSignaturePalette[8];
+`
     + `out vec4 outColor;
 `
     + `float gridFactor(vec2 uv, float gridSize) {
@@ -1562,6 +1577,32 @@
     + `  vec3 chosen = color;
 `
     + `  for (int i = 0; i < 16; i++) {
+`
+    + `    vec3 p = palette[i];
+`
+    + `    float d = distance(color, p);
+`
+    + `    if (d < best) {
+`
+    + `      best = d;
+`
+    + `      chosen = p;
+`
+    + `    }
+`
+    + `  }
+`
+    + `  return chosen;
+`
+    + `}
+`
+    + `vec3 quantize8(vec3 color, vec3 palette[8]) {
+`
+    + `  float best = 1e9;
+`
+    + `  vec3 chosen = color;
+`
+    + `  for (int i = 0; i < 8; i++) {
 `
     + `    vec3 p = palette[i];
 `
@@ -1620,6 +1661,10 @@
     + `  } else if (uRenderMode == 3) {
 `
     + `    color = quantize(color, uPetsciiPalette);
+`
+    + `  } else if (uRenderMode == 4) {
+`
+    + `    color = quantize8(color, uSignaturePalette);
 `
     + `  }
 `
@@ -1681,7 +1726,8 @@
     renderMode: gl.getUniformLocation(program, 'uRenderMode'),
     gridSize: gl.getUniformLocation(program, 'uGridSize'),
     zxPalette: gl.getUniformLocation(program, 'uZXPalette'),
-    petsciiPalette: gl.getUniformLocation(program, 'uPetsciiPalette')
+    petsciiPalette: gl.getUniformLocation(program, 'uPetsciiPalette'),
+    signaturePalette: gl.getUniformLocation(program, 'uSignaturePalette')
   };
 
   const identityMatrix = new Float32Array([1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1]);
@@ -1691,6 +1737,7 @@
   gl.uniform1f(uniforms.gridSize, geometry.segments);
   gl.uniform3fv(uniforms.zxPalette, flattenedZX);
   gl.uniform3fv(uniforms.petsciiPalette, flattenedPET);
+  gl.uniform3fv(uniforms.signaturePalette, flattenedSignature);
 
   gl.enable(gl.DEPTH_TEST);
   gl.enable(gl.CULL_FACE);
@@ -1881,6 +1928,7 @@
   resizeViewport(defaultResolution.width, defaultResolution.height);
 
   const upVector = [0, 1, 0];
+  const renderModeKeys = ['default', 'wire', 'zx', 'petscii', 'signature'];
   let currentRenderMode = 0;
   let fogNear = 260;
   let fogFar = 980;
@@ -1888,13 +1936,14 @@
 
   function applyRenderMode(mode) {
     currentRenderMode = mode;
-    const key = mode === 0 ? 'default' : mode === 1 ? 'wire' : mode === 2 ? 'zx' : 'petscii';
+    const key = renderModeKeys[mode] ?? 'default';
     const color = renderModeFogColors[key];
     fogColor[0] = color[0];
     fogColor[1] = color[1];
     fogColor[2] = color[2];
-    fogNear = mode === 2 ? 180 : 260;
-    fogFar = mode === 2 ? 720 : 980;
+    const isZx = key === 'zx';
+    fogNear = isZx ? 180 : 260;
+    fogFar = isZx ? 720 : 980;
     canvas.style.backgroundColor = renderModeCanvasBackgrounds[key];
   }
 
@@ -2009,7 +2058,7 @@
   })();
 
   const renderModeButtons = document.querySelectorAll('[data-render-mode]');
-  const renderModeMap = { default: 0, wire: 1, zx: 2, petscii: 3 };
+  const renderModeMap = { default: 0, wire: 1, zx: 2, petscii: 3, signature: 4 };
 
   function setRenderModeByKey(key, announce = true) {
     const mode = renderModeMap[key] ?? 0;
