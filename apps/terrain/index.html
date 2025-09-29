@@ -1415,7 +1415,9 @@
     return sum / Math.max(1e-5, norm);
   }
 
-  function generateTerrainGeometry(size, segments, onProgress) {
+  const waitForNextFrame = () => new Promise(resolve => requestAnimationFrame(resolve));
+
+  async function generateTerrainGeometry(size, segments, onProgress) {
     const vertexCount = (segments + 1) * (segments + 1);
     const positions = new Float32Array(vertexCount * 3);
     const normals = new Float32Array(vertexCount * 3);
@@ -1424,10 +1426,21 @@
     const indices = new Uint32Array(segments * segments * 6);
     const halfSize = size / 2;
     const step = size / segments;
+    const segmentsPlusOne = segments + 1;
+
+    const notifyProgress = (value) => {
+      if (typeof onProgress === 'function') {
+        onProgress(Math.max(0, Math.min(1, value)));
+      }
+    };
+
+    const yieldInterval = Math.max(1, Math.floor(segments / 12));
 
     let vertexIndex = 0;
+    notifyProgress(0);
     for (let z = 0; z <= segments; z++) {
-      if (onProgress) onProgress(z / (segments + 1));
+      const rowFraction = z / segmentsPlusOne;
+      notifyProgress(rowFraction * 0.6);
       for (let x = 0; x <= segments; x++) {
         const worldX = -halfSize + x * step;
         const worldZ = -halfSize + z * step;
@@ -1442,6 +1455,9 @@
         uvs[uvIdx + 1] = z / segments;
         vertexIndex += 1;
       }
+      if (z % yieldInterval === 0) {
+        await waitForNextFrame();
+      }
     }
 
     const sample = (ix, iz) => {
@@ -1452,6 +1468,8 @@
 
     vertexIndex = 0;
     for (let z = 0; z <= segments; z++) {
+      const normalRowFraction = z / segmentsPlusOne;
+      notifyProgress(0.6 + 0.3 * normalRowFraction);
       for (let x = 0; x <= segments; x++) {
         const left = sample(x - 1, z);
         const right = sample(x + 1, z);
@@ -1469,10 +1487,15 @@
         normals[idx + 2] = nz / length;
         vertexIndex += 1;
       }
+      if (z % yieldInterval === 0) {
+        await waitForNextFrame();
+      }
     }
 
     let writeIndex = 0;
     for (let z = 0; z < segments; z++) {
+      const indexRowFraction = segments > 0 ? z / segments : 1;
+      notifyProgress(0.9 + 0.1 * indexRowFraction);
       for (let x = 0; x < segments; x++) {
         const a = z * (segments + 1) + x;
         const b = a + 1;
@@ -1485,7 +1508,12 @@
         indices[writeIndex++] = c;
         indices[writeIndex++] = d;
       }
+      if (z % yieldInterval === 0) {
+        await waitForNextFrame();
+      }
     }
+
+    notifyProgress(1);
 
     return { positions, normals, uvs, indices, heights, segments, size, step };
   }
@@ -1682,8 +1710,8 @@
   gl.useProgram(program);
 
   updateLoaderStatus('Generating terrain mesh…');
-  const geometry = generateTerrainGeometry(600, 160, fraction => {
-    setLoaderPhaseRange(10, 65);
+  setLoaderPhaseRange(10, 65);
+  const geometry = await generateTerrainGeometry(600, 160, fraction => {
     reportLoaderPhaseProgress(fraction);
   });
 
