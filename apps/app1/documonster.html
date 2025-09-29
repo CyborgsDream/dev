@@ -1936,6 +1936,7 @@
       mobileAutoZoomed = false;
     }
     syncMobileToggleState();
+    buildRulers();
   }
 
   if(zoomInBtn) zoomInBtn.addEventListener('click', zoomIn);
@@ -2313,6 +2314,11 @@
   selColorPreset.addEventListener('change', applyColorPreset);
 
   function buildRulers(){
+    if(document.body.classList.contains('mobile-layout')){
+      rulerTopEl.style.display = 'none';
+      rulerLeftEl.style.display = 'none';
+      return;
+    }
     if(!pages.length){
       rulerTopEl.style.display = 'none';
       rulerLeftEl.style.display = 'none';
