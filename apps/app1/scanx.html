@@ -550,9 +550,15 @@
       });
       if (current.length) paragraphs.push(current);
       const html = paragraphs.map(group => {
-        const original = group.map(item => item.text).join(' ');
-        const words = original.split(/\s+/).filter(Boolean).length;
-        return `<p>${escapeHtml(buildLoremParagraph(Math.max(words, 35)))}</p>`;
+        const original = group
+          .map(item => item.text)
+          .join(' ')
+          .replace(/\s+/g, ' ')
+          .trim();
+        if (!original) {
+          return `<p>${escapeHtml(buildLoremParagraph(35))}</p>`;
+        }
+        return `<p>${escapeHtml(original)}</p>`;
       }).join('') || `<p>${escapeHtml(buildLoremParagraph(40))}</p>`;
       return {
         html,
