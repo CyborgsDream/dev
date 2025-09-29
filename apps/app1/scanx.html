@@ -401,52 +401,95 @@
 
     function extractTextBoxes(textContent, viewport) {
       const boxes = [];
-      const items = Array.isArray(textContent && textContent.items) ? textContent.items : [];
-      const height = viewport && typeof viewport.height === 'number' ? viewport.height : 0;
+      const items = Array.isArray(textContent && textContent.items)
+        ? textContent.items
+        : (textContent && typeof textContent.items === 'object' && textContent.items !== null && typeof textContent.items.length === 'number')
+          ? Array.from(textContent.items)
+          : [];
+      const styles = textContent && textContent.styles ? textContent.styles : {};
+      const pageHeight = viewport && typeof viewport.height === 'number' ? viewport.height : 0;
+      const pageScale = viewport && typeof viewport.scale === 'number' ? viewport.scale : 1;
+
+      const toMatrix = value => {
+        if (!value) return [1, 0, 0, 1, 0, 0];
+        if (Array.isArray(value)) return value.slice(0, 6);
+        if (typeof value.length === 'number') return Array.from(value).slice(0, 6);
+        return [1, 0, 0, 1, 0, 0];
+      };
+
+      const viewportTransform = viewport && viewport.transform ? toMatrix(viewport.transform) : null;
+
       items.forEach(item => {
         const rawSource =
           (typeof item.str === 'string' && item.str) ? item.str :
           (typeof item.text === 'string' && item.text) ? item.text :
           (typeof item.unicode === 'string' && item.unicode) ? item.unicode :
           '';
-        const raw = rawSource.replace(/\s+/g, ' ');
+        const raw = String(rawSource)
+          .replace(/[\u0000-\u001f]+/g, ' ')
+          .replace(/\s+/g, ' ');
         const text = raw.trim();
         if (!text) return;
-        const transform = Array.isArray(item.transform) && item.transform.length === 6
-          ? item.transform
-          : [1, 0, 0, 1, 0, 0];
+
+        const transform = toMatrix(item.transform);
         let glyphMatrix = transform;
-        try {
-          if (window.pdfjsLib && window.pdfjsLib.Util && viewport && viewport.transform) {
-            glyphMatrix = window.pdfjsLib.Util.transform(viewport.transform, transform);
+        if (window.pdfjsLib && window.pdfjsLib.Util && viewportTransform) {
+          try {
+            glyphMatrix = window.pdfjsLib.Util.transform(viewportTransform, transform);
+          } catch (err) {
+            glyphMatrix = transform;
           }
-        } catch (err) {
-          // fallback to item transform if Util.transform is unavailable
         }
-        const x = Number.isFinite(glyphMatrix[4]) ? glyphMatrix[4] : 0;
-        const y = Number.isFinite(glyphMatrix[5]) ? glyphMatrix[5] : 0;
+
+        const style = item.fontName && styles[item.fontName] ? styles[item.fontName] : null;
+        const fontSizePx = style && typeof style.fontSize === 'number'
+          ? Math.abs(style.fontSize) * pageScale
+          : null;
+        const orientationVertical = style && style.vertical === true
+          ? true
+          : Math.abs(glyphMatrix[1] || 0) > Math.abs(glyphMatrix[0] || 0);
+
         let width = 0;
-        if (typeof item.width === 'number' && Number.isFinite(item.width) && viewport && typeof viewport.scale === 'number') {
-          width = item.width * viewport.scale;
-        } else if (typeof transform[0] === 'number' && viewport && typeof viewport.scale === 'number') {
-          width = Math.abs(transform[0]) * (text.length || 1) * viewport.scale;
+        if (typeof item.width === 'number' && Number.isFinite(item.width)) {
+          width = Math.abs(item.width) * pageScale;
+        }
+        if ((!Number.isFinite(width) || width <= 0) && !orientationVertical) {
+          width = Math.hypot(glyphMatrix[0] || 0, glyphMatrix[1] || 0);
+        }
+        if ((!Number.isFinite(width) || width <= 0) && orientationVertical) {
+          width = Math.hypot(glyphMatrix[2] || 0, glyphMatrix[3] || 0);
         }
         if (!Number.isFinite(width) || width <= 0) {
-          const span = Math.abs(glyphMatrix[0] || 0) + Math.abs(glyphMatrix[2] || 0);
-          width = span > 0 ? span : Math.max(text.length * 2, 4);
+          width = Math.max(text.length * (fontSizePx ? fontSizePx * 0.4 : 2), 4);
         }
-        const heightVector = Math.hypot(glyphMatrix[1] || 0, glyphMatrix[3] || 0);
-        const heightPx = Math.max(heightVector || Math.abs(glyphMatrix[3] || 0) || 0, 0.1);
-        const top = height ? Math.max(height - y - heightPx, 0) : 0;
+
+        let heightPx = fontSizePx;
+        if (!Number.isFinite(heightPx) || heightPx <= 0) {
+          if (orientationVertical) {
+            heightPx = Math.hypot(glyphMatrix[2] || 0, glyphMatrix[3] || 0);
+          } else {
+            heightPx = Math.hypot(glyphMatrix[1] || 0, glyphMatrix[3] || 0);
+          }
+        }
+        if (!Number.isFinite(heightPx) || heightPx <= 0) {
+          heightPx = Math.max(width * 0.35, 2);
+        }
+
+        const rawX = Number.isFinite(glyphMatrix[4]) ? glyphMatrix[4] : 0;
+        const rawY = Number.isFinite(glyphMatrix[5]) ? glyphMatrix[5] : 0;
+        const top = pageHeight ? Math.max(pageHeight - rawY - heightPx, 0) : 0;
+        const left = Math.min(rawX, rawX + width);
+        const right = Math.max(rawX, rawX + width);
+
         boxes.push({
           text,
-          left: x,
-          right: x + width,
+          left,
+          right,
           top,
           bottom: top + heightPx,
-          width,
+          width: right - left,
           height: heightPx,
-          center: x + width / 2
+          center: (left + right) / 2
         });
       });
       return boxes;
@@ -761,7 +804,10 @@
         const summaries = [];
         for (let pageIndex = 1; pageIndex <= pdf.numPages; pageIndex++) {
           const page = await pdf.getPage(pageIndex);
-          const textContent = await page.getTextContent();
+          const textContent = await page.getTextContent({
+            includeMarkedContent: true,
+            disableCombineTextItems: false
+          });
           const layout = analyzePageLayout(page, textContent);
           pages.push({
             title: `ScanX Page ${pageIndex}`,
