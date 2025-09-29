@@ -910,7 +910,7 @@
             <path d="M9 10h2v2H9zm4 0h2v2h-2zm-2 3h2v2h-2z" fill="var(--accent-orange)"></path>
           </svg>
         </span>
-        <span>Games Mode</span>
+        <span>RESOLUTION</span>
       </h2>
         <button id="ui-fold-btn" type="button" aria-label="Collapse control panel" aria-expanded="true" aria-controls="ui-foldable">
           <span class="fold-icon" aria-hidden="true">
@@ -1000,425 +1000,67 @@
       <div class="loader-meta">© 2025 Cyborgs Dream</div>
     </div>
   </div>
+  
   <script type="module">
   import { initConsoleLogs } from '../../shared/consolelogs.js';
 
-  const REMOTE_MODULE_TIMEOUT_MS = 8000;
+  const loaderEl = document.getElementById('loader');
+  const loaderProgressEl = document.getElementById('progress');
+  const loaderTextEl = loaderEl?.querySelector('.loader-text');
+  const loaderMetaEl = loaderEl?.querySelector('.loader-meta');
 
   let loaderProgressValue = 0;
+  let loaderPhaseStart = 0;
+  let loaderPhaseEnd = 100;
   let loaderStatusMessage = '';
-  let loaderProgressEl = null;
+
   function refreshLoaderProgressText() {
-    const progress = loaderProgressEl || document.getElementById('progress');
-    if (!progress) {
-      return;
-    }
-    loaderProgressEl = progress;
+    if (!loaderProgressEl) return;
     const percentText = `${Math.round(loaderProgressValue)}%`;
-    progress.textContent = loaderStatusMessage
+    loaderProgressEl.textContent = loaderStatusMessage
       ? `${percentText} (${loaderStatusMessage})`
       : percentText;
   }
 
-  function updateLoaderStatus(message) {
-    if (typeof message === 'string' && message.trim()) {
-      loaderStatusMessage = message.trim();
-    } else {
-      loaderStatusMessage = '';
-    }
+  function setProgress(percent) {
+    loaderProgressValue = Number.isFinite(percent)
+      ? Math.max(0, Math.min(100, percent))
+      : 0;
     refreshLoaderProgressText();
   }
 
-  async function fetchModuleText(url, timeout = REMOTE_MODULE_TIMEOUT_MS) {
-    const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
-    let timedOut = false;
-    let timerId = null;
-
-    if (controller && Number.isFinite(timeout) && timeout > 0) {
-      timerId = setTimeout(() => {
-        timedOut = true;
-        try {
-          controller.abort();
-        } catch (abortError) {
-          console.warn('Failed to abort module fetch controller', abortError);
-        }
-      }, timeout);
-    }
-
-    try {
-      const response = await fetch(url, {
-        method: 'GET',
-        mode: 'cors',
-        credentials: 'omit',
-        cache: 'no-store',
-        signal: controller ? controller.signal : undefined
-      });
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status} ${response.statusText}`);
-      }
-      return await response.text();
-    } catch (error) {
-      if (timedOut && error && error.name === 'AbortError') {
-        const timeoutError = new Error(`Timed out fetching ${url} after ${timeout}ms.`);
-        timeoutError.name = 'TimeoutError';
-        timeoutError.cause = error;
-        throw timeoutError;
-      }
-      throw error;
-    } finally {
-      if (timerId !== null) {
-        clearTimeout(timerId);
-      }
-    }
+  function setLoaderPhaseRange(start, end) {
+    loaderPhaseStart = Number.isFinite(start) ? Math.max(0, Math.min(100, start)) : 0;
+    loaderPhaseEnd = Number.isFinite(end)
+      ? Math.max(loaderPhaseStart, Math.min(100, end))
+      : loaderPhaseStart;
   }
 
-  async function importThreeFromSource(source, attemptIndex, totalAttempts) {
-    const isRemote = /^https?:\/\//i.test(source);
-    const resolved = isRemote ? source : new URL(source, document.baseURI).href;
-    updateLoaderStatus(`Attempt ${attemptIndex + 1} / ${totalAttempts}`);
-
-    if (!isRemote) {
-      return await import(/* webpackIgnore: true */ resolved);
-    }
-
-    const code = await fetchModuleText(resolved);
-    const blob = new Blob([code], { type: 'application/javascript' });
-    const blobUrl = URL.createObjectURL(blob);
-    try {
-      return await import(/* webpackIgnore: true */ blobUrl);
-    } finally {
-      URL.revokeObjectURL(blobUrl);
-    }
+  function reportLoaderPhaseProgress(fraction) {
+    const span = loaderPhaseEnd - loaderPhaseStart;
+    const clamped = Number.isFinite(fraction) ? Math.max(0, Math.min(1, fraction)) : 0;
+    const percent = loaderPhaseStart + span * clamped;
+    setProgress(percent);
   }
 
-  async function loadThreeModule() {
-    const sources = [
-      '../../shared/vendor/three/three.module.js',
-      'https://unpkg.com/three@0.160.0/build/three.module.js',
-      'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js',
-      'https://cdnjs.cloudflare.com/ajax/libs/three.js/r160/three.module.js'
-    ];
-
-    const errors = [];
-    setLoaderPhaseRange(0, 35);
-    reportLoaderPhaseProgress(0);
-    for (let i = 0; i < sources.length; i++) {
-      const source = sources[i];
-      try {
-        reportLoaderPhaseProgress(Math.min(1, (i + 0.2) / sources.length));
-        const mod = await importThreeFromSource(source, i, sources.length);
-        const namespace = mod && mod.default ? mod.default : mod;
-        if (namespace && typeof namespace.Scene === 'function' && typeof namespace.WebGLRenderer === 'function') {
-          reportLoaderPhaseProgress(1);
-          updateLoaderStatus('Preparing scene…');
-          return { module: namespace, source };
-        }
-        errors.push({ source, error: new Error('Loaded module missing THREE exports.') });
-        console.warn(`Loaded module from ${source} but it is missing expected THREE.js exports.`);
-      } catch (err) {
-        errors.push({ source, error: err });
-        console.warn(`Failed to load THREE.js from ${source}`, err);
-      }
-    }
-
-    const aggregate = new Error('Unable to load THREE.js module from any configured source.');
-    aggregate.details = errors;
-    reportLoaderPhaseProgress(1);
-    throw aggregate;
+  function updateLoaderStatus(message) {
+    loaderStatusMessage = typeof message === 'string' ? message.trim() : '';
+    refreshLoaderProgressText();
   }
 
-  function activateTerrainFallback(error, { setConsoleFolded } = {}) {
-    console.warn('Switching to 2D fallback terrain visualiser.', error);
-
-    if (typeof setConsoleFolded === 'function') {
-      setConsoleFolded(false);
-    }
-
-    const loader = document.getElementById('loader');
-    const progress = document.getElementById('progress');
-    if (loader) {
-      loader.classList.add('is-error');
-      const loaderText = loader.querySelector('.loader-text');
-      if (loaderText) {
-        loaderText.textContent = 'Terrain offline mode';
-      }
-      if (progress) {
-        progress.textContent = 'Offline';
-      }
-      const meta = loader.querySelector('.loader-meta');
-      if (meta) {
-        meta.textContent = 'Fallback renderer active';
-      }
-      loader.style.transition = 'opacity 0.8s ease';
-      loader.style.pointerEvents = 'none';
-      setTimeout(() => {
-        loader.style.opacity = '0';
-      }, 600);
-      setTimeout(() => {
-        loader.remove();
-      }, 1600);
-    }
-
-    const canvasWrap = document.getElementById('canvas-wrap');
-    if (!canvasWrap) {
+  function hideLoader(success = true) {
+    if (!loaderEl) return;
+    if (!success) {
+      loaderEl.classList.add('is-error');
+      if (loaderTextEl) loaderTextEl.textContent = 'Terrain offline mode';
+      if (loaderMetaEl) loaderMetaEl.textContent = 'Fallback renderer active';
       return;
     }
-
-    canvasWrap.innerHTML = '';
-    const canvas = document.createElement('canvas');
-    const aspectRatio = 16 / 9;
-    let logicalWidth = 960;
-    let logicalHeight = 540;
-    canvas.width = logicalWidth;
-    canvas.height = logicalHeight;
-    canvas.setAttribute('role', 'img');
-    canvas.setAttribute('aria-label', 'Fallback terrain visualisation');
-    canvas.classList.add('terrain-fallback-canvas');
-    canvasWrap.appendChild(canvas);
-
-    const ctx = canvas.getContext('2d');
-    if (!ctx) {
-      return;
-    }
-
-    document.body.classList.add('terrain-fallback-mode');
-
-    document.querySelectorAll('[data-render-mode]').forEach(btn => {
-      btn.setAttribute('disabled', 'true');
-      btn.classList.add('is-disabled');
-      btn.setAttribute('aria-pressed', 'false');
-    });
-
-    const hudPosition = document.querySelector('[data-hud="position"]');
-    const hudHeading = document.querySelector('[data-hud="heading"]');
-    const hudChunk = document.querySelector('[data-hud="chunk"]');
-    const hudSpeed = document.querySelector('[data-hud="speed"]');
-    if (hudPosition) hudPosition.textContent = 'Offline';
-    if (hudHeading) hudHeading.textContent = '—';
-    if (hudChunk) hudChunk.textContent = '—';
-    if (hudSpeed) hudSpeed.textContent = '0 m/s';
-
-    const ridges = new Array(6).fill(null).map((_, idx) => ({
-      offset: idx * 60,
-      amplitude: 26 + idx * 9,
-      wavelength: 120 - idx * 6,
-      speed: 0.0009 + idx * 0.00035,
-      hue: 200 + idx * 12
-    }));
-
-    const canvasCtx = ctx;
-
-    function resizeCanvas() {
-      const wrapRect = canvasWrap.getBoundingClientRect();
-      const availableWidth = Math.max(320, Math.floor(wrapRect.width || window.innerWidth));
-      const availableHeight = Math.max(240, Math.floor(wrapRect.height || window.innerHeight));
-      let width = availableWidth;
-      let height = Math.floor(width / aspectRatio);
-      if (height > availableHeight) {
-        height = availableHeight;
-        width = Math.floor(height * aspectRatio);
-      }
-      logicalWidth = Math.max(320, width);
-      logicalHeight = Math.max(200, height);
-      const dpr = Math.min(2, window.devicePixelRatio || 1);
-      canvas.width = Math.floor(logicalWidth * dpr);
-      canvas.height = Math.floor(logicalHeight * dpr);
-      canvas.style.width = `${logicalWidth}px`;
-      canvas.style.height = `${logicalHeight}px`;
-      canvasCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    }
-
-    function draw(time = 0) {
-      const t = time;
-      canvasCtx.clearRect(0, 0, logicalWidth, logicalHeight);
-
-      const gradient = canvasCtx.createLinearGradient(0, 0, 0, logicalHeight);
-      gradient.addColorStop(0, '#040b1a');
-      gradient.addColorStop(0.45, '#071a2f');
-      gradient.addColorStop(1, '#0b1124');
-      canvasCtx.fillStyle = gradient;
-      canvasCtx.fillRect(0, 0, logicalWidth, logicalHeight);
-
-      canvasCtx.save();
-      canvasCtx.translate(0, logicalHeight * 0.55);
-      canvasCtx.globalCompositeOperation = 'lighter';
-
-      for (const ridge of ridges) {
-        canvasCtx.beginPath();
-        const amplitude = ridge.amplitude;
-        const wavelength = ridge.wavelength;
-        for (let x = 0; x <= logicalWidth; x += 6) {
-          const y = Math.sin((x + ridge.offset) / wavelength + t * ridge.speed) * amplitude;
-          const perspective = 1 + x / 900;
-          const px = x;
-          const py = y / perspective - ridge.offset * 0.12;
-          if (x === 0) {
-            canvasCtx.moveTo(px, py);
-          } else {
-            canvasCtx.lineTo(px, py);
-          }
-        }
-        canvasCtx.lineTo(logicalWidth, logicalHeight);
-        canvasCtx.lineTo(0, logicalHeight);
-        canvasCtx.closePath();
-        canvasCtx.fillStyle = `hsla(${ridge.hue}, 75%, 55%, 0.08)`;
-        canvasCtx.fill();
-        canvasCtx.lineWidth = 1.2;
-        canvasCtx.strokeStyle = `hsla(${ridge.hue}, 90%, 62%, 0.22)`;
-        canvasCtx.stroke();
-        ridge.offset += 0.12;
-      }
-
-      canvasCtx.restore();
-
-      canvasCtx.fillStyle = 'rgba(255, 255, 255, 0.04)';
-      for (let y = 0; y < logicalHeight; y += 4) {
-        canvasCtx.fillRect(0, y, logicalWidth, 1);
-      }
-
-      canvasCtx.fillStyle = 'rgba(255, 139, 47, 0.4)';
-      const markerY = (Math.sin(t * 0.0018) * 0.5 + 0.5) * logicalHeight * 0.9 + logicalHeight * 0.05;
-      canvasCtx.fillRect(0, markerY, logicalWidth, 2);
-
-      requestAnimationFrame(draw);
-    }
-
-    resizeCanvas();
-    window.addEventListener('resize', resizeCanvas);
-    requestAnimationFrame(draw);
+    loaderEl.style.pointerEvents = 'none';
+    loaderEl.style.transition = 'opacity 0.8s ease';
+    loaderEl.style.opacity = '0';
+    setTimeout(() => loaderEl.remove(), 900);
   }
-
-  (async () => {
-
-  const consoleLogEl = document.getElementById('console-log');
-  const consoleDock = document.getElementById('console-dock');
-  const consoleFoldBtn = document.getElementById('console-fold-btn');
-  const consoleStatus = document.getElementById('console-status');
-  let setConsoleFolded = null;
-
-  initConsoleLogs({ container: consoleLogEl, removeAfter: null });
-  console.log('Console dock folded for minimal footprint.');
-
-  if (consoleFoldBtn && consoleDock) {
-    const syncConsoleFold = (folded) => {
-      consoleDock.classList.toggle('folded', folded);
-      consoleFoldBtn.setAttribute('aria-expanded', String(!folded));
-      if (consoleStatus) {
-        consoleStatus.textContent = folded ? 'Folded' : 'Expanded';
-      }
-      const label = folded ? 'Expand console log' : 'Collapse console log';
-      consoleFoldBtn.setAttribute('aria-label', label);
-    };
-    setConsoleFolded = syncConsoleFold;
-    consoleFoldBtn.addEventListener('click', () => {
-      const next = !consoleDock.classList.contains('folded');
-      syncConsoleFold(next);
-      console.log(`Console log ${next ? 'folded' : 'expanded'}.`);
-    });
-    syncConsoleFold(consoleDock.classList.contains('folded'));
-  }
-
-  const hudElements = {
-    position: document.querySelector('[data-hud="position"]'),
-    heading: document.querySelector('[data-hud="heading"]'),
-    chunk: document.querySelector('[data-hud="chunk"]'),
-    speed: document.querySelector('[data-hud="speed"]')
-  };
-  console.log('HUD telemetry overlay online.');
-  console.log('Compact terrain interface scaling engaged.');
-
-  let THREE_NS = null;
-  let threeSource = null;
-  try {
-    const { module, source } = await loadThreeModule();
-    THREE_NS = module;
-    threeSource = source;
-  } catch (error) {
-    console.error('Unable to initialise THREE.js for the terrain demo.', error);
-    activateTerrainFallback(error, { setConsoleFolded });
-    return;
-  }
-
-  if (threeSource) {
-    console.log(`THREE.js loaded from ${threeSource}.`);
-  }
-
-  const THREE = THREE_NS;
-
-  setLoaderPhaseRange(35, 60);
-  reportLoaderPhaseProgress(0.1);
-
-  const renderModeButtons = document.querySelectorAll('[data-render-mode]');
-  const renderModeDescriptions = {
-    default: 'default shading',
-    wire: 'wired vectors',
-    zx: 'ZX Spectrum wireframe',
-    petscii: 'Commodore PETSCII mosaic'
-  };
-  const retroPalettes = {
-    zx: [
-      0x000000, 0x0000d7, 0xd70000, 0xd700d7,
-      0x00d700, 0x00d7d7, 0xd7d700, 0xd7d7d7,
-      0x000000, 0x0000ff, 0xff0000, 0xff00ff,
-      0x00ff00, 0x00ffff, 0xffff00, 0xffffff
-    ],
-    petscii: [
-      0x000000, 0xffffff, 0x68372b, 0x70a4b2,
-      0x6f3d86, 0x588d43, 0x352879, 0xb8c76f,
-      0x6f4f25, 0x433900, 0x9a6759, 0x444444,
-      0x6c6c6c, 0x9ad284, 0x6c5eb5, 0x959595
-    ]
-  };
-  const retroModeConfigs = {
-    default: { blockSize: 1, attributeMode: 'quantize' },
-    zx: { blockSize: 8, attributeMode: 'attribute' },
-    petscii: { blockSize: 8, attributeMode: 'petscii' }
-  };
-  const zxGroundPalette = retroPalettes.zx.map(hex => new THREE.Color(hex));
-  let currentRenderMode = 'default';
-  const wireModePalette = {
-    wire: {
-      terrain: new THREE.Color(0x8fd6ff),
-      block: new THREE.Color(0xffb86b)
-    },
-    zx: {
-      terrain: new THREE.Color(0x00ffff),
-      block: new THREE.Color(0xff2aff)
-    }
-  };
-  const getWireColorsForMode = (mode) => wireModePalette[mode] || wireModePalette.wire;
-  let defaultTerrainColor = null;
-
-  const paletteScratchColor = new THREE.Color();
-  function findNearestPaletteColor(color, palette) {
-    let closest = palette[0];
-    let smallestDistance = Infinity;
-    for (const swatch of palette) {
-      const dr = color.r - swatch.r;
-      const dg = color.g - swatch.g;
-      const db = color.b - swatch.b;
-      const distance = dr * dr + dg * dg + db * db;
-      if (distance < smallestDistance) {
-        smallestDistance = distance;
-        closest = swatch;
-      }
-    }
-    return closest;
-  }
-
-  const renderModeFogColors = {
-    default: 0x020817,
-    wire: 0x020817,
-    zx: 0x0000d7,
-    petscii: 0x00140a
-  };
-
-  const renderModeCanvasBackgrounds = {
-    default: '#020817',
-    wire: '#020817',
-    zx: '#0000d7',
-    petscii: '#00140a'
-  };
 
   const RESOLUTIONS = [
     { label: 'ZX Spectrum', width: 256, height: 192 },
@@ -1439,421 +1081,89 @@
     { label: 'QHD+', width: 3200, height: 1800 },
     { label: '4K Ultra HD', width: 3840, height: 2160 }
   ];
+
   const defaultResolution = RESOLUTIONS.find(r => r.width === 1280 && r.height === 720) || RESOLUTIONS[0];
 
-  const loaderEl = document.getElementById('loader');
-  const progressEl = document.getElementById('progress');
-  loaderProgressEl = progressEl || loaderProgressEl;
-  function setProgress(p){
-    loaderProgressValue = Number.isFinite(p) ? Math.max(0, Math.min(100, p)) : 0;
-    refreshLoaderProgressText();
-  }
+  const retroPalettes = {
+    zx: [
+      0x000000, 0x0000d7, 0xd70000, 0xd700d7,
+      0x00d700, 0x00d7d7, 0xd7d700, 0xd7d7d7,
+      0x000000, 0x0000ff, 0xff0000, 0xff00ff,
+      0x00ff00, 0x00ffff, 0xffff00, 0xffffff
+    ],
+    petscii: [
+      0x000000, 0xffffff, 0x68372b, 0x70a4b2,
+      0x6f3d86, 0x588d43, 0x352879, 0xb8c76f,
+      0x6f4f25, 0x433900, 0x9a6759, 0x444444,
+      0x6c6c6c, 0x9ad284, 0x6c5eb5, 0x959595
+    ]
+  };
 
-  let loaderPhaseStart = 0;
-  let loaderPhaseEnd = 100;
-  function setLoaderPhaseRange(start, end) {
-    const safeStart = Number.isFinite(start) ? Math.max(0, Math.min(100, start)) : 0;
-    const safeEnd = Number.isFinite(end) ? Math.max(safeStart, Math.min(100, end)) : safeStart;
-    loaderPhaseStart = safeStart;
-    loaderPhaseEnd = safeEnd;
-  }
-  function reportLoaderPhaseProgress(fraction) {
-    const span = loaderPhaseEnd - loaderPhaseStart;
-    const safeFraction = Number.isFinite(fraction) ? Math.min(Math.max(fraction, 0), 1) : 0;
-    const percent = loaderPhaseStart + span * safeFraction;
-    setProgress(percent);
-  }
+  const renderModeFogColors = {
+    default: [0.02, 0.08, 0.15],
+    wire: [0.02, 0.08, 0.15],
+    zx: [0.0, 0.0, 0.52],
+    petscii: [0.0, 0.08, 0.05]
+  };
 
-  const GOURAUD_LEVELS = 6;
-
-  function applyGouraudQuantization(material, levels = GOURAUD_LEVELS) {
-    const cacheKey = `gouraud_${levels}`;
-    material.onBeforeCompile = (shader) => {
-      shader.fragmentShader = shader.fragmentShader.replace(
-        'gl_FragColor = vec4( outgoingLight, diffuseColor.a );',
-        `
-        vec3 gouraudColor = floor(outgoingLight * ${levels}.0 + 0.5) / ${levels}.0;
-        gl_FragColor = vec4( gouraudColor, diffuseColor.a );
-      `
-      );
-    };
-    material.customProgramCacheKey = () => cacheKey;
-    material.needsUpdate = true;
-  }
-
-  function createGouraudMaterial({ color = new THREE.Color(0xffffff), emissive = new THREE.Color(0x000000), emissiveIntensity = 1, vertexColors = false } = {}) {
-    const material = new THREE.MeshLambertMaterial({
-      color,
-      emissive,
-      emissiveIntensity,
-      vertexColors,
-      fog: true
-    });
-    applyGouraudQuantization(material);
-    return material;
-  }
+  const renderModeCanvasBackgrounds = {
+    default: '#020817',
+    wire: '#020817',
+    zx: '#0000d7',
+    petscii: '#00140a'
+  };
 
   let stopLoaderAnimation = () => {};
   {
     const loaderCanvas = document.getElementById('loader-canvas');
     if (loaderCanvas) {
       const ctx = loaderCanvas.getContext('2d', { alpha: true });
-      const width = loaderCanvas.width;
-      const height = loaderCanvas.height;
-      ctx.imageSmoothingEnabled = false;
-      ctx.lineJoin = 'round';
-      ctx.lineCap = 'round';
-
-      const halfWidth = width * 0.5;
-      const halfHeight = height * 0.5;
-
-      const faceLabels = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'];
-
-      const tau = Math.PI * 2;
-      const radius = 1;
-      const midHeight = 0.5;
-      const sinHalfStep = Math.sin(Math.PI / 10);
-      const edgeSquared = 4 * radius * radius * sinHalfStep * sinHalfStep + 4 * midHeight * midHeight;
-      const apexOffset = Math.sqrt(Math.max(1e-6, edgeSquared - radius * radius));
-      const apexHeight = midHeight + apexOffset;
-
-      const vertexCount = 12;
-      const vertices = new Float32Array(vertexCount * 3);
-      vertices[0] = 0;
-      vertices[1] = apexHeight;
-      vertices[2] = 0;
-      for (let i = 0; i < 5; i++) {
-        const angle = (i * tau) / 5;
-        const offset = (1 + i) * 3;
-        vertices[offset] = radius * Math.cos(angle);
-        vertices[offset + 1] = midHeight;
-        vertices[offset + 2] = radius * Math.sin(angle);
-      }
-      for (let i = 0; i < 5; i++) {
-        const angle = (i * tau) / 5 + Math.PI / 5;
-        const offset = (6 + i) * 3;
-        vertices[offset] = radius * Math.cos(angle);
-        vertices[offset + 1] = -midHeight;
-        vertices[offset + 2] = radius * Math.sin(angle);
-      }
-      const bottomIndex = vertexCount - 1;
-      vertices[bottomIndex * 3] = 0;
-      vertices[bottomIndex * 3 + 1] = -apexHeight;
-      vertices[bottomIndex * 3 + 2] = 0;
-
-      const transformed = new Float32Array(vertices.length);
-      const projected = new Float32Array(vertexCount * 2);
-      const faceIndices = new Uint8Array([
-        0, 1, 6, 2,
-        0, 2, 7, 3,
-        0, 3, 8, 4,
-        0, 4, 9, 5,
-        0, 5, 10, 1,
-        11, 6, 2, 7,
-        11, 7, 3, 8,
-        11, 8, 4, 9,
-        11, 9, 5, 10,
-        11, 10, 1, 6
-      ]);
-      const faceCount = faceIndices.length / 4;
-
-      const depths = new Float32Array(faceCount);
-      const faceBrightness = new Float32Array(faceCount);
-      const faceSpecular = new Float32Array(faceCount);
-      const faceCenters = new Float32Array(faceCount * 3);
-      const faceOrder = new Uint8Array(faceCount);
-      for (let i = 0; i < faceCount; i++) {
-        faceOrder[i] = i;
-      }
-
-      const hexToRgb = (hex) => {
-        const value = parseInt(hex.replace('#', ''), 16);
-        return [
-          (value >> 16) & 0xff,
-          (value >> 8) & 0xff,
-          value & 0xff
-        ];
-      };
-
-      const rgbToHex = (r, g, b) => {
-        const toComponent = (c) => Math.max(0, Math.min(255, Math.round(c))).toString(16).padStart(2, '0');
-        return `#${toComponent(r)}${toComponent(g)}${toComponent(b)}`;
-      };
-
-      const clampChannel = (value) => Math.max(0, Math.min(255, value));
-
-      const scaleColor = (color, factor) => [
-        clampChannel(color[0] * factor),
-        clampChannel(color[1] * factor),
-        clampChannel(color[2] * factor)
-      ];
-
-      const mixColor = (colorA, colorB, t) => [
-        clampChannel(colorA[0] * (1 - t) + colorB[0] * t),
-        clampChannel(colorA[1] * (1 - t) + colorB[1] * t),
-        clampChannel(colorA[2] * (1 - t) + colorB[2] * t)
-      ];
-
-      const baseColor = hexToRgb('#ff8c2f');
-      const ambient = 0.25;
-      const diffuseStrength = 0.78;
-      const specularStrength = 0.85;
-      const shininess = 28;
-      const highlightOffset = 0.55;
-
-      const lightVector = (() => {
-        const x = 0.62;
-        const y = 0.9;
-        const z = 0.38;
-        const invLen = 1 / Math.sqrt(x * x + y * y + z * z);
-        return new Float32Array([x * invLen, y * invLen, z * invLen]);
-      })();
-
-      const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-      const spinSpeed = reduceMotion ? 0.38 : 0.85;
-      const tiltFrequency = reduceMotion ? 0.4 : 0.78;
-      const tiltAmplitude = reduceMotion ? 0.22 : 0.36;
-      const baseTilt = 0.55;
-      const cameraDistance = 7.2;
-      const scale = Math.min(width, height) * 0.354;
-      let rafId = null;
-
-      function sortFaces() {
-        for (let i = 1; i < faceCount; i++) {
-          const current = faceOrder[i];
-          const depth = depths[current];
-          let j = i - 1;
-          while (j >= 0 && depths[faceOrder[j]] < depth) {
-            faceOrder[j + 1] = faceOrder[j];
-            j--;
-          }
-          faceOrder[j + 1] = current;
-        }
-      }
-
-      const projectPoint = (x, y, z) => {
-        const depth = cameraDistance - z;
-        const perspective = cameraDistance / (depth > 1e-3 ? depth : 1e-3);
-        return [
-          halfWidth + x * perspective * scale,
-          halfHeight - y * perspective * scale
-        ];
-      };
-
-      function render(timeMs) {
-        rafId = requestAnimationFrame(render);
-        const t = timeMs * 0.001;
-        const rotY = t * spinSpeed;
-        const rotX = baseTilt + Math.sin(t * tiltFrequency) * tiltAmplitude;
-
-        const sinY = Math.sin(rotY);
-        const cosY = Math.cos(rotY);
-        const sinX = Math.sin(rotX);
-        const cosX = Math.cos(rotX);
-
-        for (let i = 0; i < vertexCount; i++) {
-          const vi = i * 3;
-          const x = vertices[vi];
-          const y = vertices[vi + 1];
-          const z = vertices[vi + 2];
-
-          const x1 = x * cosY - z * sinY;
-          const z1 = x * sinY + z * cosY;
-          const y1 = y * cosX - z1 * sinX;
-          const z2 = y * sinX + z1 * cosX;
-
-          transformed[vi] = x1;
-          transformed[vi + 1] = y1;
-          transformed[vi + 2] = z2;
-
-          const depth = cameraDistance - z2;
-          const perspective = cameraDistance / (depth > 1e-3 ? depth : 1e-3);
-          const pi = i * 2;
-          projected[pi] = halfWidth + x1 * perspective * scale;
-          projected[pi + 1] = halfHeight - y1 * perspective * scale;
-        }
-
-        for (let face = 0; face < faceCount; face++) {
-          const offset = face * 4;
-          const i0 = faceIndices[offset];
-          const i1 = faceIndices[offset + 1];
-          const i2 = faceIndices[offset + 2];
-          const i3 = faceIndices[offset + 3];
-
-          const ax = transformed[i0 * 3];
-          const ay = transformed[i0 * 3 + 1];
-          const az = transformed[i0 * 3 + 2];
-          const bx = transformed[i1 * 3];
-          const by = transformed[i1 * 3 + 1];
-          const bz = transformed[i1 * 3 + 2];
-          const cx = transformed[i2 * 3];
-          const cy = transformed[i2 * 3 + 1];
-          const cz = transformed[i2 * 3 + 2];
-          const dx = transformed[i3 * 3];
-          const dy = transformed[i3 * 3 + 1];
-          const dz = transformed[i3 * 3 + 2];
-
-          const ux = bx - ax;
-          const uy = by - ay;
-          const uz = bz - az;
-          const vx = cx - ax;
-          const vy = cy - ay;
-          const vz = cz - az;
-
-          let nx = uy * vz - uz * vy;
-          let ny = uz * vx - ux * vz;
-          let nz = ux * vy - uy * vx;
-          const normalLengthSq = nx * nx + ny * ny + nz * nz;
-          const invLen = normalLengthSq > 1e-12 ? 1 / Math.sqrt(normalLengthSq) : 1;
-          nx *= invLen;
-          ny *= invLen;
-          nz *= invLen;
-
-          const brightness = Math.max(0, nx * lightVector[0] + ny * lightVector[1] + nz * lightVector[2]);
-
-          const centerX3 = (ax + bx + cx + dx) * 0.25;
-          const centerY3 = (ay + by + cy + dy) * 0.25;
-          const centerZ3 = (az + bz + cz + dz) * 0.25;
-
-          const viewX = -centerX3;
-          const viewY = -centerY3;
-          const viewZ = cameraDistance - centerZ3;
-          const viewLenSq = viewX * viewX + viewY * viewY + viewZ * viewZ;
-          const invViewLen = viewLenSq > 1e-12 ? 1 / Math.sqrt(viewLenSq) : 1;
-          const viewNx = viewX * invViewLen;
-          const viewNy = viewY * invViewLen;
-          const viewNz = viewZ * invViewLen;
-
-          const halfX = lightVector[0] + viewNx;
-          const halfY = lightVector[1] + viewNy;
-          const halfZ = lightVector[2] + viewNz;
-          const halfLenSq = halfX * halfX + halfY * halfY + halfZ * halfZ;
-          const invHalfLen = halfLenSq > 1e-12 ? 1 / Math.sqrt(halfLenSq) : 1;
-          const specularDot = nx * (halfX * invHalfLen) + ny * (halfY * invHalfLen) + nz * (halfZ * invHalfLen);
-          const specular = Math.pow(Math.max(0, specularDot), shininess);
-
-          depths[face] = centerZ3;
-          faceBrightness[face] = brightness;
-          faceSpecular[face] = specular;
-          const centerIndex = face * 3;
-          faceCenters[centerIndex] = centerX3;
-          faceCenters[centerIndex + 1] = centerY3;
-          faceCenters[centerIndex + 2] = centerZ3;
-        }
-
-        sortFaces();
-
-        ctx.clearRect(0, 0, width, height);
-
-        for (let orderIndex = 0; orderIndex < faceCount; orderIndex++) {
-          const face = faceOrder[orderIndex];
-          const offset = face * 4;
-          const i0 = faceIndices[offset];
-          const i1 = faceIndices[offset + 1];
-          const i2 = faceIndices[offset + 2];
-          const i3 = faceIndices[offset + 3];
-
-          const p0x = projected[i0 * 2];
-          const p0y = projected[i0 * 2 + 1];
-          const p1x = projected[i1 * 2];
-          const p1y = projected[i1 * 2 + 1];
-          const p2x = projected[i2 * 2];
-          const p2y = projected[i2 * 2 + 1];
-          const p3x = projected[i3 * 2];
-          const p3y = projected[i3 * 2 + 1];
-
-          const centerX = (p0x + p1x + p2x + p3x) * 0.25;
-          const centerY = (p0y + p1y + p2y + p3y) * 0.25;
-          const radius = Math.max(
-            Math.hypot(p0x - centerX, p0y - centerY),
-            Math.hypot(p1x - centerX, p1y - centerY),
-            Math.hypot(p2x - centerX, p2y - centerY),
-            Math.hypot(p3x - centerX, p3y - centerY)
-          );
-
-          const brightness = faceBrightness[face];
-          const specular = faceSpecular[face];
-          const centerIndex = face * 3;
-          const center3x = faceCenters[centerIndex];
-          const center3y = faceCenters[centerIndex + 1];
-          const center3z = faceCenters[centerIndex + 2];
-
-          const diffuseFactor = Math.min(1, ambient + brightness * diffuseStrength);
-          const diffuseColor = scaleColor(baseColor, diffuseFactor);
-          const shadowFactor = Math.max(0.18, ambient * 0.45 + (1 - brightness) * 0.35);
-          const shadowColor = scaleColor(baseColor, shadowFactor);
-          const highlightMix = Math.min(1, 0.2 + specular * specularStrength);
-          const highlightColor = mixColor(diffuseColor, [255, 255, 255], highlightMix);
-
-          const highlightHex = rgbToHex(highlightColor[0], highlightColor[1], highlightColor[2]);
-          const diffuseHex = rgbToHex(diffuseColor[0], diffuseColor[1], diffuseColor[2]);
-          const shadowHex = rgbToHex(shadowColor[0], shadowColor[1], shadowColor[2]);
-
-          const highlightPoint = projectPoint(
-            center3x + lightVector[0] * highlightOffset,
-            center3y + lightVector[1] * highlightOffset,
-            center3z + lightVector[2] * highlightOffset
-          );
-          const highlightX = highlightPoint[0];
-          const highlightY = highlightPoint[1];
-
-          const innerRadius = Math.max(radius * 0.12, 4);
-          const outerRadius = Math.max(radius * 1.05, innerRadius + 1);
-          const gradient = ctx.createRadialGradient(highlightX, highlightY, innerRadius, centerX, centerY, outerRadius);
-          gradient.addColorStop(0, highlightHex);
-          gradient.addColorStop(0.4, diffuseHex);
-          gradient.addColorStop(1, shadowHex);
-
-          ctx.beginPath();
-          ctx.moveTo(p0x, p0y);
-          ctx.lineTo(p1x, p1y);
-          ctx.lineTo(p2x, p2y);
-          ctx.lineTo(p3x, p3y);
-          ctx.closePath();
-          ctx.fillStyle = gradient;
-          ctx.fill();
-
-          const edgeColorArr = scaleColor(baseColor, Math.max(0.28, diffuseFactor * 0.65));
-          ctx.lineWidth = Math.max(2, radius * 0.08);
-          ctx.strokeStyle = rgbToHex(edgeColorArr[0], edgeColorArr[1], edgeColorArr[2]);
-          ctx.stroke();
-
-          if (specular > 0.04) {
-            const glintRadius = Math.max(radius * (0.18 + specular * 0.12), 3);
-            const glintGradient = ctx.createRadialGradient(highlightX, highlightY, 0, highlightX, highlightY, glintRadius);
-            glintGradient.addColorStop(0, `rgba(255, 255, 255, ${Math.min(0.9, 0.35 + specular * 0.9)})`);
-            glintGradient.addColorStop(1, 'rgba(255, 255, 255, 0)');
-            ctx.fillStyle = glintGradient;
-            ctx.beginPath();
-            ctx.ellipse(highlightX, highlightY, glintRadius, glintRadius * 0.72, 0, 0, tau);
-            ctx.fill();
-          }
-
-          const label = faceLabels[face];
-          if (label) {
-            const textSize = Math.max(14, radius * 0.6);
+      if (ctx) {
+        ctx.imageSmoothingEnabled = false;
+        const width = loaderCanvas.width;
+        const height = loaderCanvas.height;
+        const centerX = width / 2;
+        const centerY = height / 2;
+        const tau = Math.PI * 2;
+        let rafId = null;
+        const faces = 20;
+        const radius = Math.min(width, height) * 0.22;
+        const baseHue = 208;
+        const draw = (time) => {
+          ctx.clearRect(0, 0, width, height);
+          ctx.save();
+          ctx.translate(centerX, centerY);
+          ctx.rotate(time * 0.00035);
+          for (let i = 0; i < faces; i++) {
+            const angle = (i / faces) * tau;
+            const x = Math.cos(angle) * radius;
+            const y = Math.sin(angle) * radius;
+            const hue = (baseHue + i * 9) % 360;
+            const scale = 0.4 + (Math.sin(time * 0.001 + i * 1.3) + 1) * 0.3;
             ctx.save();
-            ctx.font = `700 ${textSize}px 'Space Grotesk', 'Fira Sans', sans-serif`;
-            ctx.textAlign = 'center';
-            ctx.textBaseline = 'middle';
-            ctx.lineJoin = 'round';
-            ctx.lineWidth = Math.max(1.5, textSize * 0.09);
-            ctx.strokeStyle = 'rgba(40, 18, 6, 0.85)';
-            ctx.fillStyle = 'rgba(255, 249, 236, 0.95)';
-            ctx.strokeText(label, centerX, centerY);
-            ctx.fillText(label, centerX, centerY);
+            ctx.translate(x, y);
+            ctx.rotate(angle + time * 0.0005);
+            ctx.scale(scale, scale);
+            ctx.fillStyle = `hsla(${hue}, 72%, 62%, 0.85)`;
+            ctx.beginPath();
+            ctx.moveTo(0, -22);
+            ctx.lineTo(18, 12);
+            ctx.lineTo(-18, 12);
+            ctx.closePath();
+            ctx.fill();
             ctx.restore();
           }
-        }
+          ctx.restore();
+          rafId = requestAnimationFrame(draw);
+        };
+        rafId = requestAnimationFrame(draw);
+        stopLoaderAnimation = () => {
+          if (rafId !== null) {
+            cancelAnimationFrame(rafId);
+            rafId = null;
+          }
+        };
       }
-
-      rafId = requestAnimationFrame(render);
-      stopLoaderAnimation = () => {
-        if (rafId !== null) {
-          cancelAnimationFrame(rafId);
-          rafId = null;
-        }
-      };
     }
   }
 
@@ -1878,8 +1188,6 @@
       this.titleEl.innerHTML = `${iconMarkup}<span class="label">Performance</span>`;
       this.dom.appendChild(this.titleEl);
 
-      this.styles = getComputedStyle(document.documentElement);
-
       this.readoutEl = document.createElement('div');
       this.readoutEl.className = 'fps-readout';
 
@@ -1898,13 +1206,11 @@
       this.graphCanvas.width = 160;
       this.graphCanvas.height = 60;
       this.graphCanvas.className = 'fps-graph';
-      this.graphCanvas.setAttribute('aria-hidden', 'true');
       this.graphCtx = this.graphCanvas.getContext('2d');
 
       this.maxSamples = this.graphCanvas.width;
       this.samples = new Array(this.maxSamples).fill(0);
       this.referenceFps = 120;
-
       this.sampleWindow = 250;
       this.frameCount = 0;
       this.lastSample = performance.now();
@@ -1912,8 +1218,9 @@
 
       this.dom.appendChild(this.readoutEl);
       this.dom.appendChild(this.graphCanvas);
-      this.drawGraph();
       container.appendChild(this.dom);
+
+      this.drawGraph();
     }
 
     begin() {}
@@ -1948,10 +1255,11 @@
       const height = this.graphCanvas.height;
       ctx.clearRect(0, 0, width, height);
 
-      const background = this.styles.getPropertyValue('--navy-900').trim() || '#020817';
-      const gridColor = this.styles.getPropertyValue('--graph-grid').trim() || 'rgba(255, 255, 255, 0.18)';
-      const fillColor = this.styles.getPropertyValue('--graph-fill').trim() || 'rgba(255, 139, 47, 0.18)';
-      const lineColor = this.styles.getPropertyValue('--graph-line').trim() || '#ff8b2f';
+      const style = getComputedStyle(document.documentElement);
+      const background = style.getPropertyValue('--navy-900').trim() || '#020817';
+      const gridColor = style.getPropertyValue('--graph-grid').trim() || 'rgba(255, 255, 255, 0.18)';
+      const fillColor = style.getPropertyValue('--graph-fill').trim() || 'rgba(255, 139, 47, 0.18)';
+      const lineColor = style.getPropertyValue('--graph-line').trim() || '#ff8b2f';
 
       ctx.fillStyle = background;
       ctx.fillRect(0, 0, width, height);
@@ -1992,11 +1300,7 @@
         const x = (i / (this.samples.length - 1 || 1)) * width;
         const normalized = Math.min(1, value / scaleMax);
         const y = height - verticalPadding - normalized * usableHeight;
-        if (i === 0) {
-          ctx.moveTo(x, y);
-        } else {
-          ctx.lineTo(x, y);
-        }
+        if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
       }
       ctx.strokeStyle = lineColor;
       ctx.lineWidth = 1.5;
@@ -2006,2130 +1310,867 @@
 
   const fpsMonitor = new FpsMonitor(fpsHolder);
 
-  const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
-  renderer.setPixelRatio(1);
   const canvasWrap = document.getElementById('canvas-wrap');
-  canvasWrap.appendChild(renderer.domElement);
-  renderer.domElement.style.cursor = 'grab';
-  renderer.domElement.style.touchAction = 'none';
-  renderer.domElement.tabIndex = 0;
-  renderer.domElement.setAttribute('aria-label', 'Interactive terrain viewport');
-  renderer.domElement.style.background = renderModeCanvasBackgrounds.default;
+  const canvas = document.createElement('canvas');
+  canvas.id = 'terrain-canvas';
+  canvasWrap.appendChild(canvas);
 
-  let retroEffect = null;
+  const gl = canvas.getContext('webgl2', { antialias: true, alpha: false });
+  if (!gl) {
+    console.error('WebGL2 is required for the Terrain experience.');
+    hideLoader(false);
+    return;
+  }
 
-  const scene = new THREE.Scene();
-  scene.fog = new THREE.Fog(renderModeFogColors.default, 380, 760);
-  renderer.setClearColor(renderModeFogColors.default);
-  scene.add(new THREE.AmbientLight(0x666666));
-  const sunLight = new THREE.DirectionalLight(0xffffff, 1.2);
-  sunLight.position.set(260, 220, -500);
-  scene.add(sunLight);
-  scene.add(sunLight.target);
-  const sunLightOffset = new THREE.Vector3(260, 220, -500);
-  const sunLightDesired = new THREE.Vector3();
-  const sunLightTargetDesired = new THREE.Vector3();
+  const ZX_PALETTE = retroPalettes.zx.map(hex => [
+    ((hex >> 16) & 255) / 255,
+    ((hex >> 8) & 255) / 255,
+    (hex & 255) / 255
+  ]);
+  const PET_PALETTE = retroPalettes.petscii.map(hex => [
+    ((hex >> 16) & 255) / 255,
+    ((hex >> 8) & 255) / 255,
+    (hex & 255) / 255
+  ]);
 
-  function createSkyDomeMaterial() {
-    const uniforms = {
-      horizonColor: { value: new THREE.Color('#0f1d30') },
-      midColor: { value: new THREE.Color('#2e4f7d') },
-      zenithColor: { value: new THREE.Color('#79b5ff') },
-      glowColor: { value: new THREE.Color('#ffe6c2') },
-      glowStrength: { value: 0.12 },
-      time: { value: 0 }
+  const flattenedZX = new Float32Array(ZX_PALETTE.flat());
+  const flattenedPET = new Float32Array(PET_PALETTE.flat());
+
+  function createShader(type, source) {
+    const shader = gl.createShader(type);
+    gl.shaderSource(shader, source);
+    gl.compileShader(shader);
+    if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
+      const error = gl.getShaderInfoLog(shader) || 'Unknown shader compilation error';
+      gl.deleteShader(shader);
+      throw new Error(error);
+    }
+    return shader;
+  }
+
+  function createProgram(vertexSrc, fragmentSrc) {
+    const program = gl.createProgram();
+    gl.attachShader(program, createShader(gl.VERTEX_SHADER, vertexSrc));
+    gl.attachShader(program, createShader(gl.FRAGMENT_SHADER, fragmentSrc));
+    gl.linkProgram(program);
+    if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
+      const error = gl.getProgramInfoLog(program) || 'Unknown program link error';
+      gl.deleteProgram(program);
+      throw new Error(error);
+    }
+    return program;
+  }
+
+  function hash(ix, iz) {
+    const s = Math.sin(ix * 127.1 + iz * 311.7) * 43758.5453123;
+    return s - Math.floor(s);
+  }
+
+  function smooth(t) {
+    return t * t * (3 - 2 * t);
+  }
+
+  function lerp(a, b, t) {
+    return a + (b - a) * t;
+  }
+
+  function noise2(x, z) {
+    const ix = Math.floor(x);
+    const iz = Math.floor(z);
+    const fx = x - ix;
+    const fz = z - iz;
+    const a = hash(ix, iz);
+    const b = hash(ix + 1, iz);
+    const c = hash(ix, iz + 1);
+    const d = hash(ix + 1, iz + 1);
+    const ux = smooth(fx);
+    const uz = smooth(fz);
+    return lerp(lerp(a, b, ux), lerp(c, d, ux), uz);
+  }
+
+  function fbm(x, z, octaves = 5) {
+    let amp = 1;
+    let freq = 0.0045;
+    let sum = 0;
+    let norm = 0;
+    for (let i = 0; i < octaves; i++) {
+      sum += amp * noise2(x * freq, z * freq);
+      norm += amp;
+      amp *= 0.5;
+      freq *= 2;
+    }
+    return sum / Math.max(1e-5, norm);
+  }
+
+  function generateTerrainGeometry(size, segments, onProgress) {
+    const vertexCount = (segments + 1) * (segments + 1);
+    const positions = new Float32Array(vertexCount * 3);
+    const normals = new Float32Array(vertexCount * 3);
+    const uvs = new Float32Array(vertexCount * 2);
+    const heights = new Float32Array(vertexCount);
+    const indices = new Uint32Array(segments * segments * 6);
+    const halfSize = size / 2;
+    const step = size / segments;
+
+    let vertexIndex = 0;
+    for (let z = 0; z <= segments; z++) {
+      if (onProgress) onProgress(z / (segments + 1));
+      for (let x = 0; x <= segments; x++) {
+        const worldX = -halfSize + x * step;
+        const worldZ = -halfSize + z * step;
+        const height = fbm(worldX, worldZ) * 120 - 36;
+        const idx = vertexIndex * 3;
+        positions[idx] = worldX;
+        positions[idx + 1] = height;
+        positions[idx + 2] = worldZ;
+        heights[vertexIndex] = height;
+        const uvIdx = vertexIndex * 2;
+        uvs[uvIdx] = x / segments;
+        uvs[uvIdx + 1] = z / segments;
+        vertexIndex += 1;
+      }
+    }
+
+    const sample = (ix, iz) => {
+      const clampedX = Math.max(0, Math.min(segments, ix));
+      const clampedZ = Math.max(0, Math.min(segments, iz));
+      return heights[clampedZ * (segments + 1) + clampedX];
     };
 
-    const material = new THREE.ShaderMaterial({
-      uniforms,
-      vertexShader: `
-        varying vec3 vWorldPosition;
-        void main() {
-          vec4 worldPosition = modelMatrix * vec4(position, 1.0);
-          vWorldPosition = worldPosition.xyz;
-          gl_Position = projectionMatrix * viewMatrix * worldPosition;
-        }
-      `,
-      fragmentShader: `
-        varying vec3 vWorldPosition;
-        uniform vec3 horizonColor;
-        uniform vec3 midColor;
-        uniform vec3 zenithColor;
-        uniform vec3 glowColor;
-        uniform float glowStrength;
-        uniform float time;
+    vertexIndex = 0;
+    for (let z = 0; z <= segments; z++) {
+      for (let x = 0; x <= segments; x++) {
+        const left = sample(x - 1, z);
+        const right = sample(x + 1, z);
+        const down = sample(x, z - 1);
+        const up = sample(x, z + 1);
+        const dx = (right - left) / (2 * step);
+        const dz = (up - down) / (2 * step);
+        const nx = -dx;
+        const ny = 1;
+        const nz = -dz;
+        const length = Math.hypot(nx, ny, nz) || 1;
+        const idx = vertexIndex * 3;
+        normals[idx] = nx / length;
+        normals[idx + 1] = ny / length;
+        normals[idx + 2] = nz / length;
+        vertexIndex += 1;
+      }
+    }
 
-        void main() {
-          vec3 worldDir = normalize(vWorldPosition);
-          float vertical = clamp(worldDir.y * 0.5 + 0.5, 0.0, 1.0);
-          float midBlend = smoothstep(0.15, 0.65, vertical);
-          vec3 base = mix(horizonColor, midColor, midBlend);
-          base = mix(base, zenithColor, smoothstep(0.45, 1.0, vertical));
+    let writeIndex = 0;
+    for (let z = 0; z < segments; z++) {
+      for (let x = 0; x < segments; x++) {
+        const a = z * (segments + 1) + x;
+        const b = a + 1;
+        const c = (z + 1) * (segments + 1) + x;
+        const d = c + 1;
+        indices[writeIndex++] = a;
+        indices[writeIndex++] = c;
+        indices[writeIndex++] = b;
+        indices[writeIndex++] = b;
+        indices[writeIndex++] = c;
+        indices[writeIndex++] = d;
+      }
+    }
 
-          float glow = pow(1.0 - vertical, 1.8);
-          float pulse = 0.65 + 0.35 * sin(time * 0.12);
-          vec3 color = base + glow * glowStrength * pulse * glowColor;
-          gl_FragColor = vec4(clamp(color, 0.0, 1.0), 1.0);
-        }
-      `,
-      side: THREE.BackSide,
-      depthWrite: false,
-      fog: false
-    });
-
-    return { material, uniforms };
+    return { positions, normals, uvs, indices, heights, segments, size, step };
   }
 
-  function createCloudTexture() {
-    const pixelSize = 4;
-    const pixelWidth = 64;
-    const pixelHeight = 32;
-    const canvas = document.createElement('canvas');
-    canvas.width = pixelWidth * pixelSize;
-    canvas.height = pixelHeight * pixelSize;
-    const ctx = canvas.getContext('2d');
-
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    ctx.imageSmoothingEnabled = false;
-
-    const centerX = pixelWidth / 2;
-    const centerY = pixelHeight * 0.55;
-
-    const random = (x, y) => {
-      const s = Math.sin(x * 127.1 + y * 311.7) * 43758.5453;
-      return s - Math.floor(s);
-    };
-
-    for (let py = 0; py < pixelHeight; py++) {
-      for (let px = 0; px < pixelWidth; px++) {
-        const nx = (px - centerX) / (pixelWidth * 0.5);
-        const ny = (py - centerY) / (pixelHeight * 0.45);
-        const distance = Math.sqrt(nx * nx * 0.75 + ny * ny);
-        const falloff = Math.max(0, 1 - distance);
-        if (falloff <= 0.05) continue;
-
-        const noise =
-          Math.sin(px * 0.45) * 0.05 +
-          Math.cos(py * 0.55) * 0.04 +
-          Math.sin((px + py) * 0.12) * 0.03 +
-          random(px, py) * 0.08;
-
-        const value = falloff + noise - 0.08;
-        if (value <= 0) continue;
-
-        const highlight = Math.max(0, 1 - py / pixelHeight);
-        const shade = 0.78 + falloff * 0.22 + highlight * 0.18;
-        const blueTint = 0.88 + highlight * 0.08;
-        const alpha = Math.min(0.95, 0.32 + falloff * 0.6 + highlight * 0.18);
-
-        ctx.fillStyle = `rgba(${Math.floor(shade * 255)}, ${Math.floor(shade * 255)}, ${Math.floor(blueTint * 255)}, ${alpha})`;
-        ctx.fillRect(px * pixelSize, py * pixelSize, pixelSize, pixelSize);
-      }
-    }
-
-    ctx.globalCompositeOperation = 'lighter';
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.08)';
-    for (let i = 0; i < 14; i++) {
-      const px = Math.floor(random(i, i * 1.7) * pixelWidth);
-      const py = Math.floor(random(i * 2.1, i * 3.1) * pixelHeight * 0.6);
-      ctx.fillRect(px * pixelSize, py * pixelSize, pixelSize * 2, pixelSize);
-    }
-    ctx.globalCompositeOperation = 'source-over';
-
-    const undersideGradient = ctx.createLinearGradient(0, canvas.height * 0.55, 0, canvas.height);
-    undersideGradient.addColorStop(0, 'rgba(170, 200, 255, 0.12)');
-    undersideGradient.addColorStop(1, 'rgba(110, 140, 200, 0.35)');
-    ctx.fillStyle = undersideGradient;
-    ctx.fillRect(0, canvas.height * 0.55, canvas.width, canvas.height * 0.45);
-
-    const texture = new THREE.CanvasTexture(canvas);
-    texture.center.set(0.5, 0.5);
-    texture.generateMipmaps = false;
-    texture.magFilter = THREE.NearestFilter;
-    texture.minFilter = THREE.NearestFilter;
-    texture.wrapS = THREE.ClampToEdgeWrapping;
-    texture.wrapT = THREE.ClampToEdgeWrapping;
-    texture.needsUpdate = true;
-    return texture;
-  }
-
-  function createBlackHoleCoreTexture() {
-    const size = 512;
-    const canvas = document.createElement('canvas');
-    canvas.width = canvas.height = size;
-    const ctx = canvas.getContext('2d');
-
-    const gradient = ctx.createRadialGradient(size / 2, size / 2, size * 0.12, size / 2, size / 2, size * 0.5);
-    gradient.addColorStop(0, 'rgba(0, 0, 0, 1)');
-    gradient.addColorStop(0.32, 'rgba(2, 4, 10, 1)');
-    gradient.addColorStop(0.5, 'rgba(18, 12, 28, 0.95)');
-    gradient.addColorStop(0.7, 'rgba(22, 14, 40, 0.8)');
-    gradient.addColorStop(1, 'rgba(0, 0, 0, 0)');
-    ctx.fillStyle = gradient;
-    ctx.fillRect(0, 0, size, size);
-
-    for (let i = 0; i < 28; i++) {
-      const radius = size * (0.2 + i * 0.01 + Math.random() * 0.015);
-      ctx.beginPath();
-      ctx.arc(size / 2, size / 2, radius, 0, Math.PI * 2);
-      const opacity = 0.32 - i * 0.008;
-      ctx.strokeStyle = `rgba(122, 72, 160, ${Math.max(0, opacity)})`;
-      ctx.lineWidth = 2 + i * 0.5;
-      ctx.stroke();
-    }
-
-    const texture = new THREE.CanvasTexture(canvas);
-    texture.center.set(0.5, 0.5);
-    texture.generateMipmaps = false;
-    texture.magFilter = THREE.LinearFilter;
-    texture.minFilter = THREE.LinearFilter;
-    texture.wrapS = THREE.ClampToEdgeWrapping;
-    texture.wrapT = THREE.ClampToEdgeWrapping;
-    texture.needsUpdate = true;
-    return texture;
-  }
-
-  function createBlackHoleHaloTexture() {
-    const size = 512;
-    const canvas = document.createElement('canvas');
-    canvas.width = canvas.height = size;
-    const ctx = canvas.getContext('2d');
-
-    const gradient = ctx.createRadialGradient(size / 2, size / 2, size * 0.18, size / 2, size / 2, size * 0.5);
-    gradient.addColorStop(0, 'rgba(0, 0, 0, 0)');
-    gradient.addColorStop(0.35, 'rgba(120, 90, 255, 0.08)');
-    gradient.addColorStop(0.55, 'rgba(180, 120, 255, 0.35)');
-    gradient.addColorStop(0.78, 'rgba(255, 170, 120, 0.28)');
-    gradient.addColorStop(1, 'rgba(0, 0, 0, 0)');
-    ctx.fillStyle = gradient;
-    ctx.fillRect(0, 0, size, size);
-
-    const texture = new THREE.CanvasTexture(canvas);
-    texture.center.set(0.5, 0.5);
-    texture.generateMipmaps = false;
-    texture.magFilter = THREE.LinearFilter;
-    texture.minFilter = THREE.LinearFilter;
-    texture.wrapS = THREE.ClampToEdgeWrapping;
-    texture.wrapT = THREE.ClampToEdgeWrapping;
-    texture.needsUpdate = true;
-    return texture;
-  }
-
-  function createAccretionDiskTexture() {
-    const size = 1024;
-    const canvas = document.createElement('canvas');
-    canvas.width = size;
-    canvas.height = size;
-    const ctx = canvas.getContext('2d');
-
-    ctx.translate(size / 2, size / 2);
-    ctx.rotate(-Math.PI / 8);
-
-    const radialGradient = ctx.createRadialGradient(0, 0, size * 0.12, 0, 0, size * 0.48);
-    radialGradient.addColorStop(0, 'rgba(0, 0, 0, 0)');
-    radialGradient.addColorStop(0.35, 'rgba(80, 30, 120, 0.6)');
-    radialGradient.addColorStop(0.55, 'rgba(190, 90, 255, 0.55)');
-    radialGradient.addColorStop(0.75, 'rgba(255, 180, 120, 0.4)');
-    radialGradient.addColorStop(1, 'rgba(0, 0, 0, 0)');
-    ctx.fillStyle = radialGradient;
-    ctx.fillRect(-size / 2, -size / 2, size, size);
-
-    const arcCount = 26;
-    ctx.lineWidth = 8;
-    ctx.strokeStyle = 'rgba(255, 220, 180, 0.28)';
-    for (let i = 0; i < arcCount; i++) {
-      const radius = size * (0.18 + i * 0.009 + Math.random() * 0.004);
-      const start = Math.random() * Math.PI * 2;
-      const length = Math.PI * (0.45 + Math.random() * 0.25);
-      ctx.globalAlpha = 0.3 + Math.random() * 0.4;
-      ctx.beginPath();
-      ctx.arc(0, 0, radius, start, start + length);
-      ctx.stroke();
-    }
-
-    const innerGlow = ctx.createRadialGradient(0, 0, size * 0.08, 0, 0, size * 0.28);
-    innerGlow.addColorStop(0, 'rgba(255, 255, 255, 0.45)');
-    innerGlow.addColorStop(0.6, 'rgba(255, 150, 120, 0.08)');
-    innerGlow.addColorStop(1, 'rgba(0, 0, 0, 0)');
-    ctx.globalAlpha = 1;
-    ctx.fillStyle = innerGlow;
-    ctx.beginPath();
-    ctx.arc(0, 0, size * 0.35, 0, Math.PI * 2);
-    ctx.fill();
-
-    const texture = new THREE.CanvasTexture(canvas);
-    texture.center.set(0.5, 0.5);
-    texture.generateMipmaps = false;
-    texture.magFilter = THREE.LinearFilter;
-    texture.minFilter = THREE.LinearFilter;
-    texture.wrapS = THREE.ClampToEdgeWrapping;
-    texture.wrapT = THREE.ClampToEdgeWrapping;
-    texture.needsUpdate = true;
-    return texture;
-  }
-
-  const PETSCII_CHAR_ROM_BASE64 = `
-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAEAAQAAAAAAK8PCgAAAAAAwiRqAAAAAGBmUHAAAAAAJEJCJAAAAAAAZGYAAAAAAAAA
-AEAAAAAAAAECTAAAAABgpORuAAAAAGYiQuYAAAAABm7yJgAAAABmguRkAAAAAGaqYmYAAAAAAEQABAAAAAAgTk4gAAAAAMYiJsQAAAAAYKaGZgAAAAAAhujm
-AAAAAAAmbmYAAAAAACZqQgAAAAAAgOSmAAAAAAAILioAAAAAAEBPaQAAAAAAZqqmAAAAAABmqsIAAAAAAGaGjgAAAAAA4EomAAAAAAABr2YAAAAAAIBq4gAA
-AAAG5CTmAAAAACZCQuYAAAAAAGRvRAAAAAAABv4KAAAAAGao6OYAAAAARqis7gAAAABmiMqGAAAAAAak5KYAAAAAYC4sagAAAAABj4npAAAAAAbq6qYAAAAA
-ZqrKggAAAABmqOKmAAAAAOBKSkYAAAAAAamvbQAAAAAAamakAAAAAOQkT+QAAAAAhESERAAAAABVqlWqAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
-AAAAAAAAAAAAAAAADAwMDAAAAAAPAPDwAAAAAAgICAgAAAAAoVGhUQAAAAAKBapVAAAAABQUFxQAAAAABAQ3MAAAAAAAAMBPAAAAAAQEf0AAAAAABAT8RAAA
-AACIiIiIAAAAAD8wMDAAAAAA8PAADwAAAAAQIMyMAAAAADQ0DAAAAAAAzMwDAwAAAAAABv4KAAAAAGao6OYAAAAARqis7gAAAABmiMqGAAAAAAak5KYAAAAA
-YC4sagAAAAABj4npAAAAAAbq6qYAAAAAZqrKggAAAABmqOKmAAAAAOBKSkYAAAAAAamvbQAAAAAAamakAAAAAOQkT+QAAAAAhESERAAAAABVqlWqAAAAAAwM
-DAwAAAAADwDw8AAAAAAICAgIAAAAAKFRoVEAAAAACgWqVQAAAAAUFBcUAAAAAAQENzAAAAAAAADATwAAAAAEBH9AAAAAAAQE/EQAAAAAiIiIiAAAAAA/MDAw
-AAAAAPDwAA8AAAAAECDMjAAAAAA0NAwAAAAAAMXKBQoAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABAAEAAAAAACvDwoAAAAA
-AMIkagAAAABgZlBwAAAAACRCQiQAAAAAAGRmAAAAAAAAAABAAAAAAAABAkwAAAAAYKTkbgAAAABmIkLmAAAAAAZu8iYAAAAAZoLkZAAAAABmqmJmAAAAAABE
-AAQAAAAAIE5OIAAAAADGIibEAAAAAGCmjmoAAAAAZqjo5gAAAABGqKzuAAAAAGaIyoYAAAAABqTkpgAAAABgLixqAAAAAAGPiekAAAAABurqpgAAAABmqsqC
-AAAAAGao4qYAAAAA4EpKRgAAAAABqa9tAAAAAABqZqQAAAAA5iRE5gAAAAAmQkLmAAAAAABkb0QAAAAAAAb/BgAAAABAQE9AAAAAAAD/AAAAAAAABAT0BAAA
-AAAgICwkAAAAAERkOAAAAAAAiIyG8wAAAAAfKEiIAAAAAPAeHhYAAAAABg8G8AAAAACAgIOEAAAAAJDuarYAAAAAQqJCYgAAAAAEZG8EAAAAAIREhEQAAAAA
-DxfjYQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAwMDAwAAAAADwDw8AAAAAAICAgIAAAAAKFRoVEAAAAADw6sWAAAAAAUFBcU
-AAAAAAQENzAAAAAAAADATwAAAAAEBH9AAAAAAAQE/EQAAAAAiIiIiAAAAAA/MDAwAAAAAPDwAA8AAAAAEBAc/AAAAAA0NAwAAAAAAMzMAwMAAAAAAAb/BgAA
-AABAQE9AAAAAAAD/AAAAAAAABAT0BAAAAAAgICwkAAAAAERkOAAAAAAAiIyG8wAAAAAfKEiIAAAAAPAeHhYAAAAABg8G8AAAAACAgIOEAAAAAJDuarYAAAAA
-QqJCYgAAAAAEZG8EAAAAAIREhEQAAAAADxfjYQAAAAAMDAwMAAAAAA8A8PAAAAAACAgICAAAAAChUaFRAAAAAA8OrFgAAAAAFBQXFAAAAAAEBDcwAAAAAAAA
-wE8AAAAABAR/QAAAAAAEBPxEAAAAAIiIiIgAAAAAPzAwMAAAAADw8AAPAAAAABAQHPwAAAAANDQMAAAAAADAwQ4GAAA=`;
-
-  function decodeBase64ToUint8Array(base64) {
-    if (typeof atob === 'function') {
-      const binary = atob(base64.replace(/\s+/g, ''));
-      const bytes = new Uint8Array(binary.length);
-      for (let i = 0; i < binary.length; i++) {
-        bytes[i] = binary.charCodeAt(i);
-      }
-      return bytes;
-    }
-    if (typeof Buffer !== 'undefined') {
-      const buf = Buffer.from(base64, 'base64');
-      return new Uint8Array(buf.buffer, buf.byteOffset, buf.byteLength);
-    }
-    throw new Error('Base64 decoding not supported in this environment.');
-  }
-
-  function createPetsciiAtlas() {
-    const rom = decodeBase64ToUint8Array(PETSCII_CHAR_ROM_BASE64);
-    const charSize = 8;
-    const charStride = charSize;
-    const levels = Math.floor(rom.length / charStride);
-    const textureHeight = charSize * levels;
-    const textureData = new Uint8Array(charSize * textureHeight);
-    let offset = 0;
-    for (let charIndex = 0; charIndex < levels; charIndex++) {
-      const charOffset = charIndex * charStride;
-      for (let row = 0; row < charSize; row++) {
-        const rowByte = rom[charOffset + row];
-        for (let col = 0; col < charSize; col++) {
-          const bit = (rowByte >> (7 - col)) & 1;
-          textureData[offset++] = bit ? 255 : 0;
-        }
-      }
-    }
-    const texture = new THREE.DataTexture(textureData, charSize, textureHeight, THREE.LuminanceFormat);
-    texture.magFilter = THREE.NearestFilter;
-    texture.minFilter = THREE.NearestFilter;
-    texture.wrapS = THREE.ClampToEdgeWrapping;
-    texture.wrapT = THREE.ClampToEdgeWrapping;
-    texture.generateMipmaps = false;
-    texture.needsUpdate = true;
-    if ('colorSpace' in texture && 'NoColorSpace' in THREE) {
-      texture.colorSpace = THREE.NoColorSpace;
-    }
-    return { texture, charSize, levels, rom };
-  }
-
-  function createRetroEffect(renderer, initialPalette = [], initialSettings = {}) {
-    const paletteVectors = new Array(16).fill(null).map(() => new THREE.Vector3());
-    const paletteRgb = new Float32Array(paletteVectors.length * 3);
-    const paletteColor = new THREE.Color();
-
-    function applyPalette(palette) {
-      const source = Array.isArray(palette) && palette.length ? palette : [0x000000];
-      for (let i = 0; i < paletteVectors.length; i++) {
-        const hex = source[i % source.length];
-        paletteColor.set(hex);
-        paletteVectors[i].set(paletteColor.r, paletteColor.g, paletteColor.b);
-        const offset = i * 3;
-        paletteRgb[offset] = paletteColor.r;
-        paletteRgb[offset + 1] = paletteColor.g;
-        paletteRgb[offset + 2] = paletteColor.b;
-      }
-    }
-
-    applyPalette(initialPalette);
-
-    function nearestPaletteIndexRGB(r, g, b) {
-      let bestIndex = 0;
-      let bestDistance = Infinity;
-      for (let i = 0; i < paletteVectors.length; i++) {
-        const offset = i * 3;
-        const dr = r - paletteRgb[offset];
-        const dg = g - paletteRgb[offset + 1];
-        const db = b - paletteRgb[offset + 2];
-        const dist = dr * dr + dg * dg + db * db;
-        if (dist < bestDistance) {
-          bestDistance = dist;
-          bestIndex = i;
-        }
-      }
-      return bestIndex;
-    }
-
-    const petsciiAtlas = createPetsciiAtlas();
-    const petsciiCharRom = petsciiAtlas.rom;
-    const petsciiCharStride = 8;
-    const petsciiCharCount = Math.floor(petsciiCharRom.length / petsciiCharStride);
-    const bitCountLut = new Uint8Array(256);
-    for (let i = 0; i < bitCountLut.length; i++) {
-      let count = 0;
-      let value = i;
-      while (value) {
-        value &= value - 1;
-        count++;
-      }
-      bitCountLut[i] = count;
-    }
-
-    const petsciiState = {
-      pixelBuffer: null,
-      luminances: null,
-      rowBits: null,
-      charBuffer: null,
-      charTexture: null,
-      blockWidth: 0,
-      blockHeight: 0
-    };
-
-    function ensurePixelBuffer(width, height) {
-      const required = Math.max(1, Math.floor(width) * Math.floor(height) * 4);
-      if (!petsciiState.pixelBuffer || petsciiState.pixelBuffer.length !== required) {
-        petsciiState.pixelBuffer = new Uint8Array(required);
-      }
-    }
-
-    function ensurePetsciiResources(blockWidth, blockHeight, blockSize) {
-      const safeBlockWidth = Math.max(1, Math.floor(blockWidth));
-      const safeBlockHeight = Math.max(1, Math.floor(blockHeight));
-      const blockCount = safeBlockWidth * safeBlockHeight;
-      const requiredDataLength = blockCount * 4;
-      let replacedData = false;
-      if (!petsciiState.charBuffer || petsciiState.charBuffer.length !== requiredDataLength) {
-        petsciiState.charBuffer = new Uint8Array(requiredDataLength);
-        replacedData = true;
-      }
-      const needsTextureResize = !petsciiState.charTexture ||
-        petsciiState.charTexture.image.width !== safeBlockWidth ||
-        petsciiState.charTexture.image.height !== safeBlockHeight;
-      if (needsTextureResize) {
-        petsciiState.charTexture = new THREE.DataTexture(
-          petsciiState.charBuffer,
-          safeBlockWidth,
-          safeBlockHeight,
-          THREE.RGBAFormat
-        );
-        petsciiState.charTexture.magFilter = THREE.NearestFilter;
-        petsciiState.charTexture.minFilter = THREE.NearestFilter;
-        petsciiState.charTexture.wrapS = THREE.ClampToEdgeWrapping;
-        petsciiState.charTexture.wrapT = THREE.ClampToEdgeWrapping;
-        petsciiState.charTexture.generateMipmaps = false;
-        petsciiState.charTexture.needsUpdate = true;
-        if ('colorSpace' in petsciiState.charTexture && 'NoColorSpace' in THREE) {
-          petsciiState.charTexture.colorSpace = THREE.NoColorSpace;
-        }
-      } else if (replacedData && petsciiState.charTexture) {
-        petsciiState.charTexture.image.data = petsciiState.charBuffer;
-        petsciiState.charTexture.needsUpdate = true;
-      }
-      petsciiState.blockWidth = safeBlockWidth;
-      petsciiState.blockHeight = safeBlockHeight;
-      const luminanceSize = Math.max(1, blockSize * blockSize);
-      if (!petsciiState.luminances || petsciiState.luminances.length !== luminanceSize) {
-        petsciiState.luminances = new Float32Array(luminanceSize);
-      }
-      if (!petsciiState.rowBits || petsciiState.rowBits.length !== blockSize) {
-        petsciiState.rowBits = new Uint8Array(blockSize);
-      }
-    }
-
-    function updatePetsciiAttributes(blockWidth, blockHeight, blockSize) {
-      if (!blockWidth || !blockHeight) {
-        return;
-      }
-      ensurePixelBuffer(targetWidth, targetHeight);
-      ensurePetsciiResources(blockWidth, blockHeight, blockSize);
-
-      renderer.readRenderTargetPixels(
-        sceneTarget,
-        0,
-        0,
-        Math.floor(targetWidth),
-        Math.floor(targetHeight),
-        petsciiState.pixelBuffer
-      );
-
-      const pixelData = petsciiState.pixelBuffer;
-      const luminances = petsciiState.luminances;
-      const rowBits = petsciiState.rowBits;
-      const charBuffer = petsciiState.charBuffer;
-      const width = Math.floor(targetWidth);
-      const height = Math.floor(targetHeight);
-      const maxIndex = blockSize * blockSize;
-
-      for (let by = 0; by < blockHeight; by++) {
-        const baseY = by * blockSize;
-        for (let bx = 0; bx < blockWidth; bx++) {
-          const baseX = bx * blockSize;
-          let lumIndex = 0;
-          let lumSum = 0;
-          let minLum = Infinity;
-          let maxLum = -Infinity;
-          let onR = 0;
-          let onG = 0;
-          let onB = 0;
-          let onCount = 0;
-          let offR = 0;
-          let offG = 0;
-          let offB = 0;
-          let offCount = 0;
-
-          for (let py = 0; py < blockSize; py++) {
-            const pixelY = baseY + py;
-            const clampedY = Math.min(pixelY, height - 1);
-            const rowOffset = clampedY * width;
-            for (let px = 0; px < blockSize; px++) {
-              const pixelX = baseX + px;
-              const clampedX = Math.min(pixelX, width - 1);
-              const idx = (rowOffset + clampedX) * 4;
-              const r = pixelData[idx];
-              const g = pixelData[idx + 1];
-              const b = pixelData[idx + 2];
-              const lum = 0.299 * r + 0.587 * g + 0.114 * b;
-              luminances[lumIndex++] = lum;
-              lumSum += lum;
-              if (lum < minLum) minLum = lum;
-              if (lum > maxLum) maxLum = lum;
-            }
-          }
-
-          const pixelTotal = Math.max(1, Math.min(maxIndex, lumIndex));
-          let threshold = lumSum / pixelTotal;
-          if (maxLum - minLum < 1e-3) {
-            threshold = minLum;
-          }
-
-          lumIndex = 0;
-          for (let py = 0; py < blockSize; py++) {
-            let rowByte = 0;
-            const pixelY = baseY + py;
-            const clampedY = Math.min(pixelY, height - 1);
-            const rowOffset = clampedY * width;
-            for (let px = 0; px < blockSize; px++) {
-              const pixelX = baseX + px;
-              const clampedX = Math.min(pixelX, width - 1);
-              const idx = (rowOffset + clampedX) * 4;
-              const lum = luminances[lumIndex++];
-              if (lum >= threshold) {
-                rowByte |= 1 << (7 - px);
-                onR += pixelData[idx];
-                onG += pixelData[idx + 1];
-                onB += pixelData[idx + 2];
-                onCount++;
-              } else {
-                offR += pixelData[idx];
-                offG += pixelData[idx + 1];
-                offB += pixelData[idx + 2];
-                offCount++;
-              }
-            }
-            rowBits[py] = rowByte & 0xff;
-          }
-
-          let bestChar = 0;
-          let bestScore = Infinity;
-          let bestInvert = 0;
-
-          for (let charIndex = 0; charIndex < petsciiCharCount; charIndex++) {
-            const charOffset = charIndex * petsciiCharStride;
-            let diff = 0;
-            let diffInverted = 0;
-            for (let row = 0; row < blockSize; row++) {
-              const blockRow = rowBits[row];
-              const charRow = petsciiCharRom[charOffset + row];
-              diff += bitCountLut[blockRow ^ charRow];
-              diffInverted += bitCountLut[((~blockRow) & 0xff) ^ charRow];
-              if (diff >= bestScore && diffInverted >= bestScore) {
-                break;
-              }
-            }
-            if (diff < bestScore) {
-              bestScore = diff;
-              bestChar = charIndex;
-              bestInvert = 0;
-            }
-            if (diffInverted < bestScore) {
-              bestScore = diffInverted;
-              bestChar = charIndex;
-              bestInvert = 1;
-            }
-          }
-
-          const inv255 = 1 / 255;
-          const brightR = (onCount > 0 ? onR / onCount : offR / Math.max(1, offCount)) * inv255;
-          const brightG = (onCount > 0 ? onG / onCount : offG / Math.max(1, offCount)) * inv255;
-          const brightB = (onCount > 0 ? onB / onCount : offB / Math.max(1, offCount)) * inv255;
-          const darkR = (offCount > 0 ? offR / offCount : onR / Math.max(1, onCount)) * inv255;
-          const darkG = (offCount > 0 ? offG / offCount : onG / Math.max(1, onCount)) * inv255;
-          const darkB = (offCount > 0 ? offB / offCount : onB / Math.max(1, onCount)) * inv255;
-
-          const inkIndexBase = nearestPaletteIndexRGB(
-            Math.max(0, Math.min(1, brightR)),
-            Math.max(0, Math.min(1, brightG)),
-            Math.max(0, Math.min(1, brightB))
-          );
-          const paperIndexBase = nearestPaletteIndexRGB(
-            Math.max(0, Math.min(1, darkR)),
-            Math.max(0, Math.min(1, darkG)),
-            Math.max(0, Math.min(1, darkB))
-          );
-
-          let paperIndex = paperIndexBase;
-          let inkIndex = inkIndexBase;
-          if (bestInvert) {
-            const swap = paperIndex;
-            paperIndex = inkIndex;
-            inkIndex = swap;
-          }
-
-          const dataIndex = (by * blockWidth + bx) * 4;
-          charBuffer[dataIndex] = Math.max(0, Math.min(255, bestChar & 0xff));
-          charBuffer[dataIndex + 1] = bestInvert ? 255 : 0;
-          charBuffer[dataIndex + 2] = Math.max(0, Math.min(255, paperIndex & 0xff));
-          charBuffer[dataIndex + 3] = Math.max(0, Math.min(255, inkIndex & 0xff));
-        }
-      }
-
-      if (petsciiState.charTexture) {
-        petsciiState.charTexture.needsUpdate = true;
-      }
-    }
-
-    function updateAttributeTextureBinding(attributeValue) {
-      if (attributeValue > 1.5 && petsciiState.charTexture) {
-        finalUniforms.attributeTexture.value = petsciiState.charTexture;
-      } else {
-        finalUniforms.attributeTexture.value = attributeTarget.texture;
-      }
-    }
-
-    const resolution = new THREE.Vector2(1, 1);
-    const blockCount = new THREE.Vector2(1, 1);
-    let targetWidth = 16;
-    let targetHeight = 16;
-    let currentBlockSize = Math.max(1, initialSettings.blockSize || 8);
-    const blockPixelSizeUniform = { value: currentBlockSize };
-    const attributeModeUniform = {
-      value: initialSettings.attributeMode === 'attribute'
-        ? 1
-        : initialSettings.attributeMode === 'petscii'
-          ? 2
-          : 0
-    };
-
-    const sceneTarget = new THREE.WebGLRenderTarget(16, 16, {
-      minFilter: THREE.LinearFilter,
-      magFilter: THREE.LinearFilter,
-      depthBuffer: true,
-      stencilBuffer: false
-    });
-    sceneTarget.texture.generateMipmaps = false;
-    if ('colorSpace' in sceneTarget.texture && renderer.outputColorSpace) {
-      sceneTarget.texture.colorSpace = renderer.outputColorSpace;
-    } else if ('encoding' in sceneTarget.texture && renderer.outputEncoding !== undefined) {
-      sceneTarget.texture.encoding = renderer.outputEncoding;
-    }
-
-    const attributeTarget = new THREE.WebGLRenderTarget(2, 2, {
-      minFilter: THREE.NearestFilter,
-      magFilter: THREE.NearestFilter,
-      depthBuffer: false,
-      stencilBuffer: false,
-      type: THREE.UnsignedByteType
-    });
-    attributeTarget.texture.generateMipmaps = false;
-
-    const quadGeometry = new THREE.PlaneGeometry(2, 2);
-    const orthoCamera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
-
-    const fullscreenVertexShader = `
-      varying vec2 vUv;
-      void main() {
-        vUv = uv;
-        gl_Position = vec4(position.xy, 0.0, 1.0);
-      }
-    `;
-
-    const attributeUniforms = {
-      sceneTexture: { value: null },
-      resolution: { value: resolution },
-      blockCount: { value: blockCount },
-      palette: { value: paletteVectors },
-      blockPixelSize: blockPixelSizeUniform
-    };
-
-    const attributeMaterial = new THREE.ShaderMaterial({
-      uniforms: attributeUniforms,
-      vertexShader: fullscreenVertexShader,
-      fragmentShader: `
-        precision highp float;
-        uniform sampler2D sceneTexture;
-        uniform vec2 resolution;
-        uniform vec2 blockCount;
-        uniform vec3 palette[16];
-        uniform float blockPixelSize;
-        varying vec2 vUv;
-
-        const float SAMPLE_GRID = 4.0;
-
-        float colorDistance(vec3 a, vec3 b) {
-          vec3 d = a - b;
-          return dot(d, d);
-        }
-
-        int nearestPaletteIndex(vec3 color) {
-          float bestDistance = 1e9;
-          int bestIndex = 0;
-          for (int i = 0; i < 16; i++) {
-            vec3 paletteColor = palette[i];
-            float dist = colorDistance(color, paletteColor);
-            if (dist < bestDistance) {
-              bestDistance = dist;
-              bestIndex = i;
-            }
-          }
-          return bestIndex;
-        }
-
-        vec2 clampUv(vec2 pixel) {
-          vec2 clamped = clamp(pixel, vec2(0.0), resolution - vec2(1.0));
-          return (clamped + 0.5) / resolution;
-        }
-
-        void main() {
-          vec2 blockIndex = floor(vUv * blockCount);
-          vec2 blockBase = blockIndex * blockPixelSize;
-          float sampleStep = blockPixelSize / SAMPLE_GRID;
-          vec3 averageColor = vec3(0.0);
-          float totalSamples = SAMPLE_GRID * SAMPLE_GRID;
-
-          for (int y = 0; y < 4; y++) {
-            for (int x = 0; x < 4; x++) {
-              vec2 offset = (vec2(float(x), float(y)) + 0.5) * sampleStep;
-              vec2 samplePixel = blockBase + offset;
-              vec2 sampleUv = clampUv(samplePixel);
-              averageColor += texture2D(sceneTexture, sampleUv).rgb;
-            }
-          }
-          averageColor /= totalSamples;
-
-          int paperIndex = nearestPaletteIndex(averageColor);
-          vec3 paperColor = palette[paperIndex];
-
-          float maxDistance = -1.0;
-          vec3 furthestColor = paperColor;
-
-          for (int y = 0; y < 4; y++) {
-            for (int x = 0; x < 4; x++) {
-              vec2 offset = (vec2(float(x), float(y)) + 0.5) * sampleStep;
-              vec2 samplePixel = blockBase + offset;
-              vec2 sampleUv = clampUv(samplePixel);
-              vec3 sampleColor = texture2D(sceneTexture, sampleUv).rgb;
-              float dist = colorDistance(sampleColor, paperColor);
-              if (dist > maxDistance) {
-                maxDistance = dist;
-                furthestColor = sampleColor;
-              }
-            }
-          }
-
-          int inkIndex = nearestPaletteIndex(furthestColor);
-          if (maxDistance < 0.003) {
-            inkIndex = paperIndex;
-          }
-
-          gl_FragColor = vec4(float(paperIndex) / 255.0, float(inkIndex) / 255.0, 0.0, 1.0);
-        }
-      `,
-      depthTest: false,
-      depthWrite: false,
-      transparent: false,
-      blending: THREE.NoBlending
-    });
-
-    const attributeScene = new THREE.Scene();
-    attributeScene.add(new THREE.Mesh(quadGeometry, attributeMaterial));
-
-    const finalUniforms = {
-      sceneTexture: { value: null },
-      attributeTexture: { value: null },
-      resolution: { value: resolution },
-      blockCount: { value: blockCount },
-      palette: { value: paletteVectors },
-      blockPixelSize: blockPixelSizeUniform,
-      attributeMode: attributeModeUniform,
-      patternTexture: { value: petsciiAtlas.texture },
-      patternCharSize: { value: petsciiAtlas.charSize },
-      patternCount: { value: petsciiAtlas.levels }
-    };
-
-    const finalMaterial = new THREE.ShaderMaterial({
-      uniforms: finalUniforms,
-      vertexShader: fullscreenVertexShader,
-      fragmentShader: `
-        precision highp float;
-        uniform sampler2D sceneTexture;
-        uniform sampler2D attributeTexture;
-        uniform sampler2D patternTexture;
-        uniform vec2 resolution;
-        uniform vec2 blockCount;
-        uniform vec3 palette[16];
-        uniform float blockPixelSize;
-        uniform float attributeMode;
-        uniform float patternCharSize;
-        uniform float patternCount;
-        varying vec2 vUv;
-
-        float colorDistance(vec3 a, vec3 b) {
-          vec3 d = a - b;
-          return dot(d, d);
-        }
-
-        int decodeIndex(float value) {
-          return clamp(int(floor(value * 255.0 + 0.5)), 0, 15);
-        }
-
-        vec3 paletteColor(int index) {
-          return palette[index];
-        }
-
-        int nearestPaletteIndex(vec3 color) {
-          float bestDistance = 1e9;
-          int bestIndex = 0;
-          for (int i = 0; i < 16; i++) {
-            vec3 paletteColor = palette[i];
-            float dist = colorDistance(color, paletteColor);
-            if (dist < bestDistance) {
-              bestDistance = dist;
-              bestIndex = i;
-            }
-          }
-          return bestIndex;
-        }
-
-        float bayerDither(vec2 coord) {
-          vec2 pos = mod(coord, 4.0);
-          int x = int(pos.x);
-          int y = int(pos.y);
-          int index = x + y * 4;
-          const float bayer[16] = float[16](
-            0.0, 8.0, 2.0, 10.0,
-            12.0, 4.0, 14.0, 6.0,
-            3.0, 11.0, 1.0, 9.0,
-            15.0, 7.0, 13.0, 5.0
-          );
-          return (bayer[index] + 0.5) / 16.0;
-        }
-
-        float samplePetsciiPattern(float patternIndex, vec2 pixelCoord) {
-          float charSize = max(patternCharSize, 1.0);
-          vec2 local = mod(pixelCoord, charSize);
-          float u = (local.x + 0.5) / charSize;
-          float v = (local.y + 0.5 + patternIndex * charSize) / (charSize * max(patternCount, 1.0));
-          return texture2D(patternTexture, vec2(u, v)).r;
-        }
-
-        void main() {
-          vec3 sceneColor = texture2D(sceneTexture, vUv).rgb;
-
-          if (attributeMode < 0.5) {
-            int paletteIndex = nearestPaletteIndex(sceneColor);
-            vec3 quantizedColor = paletteColor(paletteIndex);
-            gl_FragColor = vec4(quantizedColor, 1.0);
-            return;
-          }
-
-          vec2 pixelCoord = vUv * resolution;
-          vec2 blockCoord = floor(pixelCoord / max(blockPixelSize, 1.0));
-          vec2 maxBlock = max(blockCount - vec2(1.0), vec2(0.0));
-          blockCoord = clamp(blockCoord, vec2(0.0), maxBlock);
-          vec2 attributeUv = (blockCoord + 0.5) / blockCount;
-
-          vec4 attributeData = texture2D(attributeTexture, attributeUv);
-
-          if (attributeMode > 1.5) {
-            float charIndex = floor(attributeData.r * 255.0 + 0.5);
-            float invertFlag = step(0.5, attributeData.g);
-            int paperIndex = decodeIndex(attributeData.b);
-            int inkIndex = decodeIndex(attributeData.a);
-            vec3 paperColor = paletteColor(paperIndex);
-            vec3 inkColor = paletteColor(inkIndex);
-            float glyph = samplePetsciiPattern(charIndex, pixelCoord);
-            if (invertFlag > 0.5) {
-              glyph = 1.0 - glyph;
-            }
-            vec3 finalColor = mix(paperColor, inkColor, step(0.5, glyph));
-            gl_FragColor = vec4(finalColor, 1.0);
-            return;
-          }
-          int paperIndex = decodeIndex(attributeData.r);
-          int inkIndex = decodeIndex(attributeData.g);
-          vec3 paperColor = paletteColor(paperIndex);
-          vec3 inkColor = paletteColor(inkIndex);
-
-          float paperDist = colorDistance(sceneColor, paperColor);
-          float inkDist = colorDistance(sceneColor, inkColor);
-          vec3 finalColor = paperColor;
-
-          if (inkIndex != paperIndex) {
-            float totalDist = max(paperDist + inkDist, 1e-5);
-            float paperWeight = clamp(inkDist / totalDist, 0.0, 1.0);
-            float inkWeight = 1.0 - paperWeight;
-            vec3 luminanceWeights = vec3(0.299, 0.587, 0.114);
-            float luminancePaper = dot(paperColor, luminanceWeights);
-            float luminanceInk = dot(inkColor, luminanceWeights);
-            float luminanceScene = dot(sceneColor, luminanceWeights);
-            float luminanceDiff = luminanceInk - luminancePaper;
-            float gradientWeight = inkWeight;
-            if (abs(luminanceDiff) > 1e-5) {
-              float grad = clamp((luminanceScene - luminancePaper) / luminanceDiff, 0.0, 1.0);
-              if (luminanceDiff < 0.0) {
-                grad = 1.0 - grad;
-              }
-              gradientWeight = mix(inkWeight, grad, 0.5);
-            }
-            gradientWeight = clamp(gradientWeight, 0.0, 1.0);
-            float pattern = bayerDither(pixelCoord);
-            if (gradientWeight > pattern) {
-              finalColor = inkColor;
-            }
-          }
-
-          gl_FragColor = vec4(finalColor, 1.0);
-        }
-      `,
-      depthTest: false,
-      depthWrite: false,
-      transparent: false,
-      blending: THREE.NoBlending
-    });
-
-    const finalScene = new THREE.Scene();
-    finalScene.add(new THREE.Mesh(quadGeometry.clone(), finalMaterial));
-
-    return {
-      enabled: false,
-      setEnabled(value) {
-        this.enabled = Boolean(value);
-      },
-      setConfig(config = {}) {
-        if (typeof config.blockSize === 'number' && config.blockSize > 0) {
-          currentBlockSize = config.blockSize;
-        }
-        if (typeof config.attributeMode === 'string') {
-          if (config.attributeMode === 'attribute') {
-            attributeModeUniform.value = 1;
-          } else if (config.attributeMode === 'petscii') {
-            attributeModeUniform.value = 2;
-          } else {
-            attributeModeUniform.value = 0;
-          }
-        } else if (typeof config.attributeMode === 'number') {
-          attributeModeUniform.value = config.attributeMode;
-        }
-        updateAttributeTextureBinding(attributeModeUniform.value);
-        this.setSize(targetWidth, targetHeight);
-      },
-      setPalette(palette) {
-        applyPalette(palette);
-        attributeMaterial.needsUpdate = true;
-        finalMaterial.needsUpdate = true;
-      },
-      setSize(width, height) {
-        const safeWidth = Math.max(1, Math.floor(width));
-        const safeHeight = Math.max(1, Math.floor(height));
-        targetWidth = safeWidth;
-        targetHeight = safeHeight;
-        sceneTarget.setSize(safeWidth, safeHeight);
-        const blockSize = Math.max(1, currentBlockSize);
-        blockPixelSizeUniform.value = blockSize;
-        const attributeValue = attributeModeUniform.value;
-        const blockWidth = Math.max(1, Math.floor(safeWidth / blockSize));
-        const blockHeight = Math.max(1, Math.floor(safeHeight / blockSize));
-        const useAttribute = attributeValue > 0.5 && attributeValue < 1.5;
-        const usePetscii = attributeValue > 1.5;
-        attributeTarget.setSize(useAttribute ? blockWidth : 1, useAttribute ? blockHeight : 1);
-        if (usePetscii) {
-          ensurePetsciiResources(blockWidth, blockHeight, blockSize);
-        }
-        updateAttributeTextureBinding(attributeValue);
-        resolution.set(safeWidth, safeHeight);
-        blockCount.set(blockWidth, blockHeight);
-      },
-      render(scene, camera) {
-        renderer.setRenderTarget(sceneTarget);
-        renderer.render(scene, camera);
-
-        const attributeValue = attributeModeUniform.value;
-        const blockSize = Math.max(1, Math.floor(blockPixelSizeUniform.value));
-        const blockWidth = Math.max(1, Math.floor(targetWidth / blockSize));
-        const blockHeight = Math.max(1, Math.floor(targetHeight / blockSize));
-
-        if (attributeValue > 0.5 && attributeValue < 1.5) {
-          attributeUniforms.sceneTexture.value = sceneTarget.texture;
-          renderer.setRenderTarget(attributeTarget);
-          renderer.render(attributeScene, orthoCamera);
-          finalUniforms.attributeTexture.value = attributeTarget.texture;
-        } else if (attributeValue > 1.5) {
-          updatePetsciiAttributes(blockWidth, blockHeight, blockSize);
-          if (petsciiState.charTexture) {
-            finalUniforms.attributeTexture.value = petsciiState.charTexture;
-          }
-        } else {
-          finalUniforms.attributeTexture.value = attributeTarget.texture;
-        }
-
-        finalUniforms.sceneTexture.value = sceneTarget.texture;
-
-        renderer.setRenderTarget(null);
-        renderer.render(finalScene, orthoCamera);
-      }
-    };
-  }
-
-  retroEffect = createRetroEffect(renderer, retroPalettes.zx, retroModeConfigs.zx);
-
-  const { material: skyMaterial, uniforms: skyUniforms } = createSkyDomeMaterial();
-  const skyModeSettings = {
-    default: {
-      horizon: skyUniforms.horizonColor.value.clone(),
-      mid: skyUniforms.midColor.value.clone(),
-      zenith: skyUniforms.zenithColor.value.clone(),
-      glow: skyUniforms.glowColor.value.clone()
-    },
-    zx: {
-      horizon: new THREE.Color('#1f1fd7'),
-      mid: new THREE.Color('#2affff'),
-      zenith: new THREE.Color('#ffffff'),
-      glow: new THREE.Color('#ff2aff')
-    },
-    petscii: {
-      horizon: new THREE.Color('#001708'),
-      mid: new THREE.Color('#015f2a'),
-      zenith: new THREE.Color('#0bff6a'),
-      glow: new THREE.Color('#6aff9f')
-    }
-  };
-  const skyGeometry = new THREE.SphereGeometry(4200, 48, 24);
-  const skyDome = new THREE.Mesh(skyGeometry, skyMaterial);
-  skyDome.renderOrder = -6;
-  scene.add(skyDome);
-
-  const cloudTexture = createCloudTexture();
-  const cloudSprites = [];
-  const cloudModeColors = {
-    default: new THREE.Color(0xffffff),
-    zx: new THREE.Color('#ffd71f'),
-    petscii: new THREE.Color('#00ff6a')
-  };
-  const cloudGroup = new THREE.Group();
-  cloudGroup.renderOrder = -4;
-  const cloudMaterial = new THREE.SpriteMaterial({
-    map: cloudTexture,
-    transparent: true,
-    opacity: 0.68,
-    depthWrite: false,
-    depthTest: false
-  });
-  const cloudCount = 12;
-  for (let i = 0; i < cloudCount; i++) {
-    const sprite = new THREE.Sprite(cloudMaterial.clone());
-    const scale = 420 + Math.random() * 260;
-    const aspect = 0.58 + Math.random() * 0.12;
-    sprite.scale.set(scale, scale * aspect, 1);
-    sprite.renderOrder = -4;
-    sprite.material.opacity = 0.45 + Math.random() * 0.22;
-    sprite.userData = {
-      radius: 520 + Math.random() * 240,
-      heightOffset: 160 + Math.random() * 140,
-      driftSpeed: 0.06 + Math.random() * 0.06,
-      bobSpeed: 0.4 + Math.random() * 0.3,
-      baseOpacity: sprite.material.opacity,
-      phase: Math.random() * Math.PI * 2,
-      windAmplitude: 24 + Math.random() * 18,
-      windFrequencyX: 0.08 + Math.random() * 0.06,
-      windFrequencyZ: 0.1 + Math.random() * 0.05
-    };
-    cloudGroup.add(sprite);
-    cloudSprites.push(sprite);
-  }
-  scene.add(cloudGroup);
-
-  function applySkyAndAtmosphereMode(mode) {
-    const skySettings = skyModeSettings[mode] || skyModeSettings.default;
-    skyUniforms.horizonColor.value.copy(skySettings.horizon);
-    skyUniforms.midColor.value.copy(skySettings.mid);
-    skyUniforms.zenithColor.value.copy(skySettings.zenith);
-    skyUniforms.glowColor.value.copy(skySettings.glow);
-
-    const cloudColor = cloudModeColors[mode] || cloudModeColors.default;
-    cloudSprites.forEach(sprite => {
-      sprite.material.color.copy(cloudColor);
-      sprite.material.needsUpdate = true;
-    });
-  }
-
-  const blackHoleTextures = {
-    core: createBlackHoleCoreTexture(),
-    halo: createBlackHoleHaloTexture(),
-    disk: createAccretionDiskTexture()
-  };
-
-  const blackHoleGroup = new THREE.Group();
-  blackHoleGroup.renderOrder = -5;
-  scene.add(blackHoleGroup);
-
-  const blackHoleCore = new THREE.Sprite(new THREE.SpriteMaterial({
-    map: blackHoleTextures.core,
-    transparent: true,
-    depthWrite: false,
-    depthTest: false
-  }));
-  blackHoleCore.scale.set(640, 640, 1);
-  blackHoleGroup.add(blackHoleCore);
-
-  const blackHoleHalo = new THREE.Sprite(new THREE.SpriteMaterial({
-    map: blackHoleTextures.halo,
-    transparent: true,
-    depthWrite: false,
-    depthTest: false,
-    blending: THREE.AdditiveBlending,
-    opacity: 0.68
-  }));
-  blackHoleHalo.scale.set(980, 980, 1);
-  blackHoleGroup.add(blackHoleHalo);
-
-  const blackHoleDisk = new THREE.Sprite(new THREE.SpriteMaterial({
-    map: blackHoleTextures.disk,
-    transparent: true,
-    depthWrite: false,
-    depthTest: true,
-    blending: THREE.AdditiveBlending,
-    opacity: 0.82
-  }));
-  blackHoleDisk.scale.set(1380, 820, 1);
-  blackHoleDisk.material.rotation = Math.PI / 10;
-  blackHoleGroup.add(blackHoleDisk);
-
-  const blackHoleState = {
-    group: blackHoleGroup,
-    core: blackHoleCore,
-    halo: blackHoleHalo,
-    disk: blackHoleDisk,
-    offset: new THREE.Vector3(-420, 110, -980),
-    target: new THREE.Vector3()
-  };
-  blackHoleGroup.position.copy(blackHoleState.offset);
-
-  const camera = new THREE.PerspectiveCamera(50, 16 / 9, 0.1, 3000);
-  const controls = {
-    yaw: 0,
-    pitch: -0.22,
-    yawVelocity: 0,
-    speed: 60,
-    turnSpeed: Math.PI * 0.45,
-    turnSmooth: 3,
-    height: 60,
-    minPitch: -Math.PI / 3,
-    maxPitch: Math.PI / 4,
-    dragSensitivity: 0.0024,
-    touchDragSensitivity: 0.0042
-  };
-  let currentSpeed = 0;
-  camera.position.set(0, controls.height, 160);
-  camera.lookAt(0, 0, 0);
-
-  const keyState = {};
-  const horizontalForward = new THREE.Vector3();
-  const moveVector = new THREE.Vector3();
-  const lookVector = new THREE.Vector3();
-  window.addEventListener('keydown', e => {
-    if (['ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.key)) { keyState[e.key] = true; e.preventDefault(); }
-  });
-  window.addEventListener('keyup', e => {
-    if (['ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.key)) { keyState[e.key] = false; e.preventDefault(); }
+  const vertexShaderSource = `#version 300 es
+`
+    + `precision highp float;
+`
+    + `layout(location = 0) in vec3 aPosition;
+`
+    + `layout(location = 1) in vec3 aNormal;
+`
+    + `layout(location = 2) in vec2 aUv;
+`
+    + `uniform mat4 uProjection;
+`
+    + `uniform mat4 uView;
+`
+    + `uniform mat4 uModel;
+`
+    + `out vec3 vNormal;
+`
+    + `out vec3 vWorldPos;
+`
+    + `out vec2 vUv;
+`
+    + `void main() {
+`
+    + `  vec4 worldPos = uModel * vec4(aPosition, 1.0);
+`
+    + `  vWorldPos = worldPos.xyz;
+`
+    + `  vNormal = mat3(uModel) * aNormal;
+`
+    + `  vUv = aUv;
+`
+    + `  gl_Position = uProjection * uView * worldPos;
+`
+    + `}`;
+
+  const fragmentShaderSource = `#version 300 es
+`
+    + `precision highp float;
+`
+    + `in vec3 vNormal;
+`
+    + `in vec3 vWorldPos;
+`
+    + `in vec2 vUv;
+`
+    + `uniform vec3 uLightDir;
+`
+    + `uniform vec3 uFogColor;
+`
+    + `uniform vec3 uCameraPos;
+`
+    + `uniform float uFogNear;
+`
+    + `uniform float uFogFar;
+`
+    + `uniform float uGridSize;
+`
+    + `uniform int uRenderMode;
+`
+    + `uniform vec3 uZXPalette[16];
+`
+    + `uniform vec3 uPetsciiPalette[16];
+`
+    + `out vec4 outColor;
+`
+    + `float gridFactor(vec2 uv, float gridSize) {
+`
+    + `  vec2 scaled = fract(uv * gridSize);
+`
+    + `  vec2 dist = min(scaled, 1.0 - scaled);
+`
+    + `  float edge = min(dist.x, dist.y);
+`
+    + `  return smoothstep(0.0, 0.12, edge * 8.0);
+`
+    + `}
+`
+    + `vec3 quantize(vec3 color, vec3 palette[16]) {
+`
+    + `  float best = 1e9;
+`
+    + `  vec3 chosen = color;
+`
+    + `  for (int i = 0; i < 16; i++) {
+`
+    + `    vec3 p = palette[i];
+`
+    + `    float d = distance(color, p);
+`
+    + `    if (d < best) {
+`
+    + `      best = d;
+`
+    + `      chosen = p;
+`
+    + `    }
+`
+    + `  }
+`
+    + `  return chosen;
+`
+    + `}
+`
+    + `void main() {
+`
+    + `  vec3 normal = normalize(vNormal);
+`
+    + `  float diffuse = max(dot(normal, normalize(uLightDir)), 0.0);
+`
+    + `  float ambient = 0.25;
+`
+    + `  float lighting = ambient + diffuse * 0.85;
+`
+    + `  float h = clamp((vWorldPos.y + 48.0) / 160.0, 0.0, 1.0);
+`
+    + `  vec3 low = vec3(0.05, 0.15, 0.25);
+`
+    + `  vec3 mid = vec3(0.18, 0.38, 0.45);
+`
+    + `  vec3 high = vec3(0.82, 0.82, 0.78);
+`
+    + `  vec3 base = mix(low, mid, smoothstep(0.0, 0.55, h));
+`
+    + `  base = mix(base, high, smoothstep(0.45, 1.0, h));
+`
+    + `  vec3 color = base * lighting;
+`
+    + `  if (uRenderMode == 1) {
+`
+    + `    float grid = gridFactor(vUv, uGridSize);
+`
+    + `    vec3 wireBase = mix(vec3(0.03, 0.16, 0.28), vec3(0.4, 0.82, 1.0), grid);
+`
+    + `    color = mix(vec3(0.1, 0.22, 0.36), wireBase, lighting);
+`
+    + `  } else if (uRenderMode == 2) {
+`
+    + `    color = quantize(color, uZXPalette);
+`
+    + `  } else if (uRenderMode == 3) {
+`
+    + `    color = quantize(color, uPetsciiPalette);
+`
+    + `  }
+`
+    + `  float dist = distance(uCameraPos, vWorldPos);
+`
+    + `  float fogFactor = clamp((uFogFar - dist) / (uFogFar - uFogNear), 0.0, 1.0);
+`
+    + `  vec3 finalColor = mix(uFogColor, color, fogFactor);
+`
+    + `  outColor = vec4(finalColor, 1.0);
+`
+    + `}`;
+
+  const program = createProgram(vertexShaderSource, fragmentShaderSource);
+  gl.useProgram(program);
+
+  updateLoaderStatus('Generating terrain mesh…');
+  const geometry = generateTerrainGeometry(600, 160, fraction => {
+    setLoaderPhaseRange(10, 65);
+    reportLoaderPhaseProgress(fraction);
   });
 
-  const onscreenButtons = document.querySelectorAll('#control-pad button[data-key]');
-  onscreenButtons.forEach(btn => {
-    const key = btn.dataset.key;
-    const activate = ev => { keyState[key] = true; ev.preventDefault(); };
-    const deactivate = ev => { keyState[key] = false; ev.preventDefault(); };
-    btn.addEventListener('mousedown', activate);
-    btn.addEventListener('touchstart', activate, { passive: false });
-    const endEvents = ['mouseleave','mouseup','touchend','touchcancel'];
-    endEvents.forEach(evt => btn.addEventListener(evt, deactivate));
-    window.addEventListener('mouseup', () => { keyState[key] = false; });
-    window.addEventListener('touchend', () => { keyState[key] = false; });
-    window.addEventListener('touchcancel', () => { keyState[key] = false; });
-  });
+  const vao = gl.createVertexArray();
+  gl.bindVertexArray(vao);
 
+  const positionBuffer = gl.createBuffer();
+  gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
+  gl.bufferData(gl.ARRAY_BUFFER, geometry.positions, gl.STATIC_DRAW);
+  gl.enableVertexAttribArray(0);
+  gl.vertexAttribPointer(0, 3, gl.FLOAT, false, 0, 0);
+
+  const normalBuffer = gl.createBuffer();
+  gl.bindBuffer(gl.ARRAY_BUFFER, normalBuffer);
+  gl.bufferData(gl.ARRAY_BUFFER, geometry.normals, gl.STATIC_DRAW);
+  gl.enableVertexAttribArray(1);
+  gl.vertexAttribPointer(1, 3, gl.FLOAT, false, 0, 0);
+
+  const uvBuffer = gl.createBuffer();
+  gl.bindBuffer(gl.ARRAY_BUFFER, uvBuffer);
+  gl.bufferData(gl.ARRAY_BUFFER, geometry.uvs, gl.STATIC_DRAW);
+  gl.enableVertexAttribArray(2);
+  gl.vertexAttribPointer(2, 2, gl.FLOAT, false, 0, 0);
+
+  const indexBuffer = gl.createBuffer();
+  gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBuffer);
+  gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, geometry.indices, gl.STATIC_DRAW);
+
+  gl.bindVertexArray(null);
+
+  const uniforms = {
+    projection: gl.getUniformLocation(program, 'uProjection'),
+    view: gl.getUniformLocation(program, 'uView'),
+    model: gl.getUniformLocation(program, 'uModel'),
+    lightDir: gl.getUniformLocation(program, 'uLightDir'),
+    fogColor: gl.getUniformLocation(program, 'uFogColor'),
+    fogNear: gl.getUniformLocation(program, 'uFogNear'),
+    fogFar: gl.getUniformLocation(program, 'uFogFar'),
+    cameraPos: gl.getUniformLocation(program, 'uCameraPos'),
+    renderMode: gl.getUniformLocation(program, 'uRenderMode'),
+    gridSize: gl.getUniformLocation(program, 'uGridSize'),
+    zxPalette: gl.getUniformLocation(program, 'uZXPalette'),
+    petsciiPalette: gl.getUniformLocation(program, 'uPetsciiPalette')
+  };
+
+  const identityMatrix = new Float32Array([1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1]);
+  gl.useProgram(program);
+  gl.uniformMatrix4fv(uniforms.model, false, identityMatrix);
+  gl.uniform3fv(uniforms.lightDir, new Float32Array([-0.35, 0.9, 0.32]));
+  gl.uniform1f(uniforms.gridSize, geometry.segments);
+  gl.uniform3fv(uniforms.zxPalette, flattenedZX);
+  gl.uniform3fv(uniforms.petsciiPalette, flattenedPET);
+
+  gl.enable(gl.DEPTH_TEST);
+  gl.enable(gl.CULL_FACE);
+  gl.cullFace(gl.BACK);
+
+  function mat4Perspective(out, fovy, aspect, near, far) {
+    const f = 1 / Math.tan(fovy / 2);
+    out[0] = f / aspect;
+    out[1] = 0;
+    out[2] = 0;
+    out[3] = 0;
+    out[4] = 0;
+    out[5] = f;
+    out[6] = 0;
+    out[7] = 0;
+    out[8] = 0;
+    out[9] = 0;
+    out[10] = (far + near) / (near - far);
+    out[11] = -1;
+    out[12] = 0;
+    out[13] = 0;
+    out[14] = (2 * far * near) / (near - far);
+    out[15] = 0;
+    return out;
+  }
+
+  function mat4LookAt(out, eye, center, up) {
+    const fx = center[0] - eye[0];
+    const fy = center[1] - eye[1];
+    const fz = center[2] - eye[2];
+    const fl = Math.hypot(fx, fy, fz) || 1;
+    const f0 = fx / fl;
+    const f1 = fy / fl;
+    const f2 = fz / fl;
+
+    const sx = f1 * up[2] - f2 * up[1];
+    const sy = f2 * up[0] - f0 * up[2];
+    const sz = f0 * up[1] - f1 * up[0];
+    const sl = Math.hypot(sx, sy, sz) || 1;
+    const s0 = sx / sl;
+    const s1 = sy / sl;
+    const s2 = sz / sl;
+
+    const ux = s1 * f2 - s2 * f1;
+    const uy = s2 * f0 - s0 * f2;
+    const uz = s0 * f1 - s1 * f0;
+
+    out[0] = s0; out[1] = ux; out[2] = -f0; out[3] = 0;
+    out[4] = s1; out[5] = uy; out[6] = -f1; out[7] = 0;
+    out[8] = s2; out[9] = uz; out[10] = -f2; out[11] = 0;
+    out[12] = -(s0 * eye[0] + s1 * eye[1] + s2 * eye[2]);
+    out[13] = -(ux * eye[0] + uy * eye[1] + uz * eye[2]);
+    out[14] = f0 * eye[0] + f1 * eye[1] + f2 * eye[2];
+    out[15] = 1;
+    return out;
+  }
+
+  const viewMatrix = new Float32Array(16);
+  const projectionMatrix = new Float32Array(16);
+
+  const hudPosition = document.querySelector('[data-hud="position"]');
+  const hudHeading = document.querySelector('[data-hud="heading"]');
+  const hudChunk = document.querySelector('[data-hud="chunk"]');
+  const hudSpeed = document.querySelector('[data-hud="speed"]');
+
+  const camera = {
+    target: new Float32Array([0, 0, 0]),
+    position: new Float32Array([0, 0, 0]),
+    yaw: Math.PI * 0.75,
+    pitch: -0.55,
+    minPitch: -1.25,
+    maxPitch: -0.12,
+    distance: 440,
+    minDistance: 140,
+    maxDistance: 820,
+    verticalOffset: 42,
+    speed: 82,
+    turnSpeed: 1.4,
+    smoothing: 8,
+    heightSample: geometry,
+    lastMoveTime: performance.now(),
+    lastTarget: new Float32Array([0, 0, 0]),
+    currentSpeed: 0
+  };
+
+  const keyState = Object.create(null);
   const pointerState = {
     active: false,
-    pointerId: null,
+    id: null,
     lastX: 0,
     lastY: 0,
-    pointerType: null,
-    hasLogged: false
+    pointerType: 'mouse'
   };
 
-  function beginPointerDrag(event) {
-    if (pointerState.active) return;
-    if (event.button !== undefined && event.button !== 0) return;
-    if (event.target.closest('#control-ui, #console-dock')) return;
+  function getHeightAt(x, z) {
+    const { size, segments, step, heights } = geometry;
+    const half = size / 2;
+    const fx = (x + half) / step;
+    const fz = (z + half) / step;
+    const ix = Math.max(0, Math.min(segments, Math.floor(fx)));
+    const iz = Math.max(0, Math.min(segments, Math.floor(fz)));
+    const fracX = fx - ix;
+    const fracZ = fz - iz;
+    const base = iz * (segments + 1) + ix;
+    const a = heights[base];
+    const b = heights[base + 1] ?? a;
+    const c = heights[base + segments + 1] ?? a;
+    const d = heights[base + segments + 2] ?? a;
+    const top = lerp(a, b, fracX);
+    const bottom = lerp(c, d, fracX);
+    return lerp(top, bottom, fracZ);
+  }
+
+  function updateCamera(dt) {
+    const forward = [Math.sin(camera.yaw), 0, Math.cos(camera.yaw)];
+    const right = [Math.cos(camera.yaw), 0, -Math.sin(camera.yaw)];
+    let moveX = 0;
+    let moveZ = 0;
+    const forwardInput = (keyState['w'] || keyState['W'] || keyState['ArrowUp'] ? 1 : 0)
+      - (keyState['s'] || keyState['S'] || keyState['ArrowDown'] ? 1 : 0);
+    const strafeInput = (keyState['d'] || keyState['D'] ? 1 : 0)
+      - (keyState['a'] || keyState['A'] ? 1 : 0);
+    moveX += forward[0] * forwardInput + right[0] * strafeInput;
+    moveZ += forward[2] * forwardInput + right[2] * strafeInput;
+
+    if (keyState['ArrowLeft']) camera.yaw -= camera.turnSpeed * dt;
+    if (keyState['ArrowRight']) camera.yaw += camera.turnSpeed * dt;
+
+    const len = Math.hypot(moveX, moveZ);
+    if (len > 0) {
+      moveX /= len;
+      moveZ /= len;
+      const speed = camera.speed * dt;
+      camera.target[0] += moveX * speed;
+      camera.target[2] += moveZ * speed;
+    }
+
+    camera.yaw = (camera.yaw + Math.PI * 2) % (Math.PI * 2);
+
+    const targetHeight = getHeightAt(camera.target[0], camera.target[2]);
+    camera.target[1] = targetHeight + camera.verticalOffset;
+
+    const cosPitch = Math.cos(camera.pitch);
+    const sinPitch = Math.sin(camera.pitch);
+    const distance = camera.distance;
+    camera.position[0] = camera.target[0] + Math.sin(camera.yaw) * cosPitch * distance;
+    camera.position[1] = camera.target[1] + sinPitch * distance;
+    camera.position[2] = camera.target[2] + Math.cos(camera.yaw) * cosPitch * distance;
+
+    const dx = camera.target[0] - camera.lastTarget[0];
+    const dz = camera.target[2] - camera.lastTarget[2];
+    const moveSpeed = Math.hypot(dx, dz) / Math.max(dt, 1e-5);
+    camera.currentSpeed = camera.currentSpeed * 0.85 + moveSpeed * 0.15;
+    camera.lastTarget[0] = camera.target[0];
+    camera.lastTarget[1] = camera.target[1];
+    camera.lastTarget[2] = camera.target[2];
+  }
+
+  function updateHud(dt) {
+    if (hudPosition) {
+      hudPosition.textContent = `${camera.target[0].toFixed(1)}, ${camera.target[1].toFixed(1)}, ${camera.target[2].toFixed(1)}`;
+    }
+    if (hudHeading) {
+      const yawDeg = ((camera.yaw * 180 / Math.PI) % 360 + 360) % 360;
+      const pitchDeg = camera.pitch * 180 / Math.PI;
+      hudHeading.textContent = `${yawDeg.toFixed(0)}° / ${pitchDeg.toFixed(0)}°`;
+    }
+    if (hudChunk) {
+      const chunkSize = geometry.step * 10;
+      const cx = Math.round(camera.target[0] / chunkSize);
+      const cz = Math.round(camera.target[2] / chunkSize);
+      hudChunk.textContent = `${cx}, ${cz}`;
+    }
+    if (hudSpeed) {
+      hudSpeed.textContent = `${(camera.currentSpeed).toFixed(1)} m/s`;
+    }
+  }
+
+  function resizeViewport(width, height) {
+    canvas.width = width;
+    canvas.height = height;
+    gl.viewport(0, 0, width, height);
+    mat4Perspective(projectionMatrix, Math.PI / 3.4, width / height, 0.1, 2000);
+    gl.useProgram(program);
+    gl.uniformMatrix4fv(uniforms.projection, false, projectionMatrix);
+  }
+
+  resizeViewport(defaultResolution.width, defaultResolution.height);
+
+  const upVector = [0, 1, 0];
+  let currentRenderMode = 0;
+  let fogNear = 260;
+  let fogFar = 980;
+  const fogColor = new Float32Array(renderModeFogColors.default);
+
+  function applyRenderMode(mode) {
+    currentRenderMode = mode;
+    const key = mode === 0 ? 'default' : mode === 1 ? 'wire' : mode === 2 ? 'zx' : 'petscii';
+    const color = renderModeFogColors[key];
+    fogColor[0] = color[0];
+    fogColor[1] = color[1];
+    fogColor[2] = color[2];
+    fogNear = mode === 2 ? 180 : 260;
+    fogFar = mode === 2 ? 720 : 980;
+    canvas.style.backgroundColor = renderModeCanvasBackgrounds[key];
+  }
+
+  applyRenderMode(0);
+
+  const fps = fpsMonitor;
+  const controls = {
+    dragSensitivity: 0.0045,
+    touchDragSensitivity: 0.0028
+  };
+
+  canvas.addEventListener('pointerdown', event => {
     pointerState.active = true;
-    pointerState.pointerId = event.pointerId;
+    pointerState.id = event.pointerId;
     pointerState.lastX = event.clientX;
     pointerState.lastY = event.clientY;
     pointerState.pointerType = event.pointerType || 'mouse';
-    renderer.domElement.setPointerCapture(event.pointerId);
-    renderer.domElement.style.cursor = 'grabbing';
-    if (!pointerState.hasLogged) {
-      console.log(`Pointer look engaged (${pointerState.pointerType}).`);
-      pointerState.hasLogged = true;
-    }
-    event.preventDefault();
-  }
+    canvas.setPointerCapture(event.pointerId);
+    canvas.style.cursor = 'grabbing';
+  });
 
-  function handlePointerMove(event) {
-    if (!pointerState.active || event.pointerId !== pointerState.pointerId) return;
+  canvas.addEventListener('pointermove', event => {
+    if (!pointerState.active || event.pointerId !== pointerState.id) return;
     const dx = event.clientX - pointerState.lastX;
     const dy = event.clientY - pointerState.lastY;
     pointerState.lastX = event.clientX;
     pointerState.lastY = event.clientY;
-    const sensitivity = event.pointerType === 'touch' ? controls.touchDragSensitivity : controls.dragSensitivity;
-    controls.yaw -= dx * sensitivity;
-    controls.pitch = THREE.MathUtils.clamp(controls.pitch - dy * sensitivity, controls.minPitch, controls.maxPitch);
+    const sensitivity = pointerState.pointerType === 'touch'
+      ? controls.touchDragSensitivity
+      : controls.dragSensitivity;
+    camera.yaw -= dx * sensitivity;
+    camera.pitch = Math.max(camera.minPitch, Math.min(camera.maxPitch, camera.pitch - dy * sensitivity));
+  });
+
+  const clearPointer = () => {
+    pointerState.active = false;
+    pointerState.id = null;
+    canvas.style.cursor = 'grab';
+  };
+
+  canvas.addEventListener('pointerup', clearPointer);
+  canvas.addEventListener('pointercancel', clearPointer);
+  canvas.addEventListener('lostpointercapture', clearPointer);
+  canvas.addEventListener('pointerleave', clearPointer);
+
+  canvas.addEventListener('wheel', event => {
+    const delta = Math.sign(event.deltaY);
+    camera.distance = Math.max(camera.minDistance, Math.min(camera.maxDistance, camera.distance + delta * 36));
     event.preventDefault();
-  }
-
-  function endPointerDrag(event) {
-    if (pointerState.active && (event.pointerId === pointerState.pointerId || event.type === 'pointerleave')) {
-      if (event.pointerId != null && renderer.domElement.hasPointerCapture?.(event.pointerId)) {
-        renderer.domElement.releasePointerCapture(event.pointerId);
-      }
-      pointerState.active = false;
-      pointerState.pointerId = null;
-      renderer.domElement.style.cursor = 'grab';
-    }
-  }
-
-  renderer.domElement.addEventListener('pointerdown', beginPointerDrag);
-  renderer.domElement.addEventListener('pointermove', handlePointerMove);
-  renderer.domElement.addEventListener('pointerup', endPointerDrag);
-  renderer.domElement.addEventListener('pointercancel', endPointerDrag);
-  renderer.domElement.addEventListener('lostpointercapture', endPointerDrag);
-  renderer.domElement.addEventListener('pointerleave', endPointerDrag);
-  window.addEventListener('blur', () => { pointerState.active = false; renderer.domElement.style.cursor = 'grab'; });
-
-  let touchStart = null;
-  const swipeTouchIgnoreSelector = [
-    '#control-pad',
-    '#canvas-wrap',
-    '#control-ui',
-    '#hud-overlay',
-    '#console-dock',
-    '#fullscreen-btn',
-    'button',
-    'select',
-    'input',
-    'label',
-    'a',
-    '[role="button"]'
-  ].join(', ');
-  const shouldIgnoreGlobalSwipe = (target) => Boolean(target?.closest(swipeTouchIgnoreSelector));
-
-  window.addEventListener('touchstart', e => {
-    if (shouldIgnoreGlobalSwipe(e.target)) return;
-    touchStart = e.touches[0];
-    e.preventDefault();
   }, { passive: false });
-  window.addEventListener('touchmove', e => {
-    if (!touchStart || shouldIgnoreGlobalSwipe(e.target)) return;
-    const touch = e.touches[0];
-    const dx = touch.clientX - touchStart.clientX;
-    const dy = touch.clientY - touchStart.clientY;
-    const threshold = 10;
-    keyState['ArrowLeft'] = dx < -threshold;
-    keyState['ArrowRight'] = dx > threshold;
-    keyState['ArrowUp'] = dy < -threshold;
-    keyState['ArrowDown'] = dy > threshold;
-    e.preventDefault();
-  }, { passive: false });
-  window.addEventListener('touchend', e => {
-    if (shouldIgnoreGlobalSwipe(e.target)) return;
-    touchStart = null;
-    keyState['ArrowLeft'] = keyState['ArrowRight'] = keyState['ArrowUp'] = keyState['ArrowDown'] = false;
-    e.preventDefault();
+
+  window.addEventListener('keydown', event => {
+    keyState[event.key] = true;
   });
 
-  function hash(ix, iz){ const s = Math.sin(ix*127.1 + iz*311.7) * 43758.5453123; return s - Math.floor(s); }
-  const lerp = (a,b,t)=> a + (b-a)*t; const smooth = t => t*t*(3-2*t);
-  function noise2(x,z){ const ix=Math.floor(x), iz=Math.floor(z), fx=x-ix, fz=z-iz;
-    const a=hash(ix,iz), b=hash(ix+1,iz), c=hash(ix,iz+1), d=hash(ix+1,iz+1);
-    const ux=smooth(fx), uz=smooth(fz); return lerp( lerp(a,b,ux), lerp(c,d,ux), uz ); }
-  function fbm(x,z,oct=5){ let amp=1,freq=0.02,sum=0,norm=0; for(let i=0;i<oct;i++){ sum+=amp*noise2(x*freq,z*freq); norm+=amp; amp*=0.5; freq*=2; } return sum/norm; }
-
-  const terrainSize = 600;
-  const terrainSegments = 120;
-  const terrain = new THREE.PlaneGeometry(terrainSize, terrainSize, terrainSegments, terrainSegments);
-  terrain.rotateX(-Math.PI/2);
-  const pos = terrain.attributes.position;
-  const basePositions = Float32Array.from(pos.array);
-  const fadeAttribute = new Float32Array(pos.count);
-  const halfSize = terrainSize / 2;
-  const fadeWidth = terrainSize * 0.22;
-  const colorAttribute = new THREE.BufferAttribute(new Float32Array(pos.count * 3), 3);
-  const zxColorAttribute = new THREE.BufferAttribute(new Float32Array(pos.count * 3), 3);
-  for (let i = 0; i < pos.count; i++) {
-    const ix = i * 3;
-    const x = basePositions[ix];
-    const z = basePositions[ix + 2];
-    const distX = halfSize - Math.abs(x);
-    const distZ = halfSize - Math.abs(z);
-    const edgeDistance = Math.max(0, Math.min(distX, distZ));
-    const fadeStrength = THREE.MathUtils.clamp(edgeDistance / fadeWidth, 0, 1);
-    fadeAttribute[i] = fadeStrength * fadeStrength;
-  }
-  terrain.setAttribute('edgeFade', new THREE.BufferAttribute(fadeAttribute, 1));
-  terrain.setAttribute('color', colorAttribute);
-  terrain.setAttribute('zxColor', zxColorAttribute);
-  const cellSize = terrainSize / terrainSegments;
-  const chunkSize = cellSize * 10;
-  const terrainState = { offsetX: 0, offsetZ: 0 };
-  const plateauHalfSize = chunkSize * 1.5;
-  const plateauBlend = chunkSize * 0.8;
-  const plateauLevel = 0;
-  const plateauColor = new THREE.Color(0xdde3f5);
-  const tileBorderWidth = chunkSize * 0.12;
-
-  const chunkColorCache = new Map();
-  function chunkRandom(ix, iz, salt = 0) {
-    return hash(ix + salt * 19.19, iz + salt * 7.7);
-  }
-  function getChunkColor(cx, cz) {
-    const key = `${cx},${cz}`;
-    let color = chunkColorCache.get(key);
-    if (!color) {
-      const hue = chunkRandom(cx * 0.61, cz * 0.47, 1);
-      const saturation = 0.35 + chunkRandom(cx * 0.93, cz * 0.78, 2) * 0.3;
-      const lightness = 0.3 + chunkRandom(cx * 1.21, cz * 1.09, 3) * 0.28;
-      color = new THREE.Color().setHSL(hue, saturation, lightness);
-      chunkColorCache.set(key, color);
-    }
-    return color;
-  }
-
-  function refreshTerrain(offsetX, offsetZ) {
-    const colors = colorAttribute.array;
-    const zxColors = zxColorAttribute.array;
-    for (let i = 0; i < pos.count; i++) {
-      const ix = i * 3;
-      const x = basePositions[ix];
-      const z = basePositions[ix + 2];
-      const worldX = x + offsetX;
-      const worldZ = z + offsetZ;
-      const y = fbm(worldX, worldZ) * 60 - 18;
-      const distanceFromPlateau = Math.max(Math.abs(worldX) - plateauHalfSize, Math.abs(worldZ) - plateauHalfSize);
-      let finalY = y;
-      if (distanceFromPlateau <= plateauBlend) {
-        const t = THREE.MathUtils.clamp(1 - distanceFromPlateau / plateauBlend, 0, 1);
-        const eased = smooth(t);
-        finalY = THREE.MathUtils.lerp(y, plateauLevel, eased);
-      }
-      pos.setY(i, finalY);
-      const chunkX = Math.round(worldX / chunkSize);
-      const chunkZ = Math.round(worldZ / chunkSize);
-      const isPlateau = Math.abs(worldX) <= plateauHalfSize && Math.abs(worldZ) <= plateauHalfSize;
-      const baseColor = isPlateau ? plateauColor : getChunkColor(chunkX, chunkZ);
-
-      let r = baseColor.r;
-      let g = baseColor.g;
-      let b = baseColor.b;
-
-      const localX = THREE.MathUtils.euclideanModulo(worldX, chunkSize);
-      const localZ = THREE.MathUtils.euclideanModulo(worldZ, chunkSize);
-      const edgeDistX = Math.min(localX, chunkSize - localX);
-      const edgeDistZ = Math.min(localZ, chunkSize - localZ);
-      const edgeFactorX = 1 - THREE.MathUtils.clamp(edgeDistX / tileBorderWidth, 0, 1);
-      const edgeFactorZ = 1 - THREE.MathUtils.clamp(edgeDistZ / tileBorderWidth, 0, 1);
-      const edgeMix = Math.max(edgeFactorX, edgeFactorZ);
-      if (edgeMix > 0) {
-        const mixAmount = edgeMix * 0.85;
-        r = THREE.MathUtils.lerp(r, 1, mixAmount);
-        g = THREE.MathUtils.lerp(g, 1, mixAmount);
-        b = THREE.MathUtils.lerp(b, 1, mixAmount);
-      }
-
-      colors[ix] = r;
-      colors[ix + 1] = g;
-      colors[ix + 2] = b;
-
-      paletteScratchColor.setRGB(r, g, b);
-      const zxMatch = findNearestPaletteColor(paletteScratchColor, zxGroundPalette);
-      zxColors[ix] = zxMatch.r;
-      zxColors[ix + 1] = zxMatch.g;
-      zxColors[ix + 2] = zxMatch.b;
-    }
-    pos.needsUpdate = true;
-    colorAttribute.needsUpdate = true;
-    zxColorAttribute.needsUpdate = true;
-    terrain.computeVertexNormals();
-    if (terrain.attributes.normal) {
-      terrain.attributes.normal.needsUpdate = true;
-    }
-    terrain.computeBoundingSphere();
-    terrain.computeBoundingBox();
-  }
-  refreshTerrain(terrainState.offsetX, terrainState.offsetZ);
-  const terrainMaterial = new THREE.MeshLambertMaterial({
-    color: 0xffffff,
-    vertexColors: true,
-    fog: true
-  });
-  const edgeFadeUniform = {
-    value: scene.fog ? scene.fog.color.clone() : new THREE.Color(renderModeFogColors.default)
-  };
-  terrainMaterial.onBeforeCompile = shader => {
-    shader.uniforms.edgeFadeColor = edgeFadeUniform;
-    shader.vertexShader = shader.vertexShader
-      .replace('#include <common>', `#include <common>\nattribute float edgeFade;\nvarying float vEdgeFade;`)
-      .replace('#include <begin_vertex>', `#include <begin_vertex>\nvEdgeFade = edgeFade;`);
-    shader.fragmentShader = shader.fragmentShader
-      .replace('#include <common>', `#include <common>\nvarying float vEdgeFade;\nuniform vec3 edgeFadeColor;`)
-      .replace('gl_FragColor = vec4( outgoingLight, diffuseColor.a );', `
-      vec3 gouraudColor = floor(outgoingLight * ${GOURAUD_LEVELS}.0 + 0.5) / ${GOURAUD_LEVELS}.0;
-      gl_FragColor = vec4( gouraudColor, diffuseColor.a );
-      gl_FragColor.rgb = mix(edgeFadeColor, gl_FragColor.rgb, vEdgeFade);
-    `);
-  };
-  terrainMaterial.customProgramCacheKey = () => `terrain_gouraud_${GOURAUD_LEVELS}`;
-  terrainMaterial.needsUpdate = true;
-  const terrainMesh = new THREE.Mesh(terrain, terrainMaterial);
-  terrainMesh.position.set(terrainState.offsetX, 0, terrainState.offsetZ);
-  scene.add(terrainMesh);
-  defaultTerrainColor = terrainMesh.material.color.clone();
-  const terrainZXMaterial = new THREE.MeshBasicMaterial({
-    color: 0xffffff,
-    fog: true,
-    depthTest: true,
-    depthWrite: true,
-    polygonOffset: true,
-    polygonOffsetFactor: -1,
-    polygonOffsetUnits: -1
-  });
-  terrainZXMaterial.onBeforeCompile = shader => {
-    shader.vertexShader = shader.vertexShader
-      .replace('#include <common>', `#include <common>\nattribute vec3 zxColor;\nvarying vec3 vZXColor;`)
-      .replace('#include <begin_vertex>', `#include <begin_vertex>\nvZXColor = zxColor;`);
-    shader.fragmentShader = shader.fragmentShader
-      .replace('#include <common>', `#include <common>\nvarying vec3 vZXColor;`)
-      .replace('vec4 diffuseColor = vec4( diffuse, opacity );', 'vec4 diffuseColor = vec4( vZXColor, opacity );');
-  };
-  const terrainZXMesh = new THREE.Mesh(terrain, terrainZXMaterial);
-  terrainZXMesh.visible = false;
-  terrainZXMesh.renderOrder = -1;
-  terrainZXMesh.position.copy(terrainMesh.position);
-  scene.add(terrainZXMesh);
-  function snapToChunk(value) { return Math.round(value / chunkSize) * chunkSize; }
-
-  const cityGroup = new THREE.Group();
-  cityGroup.name = 'PlateauCity';
-  terrainMesh.add(cityGroup);
-  const cityMeshes = [];
-
-  function registerCityMesh(mesh) {
-    if (!mesh) return;
-    cityMeshes.push(mesh);
-    if (mesh.material && mesh.material.color) {
-      mesh.userData.baseColor = mesh.material.color.clone();
-    }
-  }
-
-  function updateCityAnchor() {
-    cityGroup.position.set(-terrainState.offsetX, 0, -terrainState.offsetZ);
-  }
-
-  function buildCityOnPlateau() {
-    cityGroup.clear();
-    cityMeshes.length = 0;
-
-    const plazaSize = plateauHalfSize * 1.25;
-    const plazaHeight = 0.7;
-    const plaza = new THREE.Mesh(
-      new THREE.BoxGeometry(plazaSize, plazaHeight, plazaSize),
-      createGouraudMaterial({ color: new THREE.Color(0x1d2432) })
-    );
-    plaza.position.y = plateauLevel - plazaHeight / 2;
-    plaza.receiveShadow = true;
-    cityGroup.add(plaza);
-    registerCityMesh(plaza);
-
-    const pathway = new THREE.Mesh(
-      new THREE.BoxGeometry(plazaSize * 0.6, 0.3, chunkSize * 0.2),
-      createGouraudMaterial({ color: new THREE.Color(0x2c384a) })
-    );
-    pathway.position.y = plateauLevel + 0.01;
-    cityGroup.add(pathway);
-    registerCityMesh(pathway);
-
-    const crossPath = pathway.clone();
-    crossPath.rotation.y = Math.PI / 2;
-    cityGroup.add(crossPath);
-    registerCityMesh(crossPath);
-
-    const buildingGeometry = new THREE.BoxGeometry(1, 1, 1);
-    const towerMaterial = createGouraudMaterial({ color: new THREE.Color(0x8fb4ff), emissive: new THREE.Color(0x0b1b3c), emissiveIntensity: 0.12 });
-    const buildingMaterials = [
-      createGouraudMaterial({ color: new THREE.Color(0x3f5c7a) }),
-      createGouraudMaterial({ color: new THREE.Color(0x516b8c) }),
-      createGouraudMaterial({ color: new THREE.Color(0x6884a8) })
-    ];
-
-    const gridCount = 3;
-    const spacing = chunkSize * 0.55;
-    const startOffset = -spacing * (gridCount - 1) / 2;
-    for (let gx = 0; gx < gridCount; gx++) {
-      for (let gz = 0; gz < gridCount; gz++) {
-        const x = startOffset + gx * spacing;
-        const z = startOffset + gz * spacing;
-        const isCenter = Math.abs(x) < chunkSize * 0.2 && Math.abs(z) < chunkSize * 0.2;
-        const baseScale = isCenter ? 0.16 : 0.08;
-        const variation = isCenter ? 0.08 : 0.07;
-        const width = chunkSize * (baseScale + Math.random() * variation);
-        const depth = chunkSize * (baseScale + Math.random() * variation);
-        const height = isCenter ? chunkSize * 0.9 : chunkSize * (0.35 + Math.random() * 0.55);
-        const material = isCenter ? towerMaterial : buildingMaterials[(gx + gz) % buildingMaterials.length];
-        const building = new THREE.Mesh(buildingGeometry.clone(), material);
-        building.scale.set(width, height, depth);
-        building.position.set(x, plateauLevel + height / 2, z);
-        building.castShadow = true;
-        building.receiveShadow = true;
-        cityGroup.add(building);
-        registerCityMesh(building);
-
-        if (!isCenter && Math.random() > 0.5) {
-          const roofHeight = height * (0.45 + Math.random() * 0.15);
-          const roof = new THREE.Mesh(
-            new THREE.ConeGeometry(width * 0.35, height * 0.16, 4),
-            createGouraudMaterial({ color: new THREE.Color(0xffb347) })
-          );
-          roof.position.set(x, plateauLevel + roofHeight, z);
-          roof.rotation.y = Math.PI / 4;
-          roof.castShadow = true;
-          cityGroup.add(roof);
-          registerCityMesh(roof);
-        }
-      }
-    }
-
-    const borderHeight = 1.6;
-    const borderThickness = chunkSize * 0.16;
-    const borderLength = plazaSize * 0.95;
-    const borderMaterial = createGouraudMaterial({ color: new THREE.Color(0x2a3646) });
-    for (let i = 0; i < 4; i++) {
-      const wall = new THREE.Mesh(
-        new THREE.BoxGeometry(borderLength, borderHeight, borderThickness),
-        borderMaterial
-      );
-      wall.position.y = plateauLevel + borderHeight / 2;
-      if (i < 2) {
-        wall.position.z = (i === 0 ? -1 : 1) * (plazaSize / 2 - borderThickness / 2);
-      } else {
-        wall.rotation.y = Math.PI / 2;
-        wall.position.x = (i === 2 ? -1 : 1) * (plazaSize / 2 - borderThickness / 2);
-      }
-      wall.castShadow = true;
-      wall.receiveShadow = true;
-      cityGroup.add(wall);
-      registerCityMesh(wall);
-    }
-
-    updateCityAnchor();
-  }
-
-  buildCityOnPlateau();
-
-  function updateCityRenderMode(isWire, wireColor) {
-    cityMeshes.forEach(mesh => {
-      if (!mesh.material) return;
-      mesh.material.wireframe = isWire;
-      mesh.material.side = THREE.FrontSide;
-      if (mesh.userData.baseColor && mesh.material.color) {
-        if (isWire) {
-          mesh.material.color.copy(wireColor);
-        } else {
-          mesh.material.color.copy(mesh.userData.baseColor);
-        }
-      }
-      mesh.material.needsUpdate = true;
-    });
-  }
-
-  const groundRay = new THREE.Raycaster();
-  const floatingBlocks = [];
-
-  function updateRenderButtons(activeMode) {
-    renderModeButtons.forEach(button => {
-      const isActive = button.dataset.renderMode === activeMode;
-      button.classList.toggle('is-active', isActive);
-      button.setAttribute('aria-pressed', String(isActive));
-    });
-  }
-
-  function applyRenderMode(mode, { announce = true } = {}) {
-    const previousMode = currentRenderMode;
-    currentRenderMode = mode;
-    const isWireMode = mode === 'wire' || mode === 'zx';
-    const wireColors = getWireColorsForMode(mode);
-    const retroPalette = retroPalettes[mode];
-    const useRetro = Boolean(retroPalette);
-    if (defaultTerrainColor) {
-      terrainMesh.material.wireframe = isWireMode;
-      terrainMesh.material.side = THREE.FrontSide;
-      terrainMesh.material.color.copy(isWireMode ? wireColors.terrain : defaultTerrainColor);
-      terrainMesh.material.needsUpdate = true;
-    }
-    if (terrainZXMesh) {
-      terrainZXMesh.visible = mode === 'zx';
-    }
-    floatingBlocks.forEach(block => {
-      block.material.wireframe = isWireMode;
-      block.material.side = THREE.FrontSide;
-      if (isWireMode) {
-        block.material.color.copy(wireColors.block);
-      } else if (block.userData.baseColor) {
-        block.material.color.copy(block.userData.baseColor);
-      }
-      block.material.needsUpdate = true;
-    });
-    updateCityRenderMode(isWireMode, wireColors.block);
-    retroEffect.setEnabled(useRetro);
-    if (useRetro) {
-      retroEffect.setConfig(retroModeConfigs[mode] || retroModeConfigs.default);
-      retroEffect.setPalette(retroPalette);
-    } else {
-      retroEffect.setConfig(retroModeConfigs.default);
-    }
-    applySkyAndAtmosphereMode(mode);
-    const fogHex = renderModeFogColors[mode] ?? renderModeFogColors.default;
-    scene.fog.color.set(fogHex);
-    edgeFadeUniform.value.set(fogHex);
-    renderer.setClearColor(fogHex);
-    renderer.domElement.style.background = renderModeCanvasBackgrounds[mode] ?? renderModeCanvasBackgrounds.default;
-    updateRenderButtons(mode);
-    if (announce && previousMode !== mode) {
-      const description = renderModeDescriptions[mode] || mode;
-      console.log(`Render mode switched to ${description}.`);
-    }
-  }
-
-  renderModeButtons.forEach(button => {
-    button.addEventListener('click', () => {
-      const mode = button.dataset.renderMode;
-      if (!mode || mode === currentRenderMode) return;
-      applyRenderMode(mode);
-    });
+  window.addEventListener('keyup', event => {
+    keyState[event.key] = false;
   });
 
-  applyRenderMode(currentRenderMode, { announce: false });
-  reportLoaderPhaseProgress(1);
+  window.addEventListener('blur', () => {
+    for (const key of Object.keys(keyState)) keyState[key] = false;
+    clearPointer();
+  });
 
-  function createBlock(x, z) {
-    const size = 2;
-    const color = new THREE.Color().setHSL(Math.random() * 0.15, 0.9, 0.5 + Math.random() * 0.1);
-    const block = new THREE.Mesh(
-      new THREE.BoxGeometry(size, size, size),
-      createGouraudMaterial({ color })
-    );
-    groundRay.set(new THREE.Vector3(x, 100, z), new THREE.Vector3(0, -1, 0));
-    const hit = groundRay.intersectObject(terrainMesh);
-    const y = hit.length ? hit[0].point.y : 0;
-    block.position.set(x, y + size / 2 + 8 * Math.random(), z);
-    block.castShadow = true;
-    block.receiveShadow = true;
-    block.userData.baseColor = block.material.color.clone();
-    if (currentRenderMode === 'wire' || currentRenderMode === 'zx') {
-      const activeWireColors = getWireColorsForMode(currentRenderMode);
-      block.material.wireframe = true;
-      block.material.side = THREE.FrontSide;
-      block.material.color.copy(activeWireColors.block);
-      block.material.needsUpdate = true;
-    }
-    block.userData.base = block.position.clone();
-    block.userData.bobSpeed = 0.35 + Math.random() * 0.3;
-    block.userData.bobAmp = 4 + Math.random() * 6;
-    block.userData.phase = Math.random() * Math.PI * 2;
-    block.userData.windSeed = Math.random() * Math.PI * 2;
-    block.userData.windSpeed = 0.6 + Math.random() * 0.5;
-    block.userData.windStrength = 10 + Math.random() * 6;
-    block.userData.windOffset = new THREE.Vector3();
-    block.userData.windVelocity = new THREE.Vector3();
-    scene.add(block);
-    floatingBlocks.push(block);
-  }
+  function animate(now) {
+    const dt = (now - (animate.lastTime || now)) / 1000;
+    animate.lastTime = now;
 
-  const blockSpread = terrainSize * 0.48;
-  const cityExclusion = plateauHalfSize + chunkSize * 0.4;
-  async function generateBlocks(count) {
-    let created = 0;
-    let lastYield = performance.now();
-    while (created < count) {
-      const x = Math.random() * blockSpread * 2 - blockSpread;
-      const z = Math.random() * blockSpread * 2 - blockSpread;
-      if (Math.abs(x) < cityExclusion && Math.abs(z) < cityExclusion) {
-        continue;
-      }
-      createBlock(x, z);
-      created++;
-      const now = performance.now();
-      if (now - lastYield >= 16 || created === count) {
-        reportLoaderPhaseProgress(created / count);
-        await new Promise(resolve => requestAnimationFrame(resolve));
-        lastYield = now;
-      }
-    }
-    reportLoaderPhaseProgress(1);
-    await new Promise(resolve => requestAnimationFrame(resolve));
-    if (loaderEl) {
-      stopLoaderAnimation();
-      loaderEl.remove();
-    }
-    console.log(`Terrain populated with ${count} blocks.`);
-  }
+    updateCamera(dt);
+    updateHud(dt);
 
-  function updateControls(dt){
-    const yawInput = (keyState['ArrowRight'] ? 1 : 0) - (keyState['ArrowLeft'] ? 1 : 0);
-    const targetYawVelocity = yawInput * controls.turnSpeed;
-    controls.yawVelocity = THREE.MathUtils.damp(controls.yawVelocity, targetYawVelocity, controls.turnSmooth, dt);
-    controls.yaw += controls.yawVelocity * dt;
-    controls.yaw = THREE.MathUtils.euclideanModulo(controls.yaw, Math.PI * 2);
+    gl.bindVertexArray(vao);
+    gl.useProgram(program);
+    mat4LookAt(viewMatrix, camera.position, camera.target, upVector);
+    gl.uniformMatrix4fv(uniforms.view, false, viewMatrix);
+    gl.uniform3fv(uniforms.cameraPos, camera.position);
+    gl.uniform3fv(uniforms.fogColor, fogColor);
+    gl.uniform1f(uniforms.fogNear, fogNear);
+    gl.uniform1f(uniforms.fogFar, fogFar);
+    gl.uniform1i(uniforms.renderMode, currentRenderMode);
 
-    horizontalForward.set(Math.sin(controls.yaw), 0, -Math.cos(controls.yaw));
-    moveVector.set(0, 0, 0);
-    if (keyState['ArrowUp']) moveVector.add(horizontalForward);
-    if (keyState['ArrowDown']) moveVector.addScaledVector(horizontalForward, -1);
+    gl.clearColor(fogColor[0], fogColor[1], fogColor[2], 1);
+    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+    gl.drawElements(gl.TRIANGLES, geometry.indices.length, gl.UNSIGNED_INT, 0);
 
-    let speedTarget = 0;
-    if (moveVector.lengthSq() > 0) {
-      moveVector.normalize().multiplyScalar(controls.speed * dt);
-      speedTarget = controls.speed;
-      camera.position.add(moveVector);
-    }
-    currentSpeed = THREE.MathUtils.damp(currentSpeed, speedTarget, 6, dt);
+    fps.begin();
+    fps.end();
 
-    const cosPitch = Math.cos(controls.pitch);
-    lookVector.set(
-      Math.sin(controls.yaw) * cosPitch,
-      Math.sin(controls.pitch),
-      -Math.cos(controls.yaw) * cosPitch
-    );
-    camera.position.y = controls.height;
-    lookTargetScratch.copy(camera.position).add(lookVector);
-    camera.lookAt(lookTargetScratch);
-  }
-
-  function updateSky(time, dt){
-    skyDome.position.copy(camera.position);
-    const glowTarget = 0.12 + (Math.sin(time * 0.22) + 1) * 0.04;
-    skyUniforms.glowStrength.value = THREE.MathUtils.damp(skyUniforms.glowStrength.value, glowTarget, 2.4, dt);
-    skyUniforms.time.value = time;
-
-    if (blackHoleState) {
-      blackHoleState.target.copy(camera.position).add(blackHoleState.offset);
-      blackHoleState.target.y = camera.position.y * 0.42 + 48;
-      blackHoleState.group.position.lerp(blackHoleState.target, THREE.MathUtils.clamp(dt * 1.4, 0, 1));
-
-      const haloTarget = 0.6 + Math.sin(time * 0.52) * 0.18;
-      const dampedHalo = THREE.MathUtils.damp(blackHoleState.halo.material.opacity, haloTarget, 2.2, dt);
-      blackHoleState.halo.material.opacity = THREE.MathUtils.clamp(dampedHalo, 0.32, 0.9);
-
-      blackHoleState.disk.material.rotation += dt * 0.22;
-      blackHoleState.halo.material.rotation -= dt * 0.08;
-
-      const corePulse = 620 + Math.sin(time * 0.9) * 28;
-      blackHoleState.core.scale.set(corePulse, corePulse, 1);
-      const diskWidth = 1380 + Math.sin(time * 0.4) * 64;
-      const diskHeight = 820 + Math.cos(time * 0.55) * 44;
-      blackHoleState.disk.scale.set(diskWidth, diskHeight, 1);
-    }
-
-    for (const sprite of cloudSprites) {
-      const data = sprite.userData;
-      const angle = time * data.driftSpeed + data.phase;
-      const windOffsetX = Math.sin(time * data.windFrequencyX + data.phase) * data.windAmplitude;
-      const windOffsetZ = Math.cos(time * data.windFrequencyZ + data.phase * 0.6) * data.windAmplitude;
-      const targetX = camera.position.x + Math.cos(angle) * data.radius + windOffsetX;
-      const targetZ = camera.position.z + Math.sin(angle) * data.radius + windOffsetZ;
-      sprite.position.x = THREE.MathUtils.damp(sprite.position.x, targetX, 3.2, dt);
-      sprite.position.z = THREE.MathUtils.damp(sprite.position.z, targetZ, 3.2, dt);
-      const bob = Math.sin(time * data.bobSpeed + data.phase) * 14;
-      const targetY = camera.position.y + data.heightOffset + bob;
-      sprite.position.y = THREE.MathUtils.damp(sprite.position.y, targetY, 2.4, dt);
-      const targetOpacity = data.baseOpacity + Math.sin(time * 0.32 + data.phase) * 0.1;
-      const dampedOpacity = THREE.MathUtils.damp(sprite.material.opacity, targetOpacity, 2.8, dt);
-      sprite.material.opacity = THREE.MathUtils.clamp(dampedOpacity, 0.28, 0.92);
-      sprite.material.rotation = Math.sin(time * 0.12 + data.phase) * 0.18 + Math.sin(time * data.windFrequencyX) * 0.05;
-    }
-  }
-
-  function updateLighting(dt, time, isMoving) {
-    sunLightDesired.copy(camera.position).add(sunLightOffset);
-    sunLightDesired.x += Math.sin(time * 0.18) * 90;
-    sunLightDesired.z += Math.cos(time * 0.16) * 110;
-    const lerpFactor = THREE.MathUtils.clamp(dt * 3.6, 0, 1);
-    sunLight.position.lerp(sunLightDesired, lerpFactor);
-
-    sunLightTargetDesired.copy(camera.position).addScaledVector(lookVector, 60);
-    sunLight.target.position.lerp(sunLightTargetDesired, lerpFactor);
-    sunLight.target.updateMatrixWorld();
-
-    const baseIntensity = 1.05 + Math.sin(time * 0.24) * 0.08;
-    const targetIntensity = baseIntensity + (isMoving ? 0.18 : 0);
-    sunLight.intensity = THREE.MathUtils.damp(sunLight.intensity, targetIntensity, 3.2, dt);
-  }
-
-  function updateTerrainFollow() {
-    const snappedX = snapToChunk(camera.position.x);
-    const snappedZ = snapToChunk(camera.position.z);
-    if (snappedX !== terrainState.offsetX || snappedZ !== terrainState.offsetZ) {
-      terrainState.offsetX = snappedX;
-      terrainState.offsetZ = snappedZ;
-      refreshTerrain(snappedX, snappedZ);
-      terrainMesh.position.set(snappedX, 0, snappedZ);
-      if (terrainZXMesh) {
-        terrainZXMesh.position.copy(terrainMesh.position);
-      }
-      updateCityAnchor();
-      console.log(`Terrain recentered to chunk (${Math.round(snappedX / chunkSize)}, ${Math.round(snappedZ / chunkSize)}).`);
-    }
-  }
-
-  const tempVec = new THREE.Vector3();
-  const lookTargetScratch = new THREE.Vector3();
-  const desiredBlock = new THREE.Vector3();
-  const windScratch = new THREE.Vector3();
-  function updateHud() {
-    if (!hudElements.position) return;
-    const pos = camera.position;
-    hudElements.position.textContent = `${pos.x.toFixed(1)}, ${pos.y.toFixed(1)}, ${pos.z.toFixed(1)}`;
-    const yawDeg = THREE.MathUtils.euclideanModulo(THREE.MathUtils.radToDeg(controls.yaw), 360);
-    const pitchDeg = THREE.MathUtils.radToDeg(controls.pitch);
-    hudElements.heading.textContent = `${yawDeg.toFixed(1)}° / ${pitchDeg.toFixed(1)}°`;
-    hudElements.chunk.textContent = `${Math.round(terrainState.offsetX / chunkSize)}, ${Math.round(terrainState.offsetZ / chunkSize)}`;
-    hudElements.speed.textContent = `${currentSpeed.toFixed(1)} m/s`;
-  }
-  function updateBlocks(dt, time) {
-    const cameraPos = camera.position;
-    const influenceRadius = 60;
-    const influenceRadiusSq = influenceRadius * influenceRadius;
-    for (const block of floatingBlocks) {
-      const data = block.userData;
-      const bob = Math.sin(time * data.bobSpeed + data.phase) * data.bobAmp;
-      desiredBlock.copy(data.base);
-      desiredBlock.y += bob;
-      tempVec.copy(cameraPos).sub(block.position);
-      const distanceSq = tempVec.lengthSq();
-      if (distanceSq < influenceRadiusSq) {
-        const distance = Math.sqrt(distanceSq);
-        const strength = (influenceRadius - distance) / influenceRadius;
-        const windPhase = time * data.windSpeed + data.windSeed;
-        windScratch.set(
-          Math.sin(windPhase),
-          Math.cos(windPhase * 0.8) * 0.3,
-          Math.cos(windPhase * 1.1)
-        );
-        data.windVelocity.addScaledVector(windScratch, strength * data.windStrength * dt);
-      }
-      data.windVelocity.multiplyScalar(Math.max(0, 1 - dt * 2.2));
-      data.windOffset.addScaledVector(data.windVelocity, dt);
-      data.windOffset.multiplyScalar(0.92);
-      desiredBlock.add(data.windOffset);
-      block.position.lerp(desiredBlock, THREE.MathUtils.clamp(dt * 4, 0, 1));
-    }
-  }
-
-  let last = performance.now();
-  function animate(){
-    fpsMonitor.begin();
-    const now = performance.now();
-    const dt = Math.min(0.05, (now - last) / 1000);
-    last = now;
-    updateControls(dt);
-    const isCameraMoving = moveVector.lengthSq() > 1e-6 || currentSpeed > 0.5;
-    updateTerrainFollow();
-    updateHud();
-    updateBlocks(dt, now / 1000);
-    updateSky(now / 1000, dt);
-    updateLighting(dt, now / 1000, isCameraMoving);
-    if (retroEffect.enabled) {
-      retroEffect.render(scene, camera);
-    } else {
-      renderer.render(scene, camera);
-    }
-    fpsMonitor.end();
     requestAnimationFrame(animate);
   }
 
-  async function bootTerrain() {
-    console.log('Terrain initialising...');
-    reportLoaderPhaseProgress(1);
-    setLoaderPhaseRange(60, 100);
-    reportLoaderPhaseProgress(0);
-    updateLoaderStatus('Populating terrain…');
-    await generateBlocks(1000);
-    applyRenderMode(currentRenderMode, { announce: false });
-    console.log('Terrain ready.');
-    animate();
+  setLoaderPhaseRange(70, 100);
+  reportLoaderPhaseProgress(0.2);
+  updateLoaderStatus('Calibrating viewport…');
+
+  requestAnimationFrame(animate);
+  setProgress(100);
+  setTimeout(() => {
+    stopLoaderAnimation();
+    hideLoader(true);
+  }, 260);
+
+  const triggerVhsEffect = (() => {
+    let timeoutId = null;
+    return () => {
+      canvasWrap.classList.remove('vhs-glitch');
+      void canvasWrap.offsetWidth;
+      canvasWrap.classList.add('vhs-glitch');
+      if (timeoutId) clearTimeout(timeoutId);
+      timeoutId = setTimeout(() => canvasWrap.classList.remove('vhs-glitch'), 650);
+    };
+  })();
+
+  const renderModeButtons = document.querySelectorAll('[data-render-mode]');
+  const renderModeMap = { default: 0, wire: 1, zx: 2, petscii: 3 };
+
+  function setRenderModeByKey(key, announce = true) {
+    const mode = renderModeMap[key] ?? 0;
+    applyRenderMode(mode);
+    gl.useProgram(program);
+    gl.uniform1i(uniforms.renderMode, mode);
+    renderModeButtons.forEach(btn => {
+      const isActive = btn.dataset.renderMode === key;
+      btn.classList.toggle('is-active', isActive);
+      btn.setAttribute('aria-pressed', String(isActive));
+    });
+    if (announce) {
+      console.log(`Render mode changed to ${key.toUpperCase()}.`);
+    }
   }
 
-  bootTerrain().catch(err => {
-    console.error('Terrain failed to initialise.', err);
-    if (progressEl) {
-      progressEl.textContent = 'ERR';
-    }
-    if (loaderEl) {
-      stopLoaderAnimation();
-      loaderEl.classList.add('is-error');
-    }
+  renderModeButtons.forEach(btn => {
+    btn.addEventListener('click', () => {
+      const mode = btn.dataset.renderMode;
+      setRenderModeByKey(mode);
+      triggerVhsEffect();
+    });
   });
 
   const resolutionSelect = document.getElementById('resolution-select');
   const resolutionDisplay = document.getElementById('resolution-display');
-  const fullscreenBtn = document.getElementById('fullscreen-btn');
-  const controlUi = document.getElementById('control-ui');
-  const foldBtn = document.getElementById('ui-fold-btn');
-  let setControlFolded = null;
-
-  if (foldBtn && controlUi) {
-    const syncControlFold = (folded) => {
-      controlUi.classList.toggle('folded', folded);
-      foldBtn.setAttribute('aria-expanded', String(!folded));
-      const label = folded ? 'Expand control panel' : 'Collapse control panel';
-      foldBtn.setAttribute('aria-label', label);
-    };
-    setControlFolded = syncControlFold;
-    foldBtn.addEventListener('click', () => {
-      const next = !controlUi.classList.contains('folded');
-      syncControlFold(next);
-      console.log(`Control interface ${next ? 'folded' : 'expanded'}.`);
-    });
-    syncControlFold(controlUi.classList.contains('folded'));
-    console.log('Control interface initialised with animated fold icon.');
-  }
-
-  const isFullscreenActive = () => Boolean(
-    document.fullscreenElement ||
-    document.webkitFullscreenElement ||
-    document.msFullscreenElement
-  );
-
   let currentResolution = defaultResolution;
-  let vhsTimeoutId = null;
-  const MOBILE_BREAKPOINT = 720;
-  let isMobileLayout = null;
-
-  function updateResponsiveState() {
-    const isMobile = window.innerWidth <= MOBILE_BREAKPOINT;
-    document.body.classList.toggle('is-mobile', isMobile);
-    if (isMobile !== isMobileLayout) {
-      if (isMobile) {
-        setControlFolded?.(true);
-        setConsoleFolded?.(true);
-      }
-      isMobileLayout = isMobile;
-    }
-  }
-
-  const spawnVhsLines = () => {
-    if (!canvasWrap) return;
-    const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
-    const createLine = (topPercent) => {
-      const line = document.createElement('div');
-      line.classList.add('vhs-line');
-
-      const isCluster = Math.random() < 0.45;
-      if (isCluster) {
-        line.classList.add('vhs-line--cluster');
-        const clusterThickness = 2 + Math.random() * 3;
-        line.style.setProperty('--cluster-thickness', `${clusterThickness}px`);
-        const clusterHeight = 14 + Math.random() * 26;
-        line.style.height = `${clusterHeight}px`;
-      } else {
-        const baseHeight = 4 + Math.random() * 10;
-        line.style.height = `${baseHeight}px`;
-      }
-
-      const top = clamp(topPercent, 0, 100);
-      line.style.top = `${top}%`;
-
-      const shiftStart = (Math.random() - 0.5) * 140;
-      const shiftMid = shiftStart + (Math.random() - 0.5) * 180;
-      const shiftEnd = (Math.random() - 0.5) * 120;
-      const shiftClear = (Math.random() - 0.5) * 20;
-      line.style.setProperty('--shift-start', `${shiftStart}px`);
-      line.style.setProperty('--shift-mid', `${shiftMid}px`);
-      line.style.setProperty('--shift-end', `${shiftEnd}px`);
-      line.style.setProperty('--shift-clear', `${shiftClear}px`);
-
-      const skewStart = (Math.random() - 0.5) * 4;
-      const skewMid = (Math.random() - 0.5) * 12;
-      const skewEnd = (Math.random() - 0.5) * 4;
-      line.style.setProperty('--skew-start', `${skewStart}deg`);
-      line.style.setProperty('--skew-mid', `${skewMid}deg`);
-      line.style.setProperty('--skew-end', `${skewEnd}deg`);
-
-      line.style.setProperty('--line-opacity', `${0.5 + Math.random() * 0.4}`);
-      line.style.setProperty('--line-brightness', `${0.85 + Math.random() * 0.6}`);
-      line.style.setProperty('--line-hue', `${(Math.random() - 0.5) * 100}deg`);
-
-      canvasWrap.appendChild(line);
-      line.addEventListener('animationend', () => {
-        line.remove();
-      }, { once: true });
-    };
-
-    const groupCount = 3 + Math.floor(Math.random() * 4);
-    for (let group = 0; group < groupCount; group++) {
-      const baseTop = Math.random() * 100;
-      const linesInGroup = 1 + Math.floor(Math.random() * 3);
-      for (let i = 0; i < linesInGroup; i++) {
-        createLine(baseTop + (Math.random() - 0.5) * 10);
-      }
-    }
-  };
-
-  const triggerVhsEffect = () => {
-    if (!canvasWrap) return;
-    canvasWrap.classList.remove('vhs-glitch');
-    void canvasWrap.offsetWidth;
-    canvasWrap.classList.add('vhs-glitch');
-    spawnVhsLines();
-    if (vhsTimeoutId) {
-      clearTimeout(vhsTimeoutId);
-    }
-    vhsTimeoutId = setTimeout(() => {
-      canvasWrap.classList.remove('vhs-glitch');
-    }, 650);
-  };
-
-  function applyResolution(res) {
-    currentResolution = res;
-    renderer.setSize(res.width, res.height, false);
-    renderer.domElement.width = res.width;
-    renderer.domElement.height = res.height;
-    retroEffect.setSize(res.width, res.height);
-    camera.aspect = res.width / res.height;
-    camera.updateProjectionMatrix();
-    resolutionDisplay.textContent = `${res.label} — ${res.width} × ${res.height}`;
-    updateCanvasLayout();
-    console.log(`Resolution set to ${res.width}×${res.height} (${res.label}).`);
-  }
-
-  function parseResolution(value) {
-    const [w, h] = value.split('x').map(Number);
-    return RESOLUTIONS.find(r => r.width === w && r.height === h) || defaultResolution;
-  }
 
   function updateCanvasLayout() {
     const aspect = currentResolution.width / currentResolution.height;
     const availableWidth = Math.max(100, window.innerWidth);
     const availableHeight = Math.max(100, window.innerHeight);
-
     let displayWidth = availableWidth;
     let displayHeight = displayWidth / aspect;
-
     if (displayHeight > availableHeight) {
       const scale = availableHeight / displayHeight;
       displayWidth = Math.floor(displayWidth * scale);
       displayHeight = availableHeight;
     }
-
-    renderer.domElement.style.width = `${displayWidth}px`;
-    renderer.domElement.style.height = `${displayHeight}px`;
+    canvas.style.width = `${displayWidth}px`;
+    canvas.style.height = `${displayHeight}px`;
     canvasWrap.style.width = `${displayWidth}px`;
     canvasWrap.style.height = `${displayHeight}px`;
   }
 
+  function applyResolution(res) {
+    currentResolution = res;
+    resizeViewport(res.width, res.height);
+    resolutionDisplay.textContent = `${res.label} — ${res.width} × ${res.height}`;
+    updateCanvasLayout();
+    console.log(`Resolution set to ${res.width}×${res.height} (${res.label}).`);
+  }
+
   resolutionSelect.addEventListener('change', () => {
-    applyResolution(parseResolution(resolutionSelect.value));
+    const [w, h] = resolutionSelect.value.split('x').map(Number);
+    const chosen = RESOLUTIONS.find(r => r.width === w && r.height === h) || defaultResolution;
+    applyResolution(chosen);
     triggerVhsEffect();
   });
 
+  const fullscreenBtn = document.getElementById('fullscreen-btn');
+
+  const isFullscreenActive = () => Boolean(document.fullscreenElement || document.webkitFullscreenElement || document.msFullscreenElement);
+
   function updateFullscreenButton() {
-    const isFullscreen = isFullscreenActive();
     const isMobile = document.body.classList.contains('is-mobile');
-    const label = isFullscreen ? 'Exit Fullscreen' : (isMobile ? 'Fullscreen' : 'Enter Fullscreen');
-    fullscreenBtn.textContent = label;
-    const shouldShow = isFullscreen || window.innerWidth >= MOBILE_BREAKPOINT || isMobile;
+    fullscreenBtn.textContent = isFullscreenActive()
+      ? 'Exit Fullscreen'
+      : (isMobile ? 'Fullscreen' : 'Enter Fullscreen');
+    const shouldShow = isFullscreenActive() || window.innerWidth >= 720 || isMobile;
     fullscreenBtn.style.display = shouldShow ? 'inline-flex' : 'none';
-    document.body.classList.toggle('is-fullscreen', isFullscreen);
   }
 
   fullscreenBtn.addEventListener('click', () => {
     if (isFullscreenActive()) {
-      if (document.exitFullscreen) {
-        document.exitFullscreen();
-      } else if (document.webkitExitFullscreen) {
-        document.webkitExitFullscreen();
-      }
+      (document.exitFullscreen || document.webkitExitFullscreen || document.msExitFullscreen)?.call(document);
     } else {
       const target = document.documentElement;
-      const request = target.requestFullscreen || target.webkitRequestFullscreen || target.msRequestFullscreen;
-      if (request) request.call(target);
+      (target.requestFullscreen || target.webkitRequestFullscreen || target.msRequestFullscreen)?.call(target);
     }
   });
 
-  document.addEventListener('fullscreenchange', () => {
-    updateCanvasLayout();
-    updateFullscreenButton();
+  ['fullscreenchange', 'webkitfullscreenchange', 'msfullscreenchange'].forEach(eventName => {
+    document.addEventListener(eventName, () => {
+      updateCanvasLayout();
+      updateFullscreenButton();
+    });
   });
-  document.addEventListener('webkitfullscreenchange', () => {
-    updateCanvasLayout();
-    updateFullscreenButton();
+
+  const controlPad = document.getElementById('control-pad');
+  controlPad.querySelectorAll('button[data-key]').forEach(btn => {
+    const key = btn.dataset.key;
+    btn.addEventListener('pointerdown', event => {
+      keyState[key] = true;
+      btn.setPointerCapture?.(event.pointerId);
+    });
+    const end = () => { keyState[key] = false; };
+    btn.addEventListener('pointerup', end);
+    btn.addEventListener('pointerleave', end);
+    btn.addEventListener('lostpointercapture', end);
+    btn.addEventListener('pointercancel', end);
   });
-  document.addEventListener('msfullscreenchange', () => {
-    updateCanvasLayout();
-    updateFullscreenButton();
-  });
+
+  function updateResponsiveState() {
+    const isMobile = window.innerWidth <= 720;
+    document.body.classList.toggle('is-mobile', isMobile);
+  }
 
   window.addEventListener('resize', () => {
     updateResponsiveState();
     updateCanvasLayout();
     updateFullscreenButton();
   });
-
   window.addEventListener('orientationchange', () => {
     updateResponsiveState();
     updateCanvasLayout();
     updateFullscreenButton();
   });
 
+  const controlUi = document.getElementById('control-ui');
+  const foldBtn = document.getElementById('ui-fold-btn');
+  function setControlFolded(folded) {
+    if (!controlUi) return;
+    controlUi.classList.toggle('folded', folded);
+    foldBtn?.setAttribute('aria-expanded', String(!folded));
+    foldBtn?.setAttribute('aria-label', folded ? 'Expand control panel' : 'Collapse control panel');
+  }
+  foldBtn?.addEventListener('click', () => {
+    const next = !controlUi.classList.contains('folded');
+    setControlFolded(next);
+    console.log(`Control interface ${next ? 'folded' : 'expanded'}.`);
+  });
+
+  const consoleDock = document.getElementById('console-dock');
+  const consoleFoldBtn = document.getElementById('console-fold-btn');
+  const consoleStatus = document.getElementById('console-status');
+  const consoleLog = document.getElementById('console-log');
+  initConsoleLogs({ container: consoleLog, removeAfter: 0 });
+
+  function setConsoleFolded(folded) {
+    consoleDock.classList.toggle('folded', folded);
+    consoleFoldBtn?.setAttribute('aria-expanded', String(!folded));
+    consoleFoldBtn?.setAttribute('aria-label', folded ? 'Expand console log' : 'Collapse console log');
+    consoleStatus.textContent = folded ? 'Folded' : 'Live';
+  }
+
+  consoleFoldBtn?.addEventListener('click', () => {
+    const next = !consoleDock.classList.contains('folded');
+    setConsoleFolded(next);
+  });
+
+  setConsoleFolded(true);
+  setControlFolded(false);
   updateResponsiveState();
   applyResolution(currentResolution);
   updateFullscreenButton();
   updateCanvasLayout();
-  })();
+  setRenderModeByKey('default', false);
+
+  console.log('Terrain ready.');
   </script>
+
 </body>
 </html>
