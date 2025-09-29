@@ -904,6 +904,24 @@
             let top = 50 + state.windowCount * 20;
             let left = 50 + state.windowCount * 20;
 
+            const clampNumber = (value, min, max) => {
+                if (!Number.isFinite(value)) return min;
+                if (max !== null && value > max) return max;
+                if (min !== null && value < min) return min;
+                return value;
+            };
+
+            const viewportWidth = window.innerWidth || 1280;
+            const viewportHeight = window.innerHeight || 720;
+            const margin = 20;
+
+            const rawAvailableWidth = Math.max(viewportWidth - margin * 2, 0);
+            const rawAvailableHeight = Math.max(viewportHeight - margin * 2, 0);
+            const minWidth = Math.min(320, Math.max(rawAvailableWidth, Math.min(240, viewportWidth - margin)));
+            const minHeight = Math.min(220, Math.max(rawAvailableHeight, Math.min(200, viewportHeight - margin)));
+            const availableWidth = Math.max(rawAvailableWidth, minWidth);
+            const availableHeight = Math.max(rawAvailableHeight, minHeight);
+
             if (persistWindows && windowStates[type]) {
                 const saved = windowStates[type];
                 winWidth = saved.width;
@@ -911,6 +929,15 @@
                 top = saved.top;
                 left = saved.left;
             }
+
+            winWidth = clampNumber(winWidth, minWidth, availableWidth);
+            winHeight = clampNumber(winHeight, minHeight, availableHeight);
+
+            const maxLeft = Math.max(margin, viewportWidth - winWidth - margin);
+            const maxTop = Math.max(margin, viewportHeight - winHeight - margin);
+
+            top = clampNumber(top, margin, maxTop);
+            left = clampNumber(left, margin, maxLeft);
 
             const windowHtml = `
                 <div class="window" id="${id}" data-window-type="${type}"
@@ -936,6 +963,11 @@
             desktop.insertAdjacentHTML('beforeend', windowHtml);
             const winEl = document.getElementById(id);
             winEl.classList.add('zoom-init');
+            winEl.dataset.minimized = 'false';
+            winEl.dataset.initWidth = winEl.offsetWidth;
+            winEl.dataset.initHeight = winEl.offsetHeight;
+            winEl.dataset.initTop = winEl.offsetTop;
+            winEl.dataset.initLeft = winEl.offsetLeft;
             requestAnimationFrame(() => winEl.classList.remove('zoom-init'));
             makeDraggable(id);
             state.windows.push(id);
@@ -1026,6 +1058,7 @@
                 const hostWindow = existingFrame.closest('.window');
                 if (hostWindow) {
                     hostWindow.style.display = 'flex';
+                    hostWindow.dataset.minimized = 'false';
                     hostWindow.style.zIndex = ++state.zIndex;
                 }
                 return docuBridge.frameWindow;
@@ -1214,6 +1247,7 @@
            const window = document.getElementById(id);
            if (window) {
                window.style.display = 'none';
+                window.dataset.minimized = 'true';
                 console.log('Window minimized:', id);
                 updateTaskBar();
             }
@@ -1227,11 +1261,19 @@
                 if (!win) return;
                 const btn = document.createElement('div');
                 btn.className = 'task-btn';
-                if (win.style.display !== 'none') btn.classList.add('active');
+                const isMinimized = win.style.display === 'none' || win.dataset.minimized === 'true';
+                if (!isMinimized) btn.classList.add('active');
                 btn.textContent = win.querySelector('.window-title').textContent;
                 btn.onclick = () => {
-                    if (win.style.display === 'none') win.style.display = 'flex';
-                    win.style.zIndex = ++state.zIndex;
+                    const minimized = win.style.display === 'none' || win.dataset.minimized === 'true';
+                    if (minimized) {
+                        win.style.display = 'flex';
+                        win.dataset.minimized = 'false';
+                        win.style.zIndex = ++state.zIndex;
+                        saveWindowState(win.dataset.windowType, win);
+                    } else {
+                        minimizeWindow(id);
+                    }
                     updateTaskBar();
                 };
                 bar.appendChild(btn);
@@ -1264,7 +1306,7 @@
        function maximizeWindow(id) {
            const window = document.getElementById(id);
            if (window) {
-               if (window.dataset.maximized === 'true') {
+                if (window.dataset.maximized === 'true') {
                     window.style.width = window.dataset.initWidth + 'px';
                     window.style.height = window.dataset.initHeight + 'px';
                     window.style.top = window.dataset.initTop + 'px';
@@ -1283,6 +1325,7 @@
                     window.dataset.maximized = 'true';
                     console.log('Window maximized:', id);
                 }
+                window.dataset.minimized = 'false';
                 window.style.zIndex = ++state.zIndex;
                 updateTaskBar();
                 saveWindowState(window.dataset.windowType, window);
