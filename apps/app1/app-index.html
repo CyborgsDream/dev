@@ -273,7 +273,34 @@
             letter-spacing: 0.08em;
         }
 
-        .loading-overlay .zx-loader {
+        .boot-loader {
+            position: fixed;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: radial-gradient(circle at center, rgba(0, 30, 120, 0.92), rgba(0, 0, 0, 0.95));
+            z-index: 2000;
+            transition: opacity 0.35s ease;
+            --boot-progress: 0;
+        }
+
+        .boot-loader.boot-loader--hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .boot-loader.boot-loader--hidden .zx-loader {
+            opacity: 0;
+            transform: translateY(-12px);
+        }
+
+        .boot-loader .zx-loader {
+            transition: opacity 0.35s ease, transform 0.35s ease;
+        }
+
+        .loading-overlay .zx-loader,
+        .boot-loader .zx-loader {
             width: min(360px, 80%);
             border: 4px solid #fff;
             box-shadow:
@@ -316,6 +343,13 @@
             animation: zx-progress 2.8s steps(28) infinite;
         }
 
+        .boot-loader .zx-loader-fill {
+            animation: none;
+            transform: scaleX(var(--boot-progress, 0));
+            transform-origin: left center;
+            transition: transform 0.4s cubic-bezier(0.22, 0.61, 0.36, 1);
+        }
+
         .zx-loader-glow {
             position: absolute;
             inset: 0;
@@ -332,6 +366,10 @@
             font-size: 0.8rem;
             color: #00f0ff;
             animation: zx-blink 1.2s steps(2) infinite;
+        }
+
+        .boot-loader .zx-loader-status {
+            animation: none;
         }
 
         @keyframes zx-progress {
@@ -658,6 +696,16 @@
     <link id="theme-link" rel="stylesheet">
 </head>
 <body>
+    <div class="boot-loader" id="boot-loader" role="alert" aria-live="assertive">
+        <div class="zx-loader">
+            <div class="zx-loader-title" id="boot-title">Orbit OS is booting…</div>
+            <div class="zx-loader-bar">
+                <div class="zx-loader-fill"></div>
+                <div class="zx-loader-glow"></div>
+            </div>
+            <div class="zx-loader-status" id="boot-status">Initializing subsystems…</div>
+        </div>
+    </div>
     <div class="desktop" id="desktop">
         <!-- Retro wallpaper -->
         <div class="wallpaper"></div>
@@ -718,12 +766,90 @@
 
         // DOM references
         const desktop = document.getElementById('desktop');
+        const bootLoader = document.getElementById('boot-loader');
+        const bootStatus = document.getElementById('boot-status');
+        const defaultBootStatus = 'Initializing subsystems…';
+        let bootLoaderBusy = true;
         let appData = null;
         let persistWindows = true;
         let windowStates = JSON.parse(localStorage.getItem('windowStates') || '{}');
         const DOCUMONSTER_STORAGE_KEY = 'documonster-studiopro-autosave-v0-1';
         const docuBridge = { frameWindow: null, ready: false, queue: [], lastWindowId: null };
         const scanxFrames = new Set();
+
+        const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
+        function setBootProgress(value, status) {
+            if (!bootLoader) return;
+            const clamped = Math.max(0, Math.min(1, value));
+            bootLoader.style.setProperty('--boot-progress', clamped);
+            if (status) {
+                bootStatus.textContent = status;
+            }
+        }
+
+        function showBootLoader(status) {
+            if (!bootLoader) return;
+            bootLoader.style.display = 'flex';
+            void bootLoader.offsetWidth;
+            bootLoader.classList.remove('boot-loader--hidden');
+            bootLoader.setAttribute('aria-hidden', 'false');
+            if (status) {
+                bootStatus.textContent = status;
+            }
+        }
+
+        function hideBootLoader() {
+            if (!bootLoader) return Promise.resolve();
+            if (bootLoader.classList.contains('boot-loader--hidden')) {
+                bootLoader.style.display = 'none';
+                bootLoader.style.setProperty('--boot-progress', 0);
+                bootStatus.textContent = defaultBootStatus;
+                bootLoader.setAttribute('aria-hidden', 'true');
+                return Promise.resolve();
+            }
+            bootLoader.classList.add('boot-loader--hidden');
+            bootLoader.setAttribute('aria-hidden', 'true');
+            return new Promise(resolve => {
+                const finish = () => {
+                    bootLoader.style.display = 'none';
+                    bootLoader.removeEventListener('transitionend', onTransitionEnd);
+                    bootLoader.style.setProperty('--boot-progress', 0);
+                    bootStatus.textContent = defaultBootStatus;
+                    resolve();
+                };
+                const onTransitionEnd = (event) => {
+                    if (event.target === bootLoader && event.propertyName === 'opacity') {
+                        finish();
+                    }
+                };
+                bootLoader.addEventListener('transitionend', onTransitionEnd);
+                setTimeout(finish, 500);
+            });
+        }
+
+        async function runBootLoaderDemo() {
+            if (!bootLoader || bootLoaderBusy) return;
+            bootLoaderBusy = true;
+            try {
+                showBootLoader('Demonstrating Orbit OS loader…');
+                setBootProgress(0);
+                const demoSteps = [
+                    { progress: 0.2, status: 'Spinning up demo drives…', delay: 380 },
+                    { progress: 0.45, status: 'Syncing color palettes…', delay: 420 },
+                    { progress: 0.7, status: 'Preparing creative workspace…', delay: 520 },
+                    { progress: 1, status: 'Demo complete!', delay: 620 }
+                ];
+                for (const step of demoSteps) {
+                    await delay(step.delay);
+                    setBootProgress(step.progress, step.status);
+                }
+                await delay(520);
+                await hideBootLoader();
+            } finally {
+                bootLoaderBusy = false;
+            }
+        }
 
         function setTheme(theme) {
             const link = document.getElementById('theme-link');
@@ -750,9 +876,20 @@
                     div.className = 'dropdown-item';
                     div.textContent = entry.label;
                     if (entry.action === 'set-theme' && entry.theme) {
-                        div.addEventListener('click', () => setTheme(entry.theme));
+                        div.addEventListener('click', () => {
+                            setTheme(entry.theme);
+                            dropdown.style.display = 'none';
+                        });
+                    } else if (entry.action === 'show-boot-loader') {
+                        div.addEventListener('click', () => {
+                            runBootLoaderDemo();
+                            dropdown.style.display = 'none';
+                        });
                     } else if (entry.type) {
-                        div.setAttribute('onclick', `openWindow('${entry.type}')`);
+                        div.addEventListener('click', () => {
+                            openWindow(entry.type);
+                            dropdown.style.display = 'none';
+                        });
                     }
                     dropdown.appendChild(div);
                 });
@@ -1389,22 +1526,40 @@
         
         // Initialize everything
         async function init() {
+            showBootLoader('Initializing video BIOS…');
+            setBootProgress(0.08, 'Initializing video BIOS…');
+
             setTheme('retro');
-            await selectThemeDialog();
+            setBootProgress(0.18, 'Calibrating color palette…');
+
             const res = await fetch('app-data/app1.json');
+            setBootProgress(0.38, 'Loading system manifest…');
             appData = await res.json();
+            setBootProgress(0.5, 'Mounting creative drives…');
+
             persistWindows = appData.settings && appData.settings.persistWindows !== false;
             buildMenus(appData.menus);
+            setBootProgress(0.62, 'Configuring menu system…');
             buildIcons(appData.icons);
             buildIconTypeMap();
+            setBootProgress(0.74, 'Arranging desktop icons…');
             preloadAppScripts();
             document.getElementById('status-bar').textContent = appData.status;
-            buildWelcome(appData.welcome);
             initClock(appData.settings && appData.settings.clockFormat);
             initMenus();
             updateTaskBar();
             initTaskBarMenu();
+            setBootProgress(0.9, 'Starting essential services…');
+
+            await delay(220);
+            setBootProgress(1, 'Orbit OS ready!');
+            await delay(280);
+            await hideBootLoader();
+
+            await selectThemeDialog();
+            buildWelcome(appData.welcome);
             openWindow('console-log');
+            bootLoaderBusy = false;
             console.log('App1 initialized');
         }
 
