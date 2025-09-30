@@ -234,6 +234,53 @@
     <section class="summary" id="summary"></section>
   </main>
   <script>
+    function createProgressLogger(namespace) {
+      const name = namespace || 'Log';
+      const prefix = `[${name}]`;
+      let start = Date.now();
+      const entries = [];
+      const record = (level, message, detail) => {
+        const elapsedMs = Date.now() - start;
+        const payload = detail === undefined ? undefined : detail;
+        const entry = {
+          level,
+          message,
+          elapsedMs,
+          timestamp: new Date().toISOString(),
+          detail: payload || null
+        };
+        entries.push(entry);
+        if (typeof console !== 'undefined') {
+          const logger = typeof console[level] === 'function' ? console[level] : console.log;
+          if (typeof logger === 'function') {
+            if (payload === undefined) {
+              logger.call(console, `${prefix} ${message} (+${elapsedMs}ms)`);
+            } else {
+              logger.call(console, `${prefix} ${message} (+${elapsedMs}ms)`, payload);
+            }
+          }
+        }
+      };
+      return {
+        step(message, detail) { record('info', message, detail); },
+        warn(message, detail) { record('warn', message, detail); },
+        error(message, detail) { record('error', message, detail); },
+        reset() {
+          entries.length = 0;
+          start = Date.now();
+          record('info', 'Progress log reset');
+        },
+        entries() {
+          return entries.slice();
+        }
+      };
+    }
+
+    const scanxLog = createProgressLogger('ScanX');
+    if (typeof window !== 'undefined') {
+      window.__scanxProgressLog = scanxLog;
+    }
+
     const PDFJS_SOURCES = [
       {
         script: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.2.67/build/pdf.min.js',
@@ -257,8 +304,14 @@
         const script = document.createElement('script');
         script.src = src;
         script.async = true;
-        script.onload = () => resolve();
-        script.onerror = () => reject(new Error('Failed to load script: ' + src));
+        script.onload = () => {
+          scanxLog.step('Script loaded', { src });
+          resolve();
+        };
+        script.onerror = () => {
+          scanxLog.warn('Script failed to load', { src });
+          reject(new Error('Failed to load script: ' + src));
+        };
         document.head.appendChild(script);
       });
     }
@@ -280,33 +333,40 @@
           activePdfSource = PDFJS_SOURCES.find(src => !src.lite) || PDFJS_SOURCES[0];
         }
         configurePdfJs();
+        scanxLog.step('PDF.js already available', { source: activePdfSource && activePdfSource.script });
         return window.pdfjsLib;
       }
       for (const source of PDFJS_SOURCES) {
         if (source.lite && !HAS_NATIVE_DECOMPRESSION) {
+          scanxLog.warn('Skipping PDF.js lite source', { reason: 'missing-decompression-stream', src: source.script });
           continue;
         }
         try {
+          scanxLog.step('Attempting to load PDF.js source', { src: source.script, lite: !!source.lite });
           await loadScript(source.script);
           if (source.lite) {
             if (window.__scanxPdfjsLiteUnsupported) {
               delete window.__scanxPdfjsLiteUnsupported;
+              scanxLog.warn('PDF.js lite reported unsupported environment', { src: source.script });
               continue;
             }
           }
           if (window.pdfjsLib) {
             if (window.pdfjsLib.__scanxLiteUnsupported) {
               delete window.pdfjsLib;
+              scanxLog.warn('PDF.js lite failed to initialize', { src: source.script });
               continue;
             }
             activePdfSource = source;
             configurePdfJs(source);
+            scanxLog.step('PDF.js source ready', { src: source.script, worker: source.worker || null });
             return window.pdfjsLib;
           }
         } catch (err) {
-          console.warn('PDF.js source failed', source.script, err);
+          scanxLog.warn('PDF.js source failed', { src: source.script, error: err && err.message ? err.message : String(err) });
         }
       }
+      scanxLog.error('PDF.js library could not be loaded');
       throw new Error('PDF.js library could not be loaded');
     }
 
@@ -342,10 +402,11 @@
 
     function initializePdfEngine() {
       if (!pdfjsReadyPromise) {
+        scanxLog.step('Initializing PDF engine');
         pdfjsReadyPromise = ensurePdfJsLoaded();
       }
       pdfjsReadyPromise.catch(err => {
-        console.error('ScanX PDF engine failed to load', err);
+        scanxLog.error('ScanX PDF engine failed to load', { error: err && err.message ? err.message : String(err) });
         setStatus('ScanX could not load its PDF engine. Check your connection and reload.', 'error');
       });
       return pdfjsReadyPromise;
@@ -360,6 +421,9 @@
       pdfInput.disabled = state;
       if (state) {
         setStatus('Analyzing PDF… this may take a moment.', 'processing');
+        scanxLog.step('Analysis started');
+      } else {
+        scanxLog.step('Analysis finished');
       }
     }
 
@@ -408,16 +472,28 @@
           : [];
       const styles = textContent && textContent.styles ? textContent.styles : {};
       const pageHeight = viewport && typeof viewport.height === 'number' ? viewport.height : 0;
+      const pageWidth = viewport && typeof viewport.width === 'number' ? viewport.width : 0;
       const pageScale = viewport && typeof viewport.scale === 'number' ? viewport.scale : 1;
 
       const toMatrix = value => {
         if (!value) return [1, 0, 0, 1, 0, 0];
         if (Array.isArray(value)) return value.slice(0, 6);
         if (typeof value.length === 'number') return Array.from(value).slice(0, 6);
+        if (typeof value === 'object') {
+          if (typeof value.a === 'number' && typeof value.b === 'number' && typeof value.c === 'number' && typeof value.d === 'number' && typeof value.e === 'number' && typeof value.f === 'number') {
+            return [value.a, value.b, value.c, value.d, value.e, value.f];
+          }
+          if (typeof value.m11 === 'number' && typeof value.m12 === 'number' && typeof value.m21 === 'number' && typeof value.m22 === 'number') {
+            const e = typeof value.m41 === 'number' ? value.m41 : (typeof value.e === 'number' ? value.e : 0);
+            const f = typeof value.m42 === 'number' ? value.m42 : (typeof value.f === 'number' ? value.f : 0);
+            return [value.m11, value.m12, value.m21, value.m22, e, f];
+          }
+        }
         return [1, 0, 0, 1, 0, 0];
       };
 
       const viewportTransform = viewport && viewport.transform ? toMatrix(viewport.transform) : null;
+      const textSamples = [];
 
       items.forEach(item => {
         const rawSource =
@@ -430,6 +506,7 @@
           .replace(/\s+/g, ' ');
         const text = raw.trim();
         if (!text) return;
+        textSamples.push(text);
 
         const transform = toMatrix(item.transform);
         let glyphMatrix = transform;
@@ -445,19 +522,21 @@
         const fontSizePx = style && typeof style.fontSize === 'number'
           ? Math.abs(style.fontSize) * pageScale
           : null;
+        const scaleX = Math.hypot(glyphMatrix[0] || 0, glyphMatrix[1] || 0);
+        const scaleY = Math.hypot(glyphMatrix[2] || 0, glyphMatrix[3] || 0);
         const orientationVertical = style && style.vertical === true
           ? true
-          : Math.abs(glyphMatrix[1] || 0) > Math.abs(glyphMatrix[0] || 0);
+          : scaleY > scaleX && scaleY > 0;
 
         let width = 0;
         if (typeof item.width === 'number' && Number.isFinite(item.width)) {
           width = Math.abs(item.width) * pageScale;
         }
         if ((!Number.isFinite(width) || width <= 0) && !orientationVertical) {
-          width = Math.hypot(glyphMatrix[0] || 0, glyphMatrix[1] || 0);
+          width = scaleX;
         }
         if ((!Number.isFinite(width) || width <= 0) && orientationVertical) {
-          width = Math.hypot(glyphMatrix[2] || 0, glyphMatrix[3] || 0);
+          width = scaleY;
         }
         if (!Number.isFinite(width) || width <= 0) {
           width = Math.max(text.length * (fontSizePx ? fontSizePx * 0.4 : 2), 4);
@@ -465,11 +544,7 @@
 
         let heightPx = fontSizePx;
         if (!Number.isFinite(heightPx) || heightPx <= 0) {
-          if (orientationVertical) {
-            heightPx = Math.hypot(glyphMatrix[2] || 0, glyphMatrix[3] || 0);
-          } else {
-            heightPx = Math.hypot(glyphMatrix[1] || 0, glyphMatrix[3] || 0);
-          }
+          heightPx = orientationVertical ? scaleX : scaleY;
         }
         if (!Number.isFinite(heightPx) || heightPx <= 0) {
           heightPx = Math.max(width * 0.35, 2);
@@ -491,6 +566,39 @@
           height: heightPx,
           center: (left + right) / 2
         });
+      });
+
+      if (!boxes.length && textSamples.length) {
+        const fallbackText = textSamples.join(' ').replace(/\s+/g, ' ').trim();
+        if (fallbackText) {
+          const fallbackWidth = pageWidth || Math.max(pageHeight * 0.75, 512);
+          const fallbackHeight = pageHeight || Math.max(pageWidth * 1.3, 720);
+          boxes.push({
+            text: fallbackText,
+            left: 0,
+            right: fallbackWidth,
+            top: 0,
+            bottom: fallbackHeight,
+            width: fallbackWidth,
+            height: fallbackHeight,
+            center: fallbackWidth / 2,
+            synthetic: true
+          });
+          scanxLog.warn('Using synthesized text box fallback', {
+            items: items.length,
+            textLength: fallbackText.length
+          });
+        }
+      }
+
+      const syntheticUsed = boxes.some(box => box && box.synthetic);
+      boxes.syntheticFallbackUsed = syntheticUsed;
+      scanxLog.step('Extracted text boxes', {
+        items: items.length,
+        boxes: boxes.length,
+        pageWidth,
+        pageHeight,
+        syntheticFallback: syntheticUsed
       });
       return boxes;
     }
@@ -673,6 +781,7 @@
     function analyzePageLayout(page, textContent) {
       const viewport = page.getViewport({ scale: 1 });
       const boxes = extractTextBoxes(textContent, viewport);
+      const syntheticFallbackUsed = boxes && boxes.syntheticFallbackUsed === true;
       const pageWidthPx = viewport.width;
       const pageHeightPx = viewport.height;
       const pageWidthMm = Number((pageWidthPx * POINT_TO_MM).toFixed(2));
@@ -690,7 +799,8 @@
             pageSizeMm: { width: pageWidthMm, height: pageHeightMm },
             marginsMm: { top: 15, right: 15, bottom: 15, left: 15 },
             columnsMm: [],
-            averageGutterMm: 0
+            averageGutterMm: 0,
+            syntheticFallbackUsed
           }
         };
       }
@@ -742,7 +852,8 @@
           top: col.topMm,
           bottom: col.bottomMm
         })),
-        averageGutterMm
+        averageGutterMm,
+        syntheticFallbackUsed
       };
 
       return {
@@ -751,7 +862,8 @@
         windowLayout,
         html,
         preview: buildPreviewText(boxes),
-        metadata
+        metadata,
+        syntheticFallbackUsed
       };
     }
 
@@ -793,9 +905,16 @@
     }
 
     async function analyzePdf(file) {
+      scanxLog.reset();
+      scanxLog.step('Starting analysis for file', {
+        name: file && file.name ? file.name : 'unknown',
+        size: file && typeof file.size === 'number' ? file.size : null,
+        type: file && file.type ? file.type : null
+      });
       try {
         await initializePdfEngine();
       } catch (err) {
+        scanxLog.error('PDF engine initialization failed', { error: err && err.message ? err.message : String(err) });
         setStatus('ScanX could not load its PDF engine. Check your connection and reload.', 'error');
         return;
       }
@@ -804,8 +923,13 @@
       metaRow.hidden = true;
       try {
         const arrayBuffer = await file.arrayBuffer();
+        scanxLog.step('PDF file loaded into memory', { bytes: arrayBuffer.byteLength });
         const loadingTask = window.pdfjsLib.getDocument({ data: arrayBuffer });
         const pdf = await loadingTask.promise;
+        scanxLog.step('PDF document ready', {
+          pages: pdf.numPages,
+          fingerprint: Array.isArray(pdf.fingerprints) && pdf.fingerprints.length ? pdf.fingerprints[0] : null
+        });
         const pages = [];
         const summaries = [];
         for (let pageIndex = 1; pageIndex <= pdf.numPages; pageIndex++) {
@@ -815,6 +939,13 @@
             disableCombineTextItems: false
           });
           const layout = analyzePageLayout(page, textContent);
+          scanxLog.step('Page analyzed', {
+            pageIndex,
+            textItems: Array.isArray(textContent && textContent.items) ? textContent.items.length : (textContent && typeof textContent.items === 'object' && typeof textContent.items.length === 'number' ? textContent.items.length : 0),
+            columnsDetected: layout && typeof layout.columns === 'number' ? layout.columns : null,
+            previewLength: layout && typeof layout.preview === 'string' ? layout.preview.length : 0,
+            syntheticFallback: !!(layout && layout.syntheticFallbackUsed)
+          });
           pages.push({
             title: `ScanX Page ${pageIndex}`,
             subtitle: '',
@@ -850,6 +981,11 @@
         const averageGutter = gutterSamples.length
           ? gutterSamples.reduce((total, value) => total + value, 0) / gutterSamples.length
           : null;
+        scanxLog.step('Analysis summary computed', {
+          pages: summaries.length,
+          averageColumns,
+          averageGutter
+        });
         currentDoc = buildDocument(pages, file.name, summaries);
         currentFileName = file.name;
         renderSummary(summaries);
@@ -872,7 +1008,7 @@
         const statusDetail = statusParts.length ? ` Detected ${statusParts.join(' • ')}.` : '';
         setStatus(`Scan complete. ${pages.length} page${pages.length === 1 ? '' : 's'} ready for Docu Monster.${statusDetail}`, 'success');
       } catch (err) {
-        console.error('ScanX failed', err);
+        scanxLog.error('ScanX analysis failed', { error: err && err.message ? err.message : String(err) });
         currentDoc = null;
         setStatus('ScanX could not analyze this PDF: ' + (err.message || err), 'error');
       } finally {
