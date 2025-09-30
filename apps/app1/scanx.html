@@ -214,18 +214,18 @@
   <main class="scanx-shell">
     <header>
       <h1>ScanX Publishing Studio</h1>
-      <p>Transform source PDFs into publication-ready Docu Monster layouts with one click.</p>
+      <p>Transform source PDFs or HTML documents into publication-ready Docu Monster layouts with one click.</p>
     </header>
     <section class="upload-row">
-      <input type="file" id="pdfInput" accept="application/pdf" />
-      <button id="analyzeBtn" disabled>Analyze PDF</button>
+      <input type="file" id="pdfInput" accept="application/pdf,text/html,.pdf,.html,.htm" />
+      <button id="analyzeBtn" disabled>Analyze Document</button>
     </section>
     <section class="meta-row" id="metaRow" hidden>
       <span id="metaFile"></span>
       <span id="metaPages"></span>
       <span id="metaLayout"></span>
     </section>
-    <section class="status" id="statusPanel">Select a PDF to begin.</section>
+    <section class="status" id="statusPanel">Select a PDF or HTML document to begin.</section>
     <section class="actions">
       <button id="downloadBtn" class="secondary" disabled>Download .dx</button>
       <button id="saveLocalBtn" class="secondary" disabled>Save to Local Storage</button>
@@ -351,7 +351,7 @@
       return pdfjsReadyPromise;
     }
 
-    function toggleWorking(state) {
+    function toggleWorking(state, message) {
       working = state;
       analyzeBtn.disabled = state || !pdfInput.files.length;
       downloadBtn.disabled = state || !currentDoc;
@@ -359,8 +359,21 @@
       openDocBtn.disabled = state || !currentDoc;
       pdfInput.disabled = state;
       if (state) {
-        setStatus('Analyzing PDF… this may take a moment.', 'processing');
+        setStatus(message || 'Analyzing document… this may take a moment.', 'processing');
       }
+    }
+
+    function detectFileKind(file) {
+      if (!file) return 'unknown';
+      const type = (file.type || '').toLowerCase();
+      const name = (file.name || '').toLowerCase();
+      if (type === 'application/pdf' || name.endsWith('.pdf')) {
+        return 'pdf';
+      }
+      if (type === 'text/html' || type === 'application/xhtml+xml' || name.endsWith('.html') || name.endsWith('.htm')) {
+        return 'html';
+      }
+      return 'unknown';
     }
 
     function escapeHtml(input) {
@@ -616,6 +629,200 @@
       return combined.length > 220 ? combined.slice(0, 220) + '…' : combined;
     }
 
+    function buildPreviewFromHtml(html) {
+      const temp = document.createElement('div');
+      temp.innerHTML = html;
+      const text = temp.textContent ? temp.textContent.replace(/\s+/g, ' ').trim() : '';
+      if (!text) {
+        return 'No textual content detected.';
+      }
+      return text.length > 220 ? text.slice(0, 220) + '…' : text;
+    }
+
+    const ALLOWED_HTML_TAGS = new Set([
+      'a', 'abbr', 'article', 'aside', 'b', 'blockquote', 'br', 'caption', 'cite', 'code', 'col', 'colgroup', 'dd', 'del', 'div',
+      'dl', 'dt', 'em', 'figcaption', 'figure', 'footer', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'header', 'hr', 'i', 'img', 'ins',
+      'kbd', 'label', 'li', 'main', 'mark', 'nav', 'ol', 'p', 'pre', 'q', 's', 'section', 'small', 'span', 'strong', 'sub',
+      'sup', 'summary', 'table', 'tbody', 'td', 'tfoot', 'th', 'thead', 'time', 'tr', 'u', 'ul'
+    ]);
+
+    const ALLOWED_HTML_ATTRS = new Set([
+      'href', 'src', 'alt', 'title', 'target', 'rel', 'style', 'class', 'colspan', 'rowspan', 'width', 'height', 'scope'
+    ]);
+
+    const NODE_FILTER_SHOW_ELEMENT = typeof NodeFilter !== 'undefined' && NodeFilter && typeof NodeFilter.SHOW_ELEMENT === 'number'
+      ? NodeFilter.SHOW_ELEMENT
+      : 1;
+
+    function unwrapElement(element) {
+      const parent = element.parentNode;
+      if (!parent) {
+        element.remove();
+        return;
+      }
+      while (element.firstChild) {
+        parent.insertBefore(element.firstChild, element);
+      }
+      parent.removeChild(element);
+    }
+
+    function sanitizeHtmlContainer(container) {
+      if (!container) return container;
+      const forbiddenSelector = 'script,style,iframe,object,embed,link,meta,noscript';
+      container.querySelectorAll(forbiddenSelector).forEach(node => node.remove());
+      const nodes = [];
+      const walker = document.createTreeWalker(container, NODE_FILTER_SHOW_ELEMENT, null);
+      let current = walker.nextNode();
+      while (current) {
+        nodes.push(current);
+        current = walker.nextNode();
+      }
+      nodes.forEach(node => {
+        const tag = node.tagName ? node.tagName.toLowerCase() : '';
+        if (!ALLOWED_HTML_TAGS.has(tag)) {
+          unwrapElement(node);
+          return;
+        }
+        Array.from(node.attributes || []).forEach(attr => {
+          const name = attr.name.toLowerCase();
+          if (name.startsWith('on')) {
+            node.removeAttribute(attr.name);
+            return;
+          }
+          if ((name === 'href' || name === 'src') && /^\s*javascript:/i.test(attr.value || '')) {
+            node.removeAttribute(attr.name);
+            return;
+          }
+          if (!ALLOWED_HTML_ATTRS.has(name) && !name.startsWith('data-') && !name.startsWith('aria-')) {
+            node.removeAttribute(attr.name);
+          }
+        });
+      });
+      return container;
+    }
+
+    function sanitizeHtmlString(html) {
+      const container = document.createElement('div');
+      container.innerHTML = html;
+      sanitizeHtmlContainer(container);
+      return container.innerHTML.trim();
+    }
+
+    function sanitizeNodeToString(node) {
+      const container = document.createElement('div');
+      container.appendChild(node.cloneNode(true));
+      sanitizeHtmlContainer(container);
+      return container.innerHTML.trim();
+    }
+
+    function splitHtmlByBreaks(html) {
+      const pattern = /<!--\s*pagebreak\s*-->|<hr[^>]*(?:\bpage-break\b|\bdata-page-break\b)[^>]*>|<div[^>]*\bdata-page-break\b[^>]*>\s*<\/div>|<div[^>]*style=(['"])\s*[^'"]*\bpage-break-(?:before|after)\s*:\s*always\b[^'"]*\1[^>]*>\s*<\/div>/gi;
+      return html.split(pattern).map(part => part.trim()).filter(Boolean);
+    }
+
+    function extractHtmlPages(doc) {
+      if (!doc || !doc.body) return [];
+      const selectors = [
+        '[data-scanx-page]',
+        '[data-page]',
+        '[data-page-index]',
+        '[data-page-number]',
+        '[data-page-break]',
+        '.scanx-page',
+        '.document-page',
+        '.cv-page',
+        '.a4-page',
+        'section.page',
+        'article.page',
+        'div.page'
+      ];
+      const rawCandidates = selectors.length
+        ? Array.from(doc.body.querySelectorAll(selectors.join(',')))
+        : [];
+      const filtered = rawCandidates
+        .filter(node => node instanceof Element)
+        .filter(node => !rawCandidates.some(other => other !== node && other.contains(node)))
+        .filter(node => {
+          const text = node.textContent ? node.textContent.replace(/\s+/g, ' ').trim() : '';
+          if (text.length > 0) return true;
+          return !!node.querySelector('img,svg,table,video,ul,ol,dl');
+        });
+      if (filtered.length) {
+        return filtered.map(node => sanitizeNodeToString(node)).filter(Boolean);
+      }
+      const bodyHtml = doc.body.innerHTML || '';
+      const splitPages = splitHtmlByBreaks(bodyHtml);
+      if (splitPages.length > 1) {
+        return splitPages.map(part => sanitizeHtmlString(part)).filter(Boolean);
+      }
+      const sanitized = sanitizeHtmlString(bodyHtml);
+      return sanitized ? [sanitized] : [];
+    }
+
+    function buildHtmlLayout(html) {
+      const sanitized = html && html.trim() ? sanitizeHtmlString(html) : '';
+      const content = sanitized || `<p>${escapeHtml(buildLoremParagraph(80))}</p>`;
+      const preview = sanitized ? buildPreviewFromHtml(sanitized) : 'No textual content detected.';
+      const pageWidthMm = 210;
+      const pageHeightMm = 297;
+      const marginMm = 18;
+      const contentWidth = Number((pageWidthMm - marginMm * 2).toFixed(2));
+      const contentHeight = Number((pageHeightMm - marginMm * 2).toFixed(2));
+      const metadata = {
+        pageSizeMm: { width: pageWidthMm, height: pageHeightMm },
+        marginsMm: { top: marginMm, right: marginMm, bottom: marginMm, left: marginMm },
+        columnsMm: [{
+          start: marginMm,
+          width: contentWidth,
+          height: contentHeight,
+          top: marginMm,
+          bottom: Number((pageHeightMm - marginMm).toFixed(2))
+        }],
+        averageGutterMm: 0
+      };
+      return {
+        columns: 1,
+        windows: [content],
+        windowLayout: [{ width: contentWidth, height: contentHeight }],
+        html: content,
+        preview,
+        metadata
+      };
+    }
+
+    function applyAnalysisResult(pages, fileName, summaries) {
+      const averageColumns = summaries.length
+        ? summaries.reduce((total, entry) => total + (entry.columns || 0), 0) / summaries.length
+        : null;
+      const gutterSamples = summaries
+        .map(entry => (typeof entry.gutter === 'number' && Number.isFinite(entry.gutter)) ? entry.gutter : null)
+        .filter(value => value !== null);
+      const averageGutter = gutterSamples.length
+        ? gutterSamples.reduce((total, value) => total + value, 0) / gutterSamples.length
+        : null;
+      currentDoc = buildDocument(pages, fileName, summaries);
+      currentFileName = fileName;
+      renderSummary(summaries);
+      metaFile.textContent = `Source: ${fileName}`;
+      metaPages.textContent = `Pages detected: ${pages.length}`;
+      if (metaLayout) {
+        const parts = [];
+        const columnValue = averageColumns && averageColumns > 0 ? formatMeasurement(averageColumns) : null;
+        if (columnValue) parts.push(`Avg columns: ${columnValue}`);
+        const gutterValue = averageGutter !== null ? formatMeasurement(averageGutter) : null;
+        if (gutterValue) parts.push(`Avg gutter: ${gutterValue} mm`);
+        metaLayout.textContent = parts.length ? parts.join(' • ') : 'Layout analysis ready.';
+      }
+      metaRow.hidden = false;
+      const statusParts = [];
+      const statusColumns = averageColumns && averageColumns > 0 ? formatMeasurement(averageColumns) : null;
+      if (statusColumns) statusParts.push(`${statusColumns} avg columns`);
+      const statusGutter = averageGutter !== null ? formatMeasurement(averageGutter) : null;
+      if (statusGutter) statusParts.push(`~${statusGutter} mm gutters`);
+      const statusDetail = statusParts.length ? ` Detected ${statusParts.join(' • ')}.` : '';
+      setStatus(`Scan complete. ${pages.length} page${pages.length === 1 ? '' : 's'} ready for Docu Monster.${statusDetail}`, 'success');
+    }
+
     function clampPercent(value) {
       return Math.max(0, Math.min(100, value));
     }
@@ -799,7 +1006,7 @@
         setStatus('ScanX could not load its PDF engine. Check your connection and reload.', 'error');
         return;
       }
-      toggleWorking(true);
+      toggleWorking(true, 'Analyzing PDF… this may take a moment.');
       summaryEl.innerHTML = '';
       metaRow.hidden = true;
       try {
@@ -841,40 +1048,63 @@
             layout: layout.metadata
           });
         }
-        const averageColumns = summaries.length
-          ? summaries.reduce((total, entry) => total + (entry.columns || 0), 0) / summaries.length
-          : null;
-        const gutterSamples = summaries
-          .map(entry => (typeof entry.gutter === 'number' && Number.isFinite(entry.gutter)) ? entry.gutter : null)
-          .filter(value => value !== null);
-        const averageGutter = gutterSamples.length
-          ? gutterSamples.reduce((total, value) => total + value, 0) / gutterSamples.length
-          : null;
-        currentDoc = buildDocument(pages, file.name, summaries);
-        currentFileName = file.name;
-        renderSummary(summaries);
-        metaFile.textContent = `Source: ${file.name}`;
-        metaPages.textContent = `Pages detected: ${pages.length}`;
-        if (metaLayout) {
-          const parts = [];
-          const columnValue = averageColumns && averageColumns > 0 ? formatMeasurement(averageColumns) : null;
-          if (columnValue) parts.push(`Avg columns: ${columnValue}`);
-          const gutterValue = averageGutter !== null ? formatMeasurement(averageGutter) : null;
-          if (gutterValue) parts.push(`Avg gutter: ${gutterValue} mm`);
-          metaLayout.textContent = parts.length ? parts.join(' • ') : 'Layout analysis ready.';
-        }
-        metaRow.hidden = false;
-        const statusParts = [];
-        const statusColumns = averageColumns && averageColumns > 0 ? formatMeasurement(averageColumns) : null;
-        if (statusColumns) statusParts.push(`${statusColumns} avg columns`);
-        const statusGutter = averageGutter !== null ? formatMeasurement(averageGutter) : null;
-        if (statusGutter) statusParts.push(`~${statusGutter} mm gutters`);
-        const statusDetail = statusParts.length ? ` Detected ${statusParts.join(' • ')}.` : '';
-        setStatus(`Scan complete. ${pages.length} page${pages.length === 1 ? '' : 's'} ready for Docu Monster.${statusDetail}`, 'success');
+        applyAnalysisResult(pages, file.name, summaries);
       } catch (err) {
         console.error('ScanX failed', err);
         currentDoc = null;
         setStatus('ScanX could not analyze this PDF: ' + (err.message || err), 'error');
+      } finally {
+        toggleWorking(false);
+      }
+    }
+
+    async function analyzeHtmlDocument(file) {
+      toggleWorking(true, 'Analyzing HTML… this may take a moment.');
+      summaryEl.innerHTML = '';
+      metaRow.hidden = true;
+      try {
+        const text = await file.text();
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(text, 'text/html');
+        const htmlPages = extractHtmlPages(doc);
+        if (!htmlPages.length) {
+          throw new Error('No readable content detected in the HTML file.');
+        }
+        const pages = [];
+        const summaries = [];
+        htmlPages.forEach((pageHtml, index) => {
+          const layout = buildHtmlLayout(pageHtml);
+          pages.push({
+            title: `ScanX Page ${index + 1}`,
+            subtitle: '',
+            deck: '',
+            theme: 'standard',
+            elements: [{
+              type: 'columns',
+              columns: layout.columns,
+              windows: layout.windows,
+              windowLayout: layout.windowLayout,
+              style: 'standard',
+              html: layout.html
+            }],
+            footerLeft: 'Docu Monster Studio Pro',
+            footerRight: 'Page {{page}} of {{total}}',
+            layout: layout.metadata
+          });
+          summaries.push({
+            index: index + 1,
+            preview: layout.preview,
+            columns: layout.columns,
+            margins: layout.metadata?.marginsMm || null,
+            gutter: typeof layout.metadata?.averageGutterMm === 'number' ? layout.metadata.averageGutterMm : null,
+            layout: layout.metadata
+          });
+        });
+        applyAnalysisResult(pages, file.name, summaries);
+      } catch (err) {
+        console.error('ScanX HTML analysis failed', err);
+        currentDoc = null;
+        setStatus('ScanX could not analyze this HTML file: ' + (err.message || err), 'error');
       } finally {
         toggleWorking(false);
       }
@@ -967,18 +1197,33 @@
       saveLocalBtn.disabled = true;
       openDocBtn.disabled = true;
       if (pdfInput.files.length) {
-        analyzeBtn.disabled = false;
-        setStatus('Ready to scan. Click “Analyze PDF” to continue.');
+        const file = pdfInput.files[0];
+        const kind = detectFileKind(file);
+        if (kind === 'pdf' || kind === 'html') {
+          analyzeBtn.disabled = false;
+          const label = kind === 'pdf' ? 'PDF' : 'HTML document';
+          setStatus(`Ready to scan the selected ${label}. Click “Analyze Document” to continue.`);
+        } else {
+          analyzeBtn.disabled = true;
+          setStatus('Unsupported file format. Please select a PDF or HTML document.', 'error');
+        }
       } else {
         analyzeBtn.disabled = true;
-        setStatus('Select a PDF to begin.');
+        setStatus('Select a PDF or HTML document to begin.');
       }
     });
 
     analyzeBtn.addEventListener('click', () => {
       const file = pdfInput.files[0];
       if (!file || working) return;
-      analyzePdf(file);
+      const kind = detectFileKind(file);
+      if (kind === 'pdf') {
+        analyzePdf(file);
+      } else if (kind === 'html') {
+        analyzeHtmlDocument(file);
+      } else {
+        setStatus('Unsupported file format. Please select a PDF or HTML document.', 'error');
+      }
     });
 
     downloadBtn.addEventListener('click', downloadDx);
