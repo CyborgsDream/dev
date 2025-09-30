@@ -53,9 +53,15 @@ export function initScene(container, fpsCounter) {
   const groundSize = 32;
   const groundGeo = new THREE.PlaneGeometry(groundSize, groundSize, groundSize, groundSize);
   const pos = groundGeo.attributes.position;
+  const amplitude = 1.6;
+  const frequency = 0.45;
   for (let i = 0; i < pos.count; i++) {
-    const height = i % 2 === 0 ? 0 : -1;
-    pos.setZ(i, height);
+    const x = pos.getX(i);
+    const y = pos.getY(i);
+    const ridge = Math.sin(x * frequency) * Math.cos(y * frequency);
+    const falloff = Math.exp(-(x * x + y * y) / (groundSize * 3));
+    const height = ridge * amplitude * falloff;
+    pos.setZ(i, Math.max(height, -0.6));
   }
   groundGeo.computeVertexNormals();
 
