@@ -1326,7 +1326,7 @@
   if (!gl) {
     console.error('WebGL2 is required for the Terrain experience.');
     hideLoader(false);
-    return;
+    throw new Error('WebGL2 is required for the Terrain experience.');
   }
 
   const ZX_PALETTE = retroPalettes.zx.map(hex => [
