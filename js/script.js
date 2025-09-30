@@ -277,8 +277,8 @@ function setupTouchControls() {
 
   bindPress(forwardBtn, () => setForwardTarget(1), () => setForwardTarget(0));
   bindPress(backBtn, () => setForwardTarget(-1), () => setForwardTarget(0));
-  bindPress(leftBtn, () => setOrbitTarget(1), () => setOrbitTarget(0));
-  bindPress(rightBtn, () => setOrbitTarget(-1), () => setOrbitTarget(0));
+  bindPress(leftBtn, () => setOrbitTarget(-1), () => setOrbitTarget(0));
+  bindPress(rightBtn, () => setOrbitTarget(1), () => setOrbitTarget(0));
   bindPress(zoomInBtn, () => setZoomDirection(-1), () => setZoomDirection(0));
   bindPress(zoomOutBtn, () => setZoomDirection(1), () => setZoomDirection(0));
 }
