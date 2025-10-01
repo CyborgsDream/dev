@@ -968,7 +968,6 @@
       <button type="button" class="render-mode-btn" data-render-mode="wire" aria-pressed="false">Wired Vectors</button>
       <button type="button" class="render-mode-btn" data-render-mode="zx" aria-pressed="false">ZX Spectrum</button>
       <button type="button" class="render-mode-btn" data-render-mode="petscii" aria-pressed="false">Commodore PETSCII</button>
-      <button type="button" class="render-mode-btn" data-render-mode="signature" aria-pressed="false">Signature 8</button>
     </div>
     <div class="hud-line"><span>Position</span><span class="hud-value" data-hud="position">0, 0, 0</span></div>
     <div class="hud-line"><span>Heading</span><span class="hud-value" data-hud="heading">0° / 0°</span></div>
@@ -1097,10 +1096,6 @@
       0x6f3d86, 0x588d43, 0x352879, 0xb8c76f,
       0x6f4f25, 0x433900, 0x9a6759, 0x444444,
       0x6c6c6c, 0x9ad284, 0x6c5eb5, 0x959595
-    ],
-    signature: [
-      0xda291c, 0xf6eb61, 0x00b140, 0x00a9e0,
-      0x005eb8, 0xff6a13, 0xffffff, 0x000000
     ]
   };
 
@@ -1108,16 +1103,14 @@
     default: [0.02, 0.08, 0.15],
     wire: [0.02, 0.08, 0.15],
     zx: [0.0, 0.0, 0.52],
-    petscii: [0.0, 0.08, 0.05],
-    signature: [0.0, 0.102, 0.2]
+    petscii: [0.0, 0.08, 0.05]
   };
 
   const renderModeCanvasBackgrounds = {
     default: '#020817',
     wire: '#020817',
     zx: '#0000d7',
-    petscii: '#00140a',
-    signature: '#001933'
+    petscii: '#00140a'
   };
 
   let stopLoaderAnimation = () => {};
@@ -1326,7 +1319,7 @@
   if (!gl) {
     console.error('WebGL2 is required for the Terrain experience.');
     hideLoader(false);
-    throw new Error('WebGL2 is required for the Terrain experience.');
+    return;
   }
 
   const ZX_PALETTE = retroPalettes.zx.map(hex => [
@@ -1339,15 +1332,9 @@
     ((hex >> 8) & 255) / 255,
     (hex & 255) / 255
   ]);
-  const SIGNATURE_PALETTE = retroPalettes.signature.map(hex => [
-    ((hex >> 16) & 255) / 255,
-    ((hex >> 8) & 255) / 255,
-    (hex & 255) / 255
-  ]);
 
   const flattenedZX = new Float32Array(ZX_PALETTE.flat());
   const flattenedPET = new Float32Array(PET_PALETTE.flat());
-  const flattenedSignature = new Float32Array(SIGNATURE_PALETTE.flat());
 
   function createShader(type, source) {
     const shader = gl.createShader(type);
@@ -1415,9 +1402,7 @@
     return sum / Math.max(1e-5, norm);
   }
 
-  const waitForNextFrame = () => new Promise(resolve => requestAnimationFrame(resolve));
-
-  async function generateTerrainGeometry(size, segments, onProgress) {
+  function generateTerrainGeometry(size, segments, onProgress) {
     const vertexCount = (segments + 1) * (segments + 1);
     const positions = new Float32Array(vertexCount * 3);
     const normals = new Float32Array(vertexCount * 3);
@@ -1426,21 +1411,10 @@
     const indices = new Uint32Array(segments * segments * 6);
     const halfSize = size / 2;
     const step = size / segments;
-    const segmentsPlusOne = segments + 1;
-
-    const notifyProgress = (value) => {
-      if (typeof onProgress === 'function') {
-        onProgress(Math.max(0, Math.min(1, value)));
-      }
-    };
-
-    const yieldInterval = Math.max(1, Math.floor(segments / 12));
 
     let vertexIndex = 0;
-    notifyProgress(0);
     for (let z = 0; z <= segments; z++) {
-      const rowFraction = z / segmentsPlusOne;
-      notifyProgress(rowFraction * 0.6);
+      if (onProgress) onProgress(z / (segments + 1));
       for (let x = 0; x <= segments; x++) {
         const worldX = -halfSize + x * step;
         const worldZ = -halfSize + z * step;
@@ -1455,9 +1429,6 @@
         uvs[uvIdx + 1] = z / segments;
         vertexIndex += 1;
       }
-      if (z % yieldInterval === 0) {
-        await waitForNextFrame();
-      }
     }
 
     const sample = (ix, iz) => {
@@ -1468,8 +1439,6 @@
 
     vertexIndex = 0;
     for (let z = 0; z <= segments; z++) {
-      const normalRowFraction = z / segmentsPlusOne;
-      notifyProgress(0.6 + 0.3 * normalRowFraction);
       for (let x = 0; x <= segments; x++) {
         const left = sample(x - 1, z);
         const right = sample(x + 1, z);
@@ -1487,15 +1456,10 @@
         normals[idx + 2] = nz / length;
         vertexIndex += 1;
       }
-      if (z % yieldInterval === 0) {
-        await waitForNextFrame();
-      }
     }
 
     let writeIndex = 0;
     for (let z = 0; z < segments; z++) {
-      const indexRowFraction = segments > 0 ? z / segments : 1;
-      notifyProgress(0.9 + 0.1 * indexRowFraction);
       for (let x = 0; x < segments; x++) {
         const a = z * (segments + 1) + x;
         const b = a + 1;
@@ -1508,12 +1472,7 @@
         indices[writeIndex++] = c;
         indices[writeIndex++] = d;
       }
-      if (z % yieldInterval === 0) {
-        await waitForNextFrame();
-      }
     }
-
-    notifyProgress(1);
 
     return { positions, normals, uvs, indices, heights, segments, size, step };
   }
@@ -1582,8 +1541,6 @@
 `
     + `uniform vec3 uPetsciiPalette[16];
 `
-    + `uniform vec3 uSignaturePalette[8];
-`
     + `out vec4 outColor;
 `
     + `float gridFactor(vec2 uv, float gridSize) {
@@ -1605,32 +1562,6 @@
     + `  vec3 chosen = color;
 `
     + `  for (int i = 0; i < 16; i++) {
-`
-    + `    vec3 p = palette[i];
-`
-    + `    float d = distance(color, p);
-`
-    + `    if (d < best) {
-`
-    + `      best = d;
-`
-    + `      chosen = p;
-`
-    + `    }
-`
-    + `  }
-`
-    + `  return chosen;
-`
-    + `}
-`
-    + `vec3 quantize8(vec3 color, vec3 palette[8]) {
-`
-    + `  float best = 1e9;
-`
-    + `  vec3 chosen = color;
-`
-    + `  for (int i = 0; i < 8; i++) {
 `
     + `    vec3 p = palette[i];
 `
@@ -1690,10 +1621,6 @@
 `
     + `    color = quantize(color, uPetsciiPalette);
 `
-    + `  } else if (uRenderMode == 4) {
-`
-    + `    color = quantize8(color, uSignaturePalette);
-`
     + `  }
 `
     + `  float dist = distance(uCameraPos, vWorldPos);
@@ -1710,8 +1637,8 @@
   gl.useProgram(program);
 
   updateLoaderStatus('Generating terrain mesh…');
-  setLoaderPhaseRange(10, 65);
-  const geometry = await generateTerrainGeometry(600, 160, fraction => {
+  const geometry = generateTerrainGeometry(600, 160, fraction => {
+    setLoaderPhaseRange(10, 65);
     reportLoaderPhaseProgress(fraction);
   });
 
@@ -1754,8 +1681,7 @@
     renderMode: gl.getUniformLocation(program, 'uRenderMode'),
     gridSize: gl.getUniformLocation(program, 'uGridSize'),
     zxPalette: gl.getUniformLocation(program, 'uZXPalette'),
-    petsciiPalette: gl.getUniformLocation(program, 'uPetsciiPalette'),
-    signaturePalette: gl.getUniformLocation(program, 'uSignaturePalette')
+    petsciiPalette: gl.getUniformLocation(program, 'uPetsciiPalette')
   };
 
   const identityMatrix = new Float32Array([1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1]);
@@ -1765,7 +1691,6 @@
   gl.uniform1f(uniforms.gridSize, geometry.segments);
   gl.uniform3fv(uniforms.zxPalette, flattenedZX);
   gl.uniform3fv(uniforms.petsciiPalette, flattenedPET);
-  gl.uniform3fv(uniforms.signaturePalette, flattenedSignature);
 
   gl.enable(gl.DEPTH_TEST);
   gl.enable(gl.CULL_FACE);
@@ -1880,7 +1805,7 @@
   }
 
   function updateCamera(dt) {
-    const forward = [-Math.sin(camera.yaw), 0, -Math.cos(camera.yaw)];
+    const forward = [Math.sin(camera.yaw), 0, Math.cos(camera.yaw)];
     const right = [Math.cos(camera.yaw), 0, -Math.sin(camera.yaw)];
     let moveX = 0;
     let moveZ = 0;
@@ -1956,7 +1881,6 @@
   resizeViewport(defaultResolution.width, defaultResolution.height);
 
   const upVector = [0, 1, 0];
-  const renderModeKeys = ['default', 'wire', 'zx', 'petscii', 'signature'];
   let currentRenderMode = 0;
   let fogNear = 260;
   let fogFar = 980;
@@ -1964,14 +1888,13 @@
 
   function applyRenderMode(mode) {
     currentRenderMode = mode;
-    const key = renderModeKeys[mode] ?? 'default';
+    const key = mode === 0 ? 'default' : mode === 1 ? 'wire' : mode === 2 ? 'zx' : 'petscii';
     const color = renderModeFogColors[key];
     fogColor[0] = color[0];
     fogColor[1] = color[1];
     fogColor[2] = color[2];
-    const isZx = key === 'zx';
-    fogNear = isZx ? 180 : 260;
-    fogFar = isZx ? 720 : 980;
+    fogNear = mode === 2 ? 180 : 260;
+    fogFar = mode === 2 ? 720 : 980;
     canvas.style.backgroundColor = renderModeCanvasBackgrounds[key];
   }
 
@@ -2086,7 +2009,7 @@
   })();
 
   const renderModeButtons = document.querySelectorAll('[data-render-mode]');
-  const renderModeMap = { default: 0, wire: 1, zx: 2, petscii: 3, signature: 4 };
+  const renderModeMap = { default: 0, wire: 1, zx: 2, petscii: 3 };
 
   function setRenderModeByKey(key, announce = true) {
     const mode = renderModeMap[key] ?? 0;
