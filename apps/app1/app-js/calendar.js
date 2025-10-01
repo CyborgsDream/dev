@@ -1,4 +1,8 @@
-WinAPI.createWindow('calendar');
+const id = WinAPI.createWindow('calendar');
+
+const calendarWindow = document.getElementById(id);
+const headerEl = calendarWindow?.querySelector('#calendar-month-year');
+const gridEl = calendarWindow?.querySelector('.calendar-grid');
 
 window.currentDate = new Date();
 
@@ -15,7 +19,7 @@ window.generateCalendarDays = function(date) {
     const today = new Date();
 
     for (let i = 0; i < startDay; i++) {
-        daysHtml += `<div class="calendar-day"></div>`;
+        daysHtml += '<div class="calendar-day"></div>';
     }
 
     for (let day = 1; day <= daysInMonth; day++) {
@@ -28,17 +32,21 @@ window.generateCalendarDays = function(date) {
     return daysHtml;
 };
 
+function renderCalendar(date) {
+    if (headerEl) {
+        headerEl.textContent = date.toLocaleString('default', { month: 'long', year: 'numeric' });
+    }
+    if (gridEl) {
+        while (gridEl.children.length > 7) {
+            gridEl.removeChild(gridEl.lastElementChild);
+        }
+        gridEl.insertAdjacentHTML('beforeend', window.generateCalendarDays(date));
+    }
+}
+
 window.changeMonth = function(direction) {
     window.currentDate.setMonth(window.currentDate.getMonth() + direction);
-    const header = document.getElementById('calendar-month-year');
-    if (header)
-        header.textContent = window.currentDate.toLocaleString('default', { month: 'long', year: 'numeric' });
-
-    const calendarGrid = document.querySelector('.calendar-grid');
-    if (calendarGrid) {
-        for (let i = 7; i < calendarGrid.children.length; i++) {
-            calendarGrid.children[i].remove();
-        }
-        calendarGrid.insertAdjacentHTML('beforeend', window.generateCalendarDays(window.currentDate));
-    }
+    renderCalendar(window.currentDate);
 };
+
+renderCalendar(window.currentDate);

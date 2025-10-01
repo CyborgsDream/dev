@@ -16,7 +16,7 @@
           "type": "file-manager"
         },
         {
-          "label": "Exit Orbit OS v 0.1.1"
+          "label": "Exit Orbit OS v 0.1.2"
         }
       ]
     },
@@ -50,10 +50,6 @@
         {
           "label": "Calendar",
           "type": "calendar"
-        },
-        {
-          "label": "Puzzle Game",
-          "type": "puzzle-game"
         },
         {
           "label": "Console Log",
@@ -98,17 +94,16 @@
       ]
     }
   ],
-  "status": "Ready.",
+  "status": "Orbit OS v 0.1.2 ready.",
   "welcome": {
-    "title": "Orbit OS v 0.1.1",
+    "title": "Orbit OS v 0.1.2",
     "lines": [
-      "Welcome to Orbit OS v 0.1.1.",
+      "Welcome to Orbit OS v 0.1.2.",
       "Built in-house for independent creators.",
       "(c) 2025 CyborgsDream"
     ],
     "button": "OK"
   },
-  "puzzleSolved": "Congratulations! Puzzle solved!",
   "icons": [
     {
       "type": "terminal",
@@ -141,11 +136,6 @@
       "label": "Calendar"
     },
     {
-      "type": "puzzle-game",
-      "emoji": "🧩",
-      "label": "Puzzle"
-    },
-    {
       "type": "clock",
       "emoji": "⏰",
       "label": "Clock"
@@ -164,21 +154,21 @@
   "windows": {
     "system-info": {
       "title": "System Information",
-      "content": "<h2>Orbit OS v 0.1.1 Demo Machine</h2><p>Motorola 68030 @ 25MHz</p><p>2MB Chip RAM + 8MB Fast RAM</p><p>Kickstart 2.04</p><p>Orbit OS v 0.1.1</p><p>Display: 640x512 (ECS)</p><p>Floppy: 880KB 3.5\"</p><p>HD: 120MB SCSI</p><div style=\"margin-top: 20px; text-align: center;\"><div style=\"display: inline-block; padding: 10px; background: #0000aa; color: white;\">Creative Control</div></div>",
+      "content": "<h2>Orbit OS v 0.1.2 Demo Machine</h2><p>Motorola 68030 @ 25MHz</p><p>2MB Chip RAM + 8MB Fast RAM</p><p>Kickstart 2.04</p><p>Orbit OS v 0.1.2</p><p>Display: 640x512 (ECS)</p><p>Floppy: 880KB 3.5\"</p><p>HD: 120MB SCSI</p><div style=\"margin-top: 20px; text-align: center;\"><div style=\"display: inline-block; padding: 10px; background: #0000aa; color: white;\">Creative Control</div></div>",
       "width": 320,
       "height": 300
     },
     "terminal": {
       "title": "CLI",
-      "content": "<div class=\"terminal\"><div class=\"terminal-line\">Orbit OS v 0.1.1 CLI</div><div class=\"terminal-line\">(c) 2025 CyborgsDream</div><div class=\"terminal-line\">Orbit OS v 0.1.1 started.</div><div class=\"terminal-line\">System date: {DATE}</div><div class=\"terminal-line\">System time: {TIME}</div><div class=\"terminal-line\"><br></div><div class=\"terminal-line\"><span class=\"prompt\">1&gt;</span> <span class=\"cursor\">█</span></div></div>",
-      "width": 450,
-      "height": 250
+      "content": "<div class=\"terminal\" role=\"application\"><div class=\"terminal-screen\" tabindex=\"0\" aria-label=\"Orbit OS command line\"><div class=\"terminal-output\"></div><div class=\"terminal-input-line\"><span class=\"terminal-prompt\">orbit&gt;</span><span class=\"terminal-input\" aria-live=\"polite\"></span><span class=\"terminal-cursor\">█</span></div></div><div class=\"terminal-hints\">Type <strong>help</strong> to list available commands.</div></div>",
+      "width": 520,
+      "height": 320
     },
     "text-editor": {
       "title": "Text Editor",
-      "content": "<div class=\"text-editor\" style=\"display:flex;flex-direction:column;height:100%\"><div style=\"text-align:right;margin-bottom:5px;\"><button id=\"text-editor-export\" style=\"font-size:16px;\">Export PDF</button></div><textarea id=\"text-editor-area\" style=\"flex:1;background:#fff;border:1px solid #aaa;padding:5px;font-family:monospace;font-size:18px;\">Welcome to Orbit OS v 0.1.1!\n\n• Crafted for focused creative work.\n• Windows snap, remember their state, and respect your layout.\n• Use the status bar for live service feedback.\n\nStay tuned for additional native tools in upcoming builds.</textarea></div>",
-      "width": 500,
-      "height": 350
+      "content": "<div class=\"text-editor\"><div class=\"text-editor-toolbar\"><div class=\"text-editor-menu\"><button data-action=\"new\" class=\"text-editor-btn\">New</button><button data-action=\"save\" class=\"text-editor-btn\">Save</button><button data-action=\"load\" class=\"text-editor-btn\">Load</button><button data-action=\"word-count\" class=\"text-editor-btn\">Word Count</button></div><div class=\"text-editor-spacer\"></div><button id=\"text-editor-export\" class=\"text-editor-btn primary\">Export PDF</button></div><div class=\"text-editor-status-row\"><div id=\"text-editor-status\">Ready.</div><div id=\"text-editor-stats\"></div></div><textarea id=\"text-editor-area\" class=\"text-editor-area\">Welcome to Orbit OS v 0.1.2!\n\n• Crafted for focused creative work.\n• Windows snap, remember their state, and respect your layout.\n• Use the menu above to manage drafts.\n\nStay tuned for additional native tools in upcoming builds.</textarea></div>",
+      "width": 560,
+      "height": 420
     },
     "calculator": {
         "title": "Calculator",
@@ -192,17 +182,11 @@
       "width": 350,
       "height": 300
     },
-    "puzzle-game": {
-      "title": "15 Puzzle",
-      "content": "<div class=\"game-container\"><h3>15 Puzzle</h3><p>Slide the tiles to arrange them in order</p><div class=\"game-board\" id=\"puzzle-board\"></div><button onclick=\"initPuzzleGame()\" style=\"margin-top: 10px; padding: 5px 15px; font-size: 18px;\">New Game</button></div>",
-      "width": 300,
-      "height": 400
-    },
     "clock": {
       "title": "Clock",
-      "content": "<div style=\"text-align:center\"><div id=\"live-clock\" style=\"font-size:32px;margin-bottom:10px\">{TIME}</div><button id=\"toggle-clock-format\">24h</button></div>",
-      "width": 200,
-      "height": 170
+      "content": "<div class=\"gshock-clock\" role=\"img\" aria-label=\"CASHIO G-Shock inspired digital clock\"><div class=\"gshock-bezel\">CASHIO<br><span>G-SHOCK</span></div><div class=\"gshock-inner\"><div class=\"gshock-header\"><span id=\"gshock-day\">SUN</span><span class=\"gshock-signal\">SIG</span><span id=\"gshock-mode\">24H</span></div><div class=\"gshock-time\" id=\"gshock-time\">{TIME}</div><div class=\"gshock-footer\"><span id=\"gshock-date\">JAN 01</span><span id=\"gshock-ampm\">AM</span></div></div><div class=\"gshock-buttons\"><button id=\"gshock-toggle\" class=\"gshock-btn\" aria-label=\"Toggle 12 and 24 hour time\">MODE</button></div></div>",
+      "width": 260,
+      "height": 260
     },
     "console-log": {
       "title": "Console Logs",
