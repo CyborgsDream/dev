@@ -12,7 +12,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Orbit OS v 0.1.1</title>
+    <title>Orbit OS v 0.1.2</title>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=VT323&display=swap">
     <script>
         window.ORBIT_BASE_PATH = 'apps/app1/';
@@ -392,21 +392,72 @@
         }
         
         .terminal {
-            background: #000;
-            color: #0f0;
-            font-family: 'VT323', monospace;
-            padding: 10px;
+            display: flex;
+            flex-direction: column;
             height: 100%;
-            overflow: auto;
-            font-size: 18px;
-        }
-        
-        .terminal-line {
-            margin-bottom: 5px;
-        }
-        
-        .prompt {
+            background: radial-gradient(circle at top, #0a0a0a, #020202 70%);
+            border: 2px solid #0f0;
+            border-radius: 6px;
+            box-shadow: inset 0 0 12px rgba(0, 255, 170, 0.25);
+            font-family: 'VT323', monospace;
             color: #0f0;
+        }
+
+        .terminal-screen {
+            flex: 1;
+            overflow: auto;
+            padding: 12px;
+            outline: none;
+        }
+
+        .terminal-screen:focus {
+            box-shadow: inset 0 0 0 2px rgba(0, 255, 170, 0.4);
+        }
+
+        .terminal-output {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .terminal-row {
+            white-space: pre-wrap;
+            letter-spacing: 1px;
+        }
+
+        .terminal-input-line {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding-top: 6px;
+        }
+
+        .terminal-prompt {
+            color: #5dff89;
+        }
+
+        .terminal-input {
+            min-width: 2px;
+        }
+
+        .terminal-cursor {
+            animation: terminal-blink 1s step-end infinite;
+        }
+
+        @keyframes terminal-blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0; }
+        }
+
+        .terminal-hints {
+            padding: 6px 12px;
+            font-size: 14px;
+            background: linear-gradient(90deg, rgba(0, 255, 170, 0.15), transparent);
+            border-top: 1px solid rgba(0, 255, 170, 0.3);
+        }
+
+        .terminal-hints strong {
+            color: #9bffba;
         }
         
         .disk-drive {
@@ -427,6 +478,89 @@
             align-items: center;
             box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.5);
             z-index: 4;
+        }
+
+        .text-editor {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            background: #fdfdfd;
+            border: 1px solid #bbb;
+            border-radius: 4px;
+            overflow: hidden;
+            font-family: 'VT323', monospace;
+        }
+
+        .text-editor-toolbar {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 10px;
+            background: linear-gradient(to bottom, #ececec, #d8d8d8);
+            border-bottom: 1px solid #b3b3b3;
+        }
+
+        .text-editor-menu {
+            display: flex;
+            gap: 6px;
+        }
+
+        .text-editor-btn {
+            border: 1px solid #888;
+            background: linear-gradient(to bottom, #ffffff, #d9d9d9);
+            padding: 4px 10px;
+            font-size: 16px;
+            cursor: pointer;
+            border-radius: 3px;
+            transition: transform 0.1s ease, box-shadow 0.1s ease;
+        }
+
+        .text-editor-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+
+        .text-editor-btn.primary {
+            border-color: #0056b3;
+            background: linear-gradient(to bottom, #4aa3ff, #1c6ad6);
+            color: #fff;
+        }
+
+        .text-editor-spacer {
+            flex: 1;
+        }
+
+        .text-editor-status-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 6px 10px;
+            background: #f0f0f0;
+            font-size: 14px;
+            border-bottom: 1px solid #c9c9c9;
+        }
+
+        #text-editor-status[data-state="warning"] {
+            color: #c67d00;
+        }
+
+        #text-editor-status[data-state="success"] {
+            color: #0a8a37;
+        }
+
+        .text-editor-area {
+            flex: 1;
+            border: none;
+            padding: 12px;
+            font-size: 18px;
+            font-family: 'VT323', monospace;
+            outline: none;
+            resize: none;
+            background: #ffffff;
+        }
+
+        .text-editor-area:focus {
+            box-shadow: inset 0 0 0 2px rgba(0, 123, 255, 0.2);
         }
         
         .drive-slot {
@@ -452,6 +586,94 @@
             0% { opacity: 0.3; }
             50% { opacity: 1; }
             100% { opacity: 0.3; }
+        }
+
+        .gshock-clock {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: space-between;
+            height: 100%;
+            padding: 12px;
+            background: radial-gradient(circle at 20% 20%, #30343b, #0c0e12 70%);
+            border: 4px solid #050607;
+            border-radius: 16px;
+            color: #d8f9ff;
+            font-family: 'VT323', monospace;
+        }
+
+        .gshock-bezel {
+            text-align: center;
+            font-size: 18px;
+            letter-spacing: 2px;
+            color: #ffdf3f;
+        }
+
+        .gshock-bezel span {
+            display: block;
+            font-size: 12px;
+            color: #f33535;
+            letter-spacing: 4px;
+        }
+
+        .gshock-inner {
+            width: 100%;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            background: #101820;
+            border: 2px solid #2f3b44;
+            border-radius: 10px;
+            padding: 12px;
+            box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.6);
+        }
+
+        .gshock-header,
+        .gshock-footer {
+            display: flex;
+            justify-content: space-between;
+            font-size: 14px;
+            color: #8cd9ff;
+        }
+
+        .gshock-time {
+            font-size: 36px;
+            text-align: center;
+            color: #9bf7ff;
+            text-shadow: 0 0 10px rgba(155, 247, 255, 0.6);
+        }
+
+        .gshock-signal {
+            color: #ffdf3f;
+        }
+
+        .gshock-buttons {
+            display: flex;
+            justify-content: center;
+            margin-top: 10px;
+        }
+
+        .gshock-btn {
+            background: linear-gradient(to bottom, #20242b, #13161c);
+            border: 1px solid #515862;
+            color: #d8f9ff;
+            padding: 4px 12px;
+            font-size: 14px;
+            border-radius: 6px;
+            cursor: pointer;
+            letter-spacing: 2px;
+            transition: transform 0.1s ease, box-shadow 0.1s ease;
+        }
+
+        .gshock-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 3px 6px rgba(0, 0, 0, 0.4);
+        }
+
+        .gshock-btn.active {
+            background: linear-gradient(to bottom, #ffdf3f, #f2b705);
+            color: #101820;
         }
         
         .task-bar {
