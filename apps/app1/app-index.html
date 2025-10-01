@@ -12,7 +12,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Orbit OS v 0.1.0</title>
+    <title>Orbit OS v 0.1.1</title>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=VT323&display=swap">
     <style>
         * {
@@ -258,6 +258,20 @@
             line-height: 1.4;
             background: #c0c0c0;
             position: relative;
+        }
+
+        .window-content--framed {
+            padding: 0;
+            overflow: hidden;
+            display: flex;
+        }
+
+        .window-content--framed > iframe {
+            flex: 1;
+            width: 100%;
+            height: 100%;
+            border: none;
+            display: block;
         }
 
         .loading-overlay {
@@ -938,7 +952,7 @@
                 link.href = `app-js/${safe}.js`;
                 document.head.appendChild(link);
             });
-            ['html-studio.html', 'cloud-storage.html', 'documonster.html', 'scanx.html'].forEach(p => {
+            ['html-studio.html', 'documonster.html', 'scanx.html'].forEach(p => {
                 const l = document.createElement('link');
                 l.rel = 'prefetch';
                 l.href = p;
@@ -1099,6 +1113,8 @@
             saveWindowState(type, winEl);
             const iframe = winEl.querySelector('iframe');
             if (iframe) {
+                const contentEl = winEl.querySelector('.window-content');
+                contentEl?.classList.add('window-content--framed');
                 const loader = document.createElement('div');
                 loader.className = 'loading-overlay';
                 loader.innerHTML = `
@@ -1112,8 +1128,7 @@
                     </div>
                 `;
                 loader.setAttribute('aria-busy', 'true');
-                const contentEl = winEl.querySelector('.window-content');
-                contentEl.appendChild(loader);
+                contentEl?.appendChild(loader);
                 const removeLoader = () => loader.remove();
                 iframe.addEventListener('load', () => {
                     removeLoader();
@@ -1137,7 +1152,7 @@
             }
             if (type === 'console-log') {
                 // lazily load console log handler and keep restore callback
-                import('../../shared/consolelogs.js').then(({ initConsoleLogs }) => {
+                consoleLogsModulePromise.then(({ initConsoleLogs }) => {
                     const el = document
                         .getElementById(id)
                         ?.querySelector('.console-log-window');
@@ -1497,21 +1512,38 @@
         }
         
         // Initialize everything
+        const consoleLogsModulePromise = import('../../shared/consolelogs.js');
+
         async function init() {
+            const { initConsoleLogs } = await consoleLogsModulePromise;
+            if (!window.__orbitConsoleMonitor) {
+                const buffer = document.createElement('div');
+                initConsoleLogs({
+                    container: buffer,
+                    removeAfter: null,
+                    filter: ['log', 'info', 'warn', 'error']
+                });
+                window.__orbitConsoleMonitor = true;
+            }
+            console.info('Orbit OS boot sequence starting…');
             showBootLoader('Initializing video BIOS…');
             setBootProgress(0.08, 'Initializing video BIOS…');
+            console.info('Video BIOS initialized.');
 
             setTheme('retro');
             setBootProgress(0.18, 'Calibrating color palette…');
+            console.info('Theme set to retro.');
 
             const res = await fetch('app-data/app1.json');
             setBootProgress(0.38, 'Loading system manifest…');
             appData = await res.json();
+            console.info('System manifest loaded.');
             setBootProgress(0.5, 'Mounting creative drives…');
 
             persistWindows = appData.settings && appData.settings.persistWindows !== false;
             buildMenus(appData.menus);
             setBootProgress(0.62, 'Configuring menu system…');
+            console.info('Menus configured.');
             buildIcons(appData.icons);
             buildIconTypeMap();
             setBootProgress(0.74, 'Arranging desktop icons…');
@@ -1522,6 +1554,7 @@
             updateTaskBar();
             initTaskBarMenu();
             setBootProgress(0.9, 'Starting essential services…');
+            console.info('Core services started.');
 
             await delay(220);
             setBootProgress(1, 'Orbit OS ready!');
@@ -1531,6 +1564,7 @@
             buildWelcome(appData.welcome);
             openWindow('console-log');
             bootLoaderBusy = false;
+            console.info('Desktop ready.');
             console.log('App1 initialized');
         }
 

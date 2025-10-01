@@ -16,10 +16,7 @@
           "type": "file-manager"
         },
         {
-          "label": "Format Disk"
-        },
-        {
-          "label": "Exit Orbit OS v 0.1.0"
+          "label": "Exit Orbit OS v 0.1.1"
         }
       ]
     },
@@ -67,25 +64,6 @@
           "action": "show-boot-loader"
         },
         {
-          "label": "Disk Doctor"
-        },
-        {
-          "label": "Jokes",
-          "type": "jokes"
-        },
-        {
-          "label": "RETRO-LIST",
-          "type": "retro-list"
-        },
-        {
-          "label": "Activity",
-          "type": "activity"
-        },
-        {
-          "label": "Notes",
-          "type": "notes"
-        },
-        {
           "label": "Docu Monster Studio Pro",
           "type": "document-editor"
         },
@@ -122,10 +100,10 @@
   ],
   "status": "Ready.",
   "welcome": {
-    "title": "Orbit OS v 0.1.0",
+    "title": "Orbit OS v 0.1.1",
     "lines": [
-      "Welcome to Orbit OS v 0.1.0 — browser-based creative desktop",
-      "Powered by Docu Monster Studio Pro 0.1.0",
+      "Welcome to Orbit OS v 0.1.1.",
+      "Built in-house for independent creators.",
       "(c) 2025 CyborgsDream"
     ],
     "button": "OK"
@@ -137,31 +115,26 @@
       "emoji": "⌨️",
       "label": "Terminal"
     },
-      {
-        "type": "text-editor",
-        "emoji": "📝",
-        "label": "TextEdit"
-      },
-      {
-        "type": "notes",
-        "emoji": "🗒️",
-        "label": "Notes"
-      },
-      {
-        "type": "document-editor",
-        "emoji": "📄",
-        "label": "Docu Monster Studio Pro"
-      },
-      {
-        "type": "scanx",
-        "emoji": "🖨️",
-        "label": "ScanX"
-      },
-      {
-        "type": "calculator",
-        "emoji": "🧮",
-        "label": "Calculator"
-      },
+    {
+      "type": "text-editor",
+      "emoji": "📝",
+      "label": "TextEdit"
+    },
+    {
+      "type": "document-editor",
+      "emoji": "📄",
+      "label": "Docu Monster Studio Pro"
+    },
+    {
+      "type": "scanx",
+      "emoji": "🖨️",
+      "label": "ScanX"
+    },
+    {
+      "type": "calculator",
+      "emoji": "🧮",
+      "label": "Calculator"
+    },
     {
       "type": "calendar",
       "emoji": "📅",
@@ -186,53 +159,27 @@
       "type": "html-studio",
       "emoji": "🌐",
       "label": "HTML Studio"
-    },
-    {
-      "type": "cloud-storage",
-      "emoji": "☁️",
-      "label": "Cloud Storage"
-    },
-    {
-      "type": "retro-list",
-      "emoji": "📼",
-      "label": "RETRO-LIST"
-    },
-    {
-      "type": "jokes",
-      "emoji": "😂",
-      "label": "Jokes"
-    },
-    {
-      "type": "activity",
-      "emoji": "🎲",
-      "label": "Activity"
     }
   ],
   "windows": {
     "system-info": {
       "title": "System Information",
-      "content": "<h2>Orbit OS v 0.1.0 Demo Machine</h2><p>Motorola 68030 @ 25MHz</p><p>2MB Chip RAM + 8MB Fast RAM</p><p>Kickstart 2.04</p><p>Orbit OS v 0.1.0</p><p>Display: 640x512 (ECS)</p><p>Floppy: 880KB 3.5\"</p><p>HD: 120MB SCSI</p><div style=\"margin-top: 20px; text-align: center;\"><div style=\"display: inline-block; padding: 10px; background: #0000aa; color: white;\">Creative Control</div></div>",
+      "content": "<h2>Orbit OS v 0.1.1 Demo Machine</h2><p>Motorola 68030 @ 25MHz</p><p>2MB Chip RAM + 8MB Fast RAM</p><p>Kickstart 2.04</p><p>Orbit OS v 0.1.1</p><p>Display: 640x512 (ECS)</p><p>Floppy: 880KB 3.5\"</p><p>HD: 120MB SCSI</p><div style=\"margin-top: 20px; text-align: center;\"><div style=\"display: inline-block; padding: 10px; background: #0000aa; color: white;\">Creative Control</div></div>",
       "width": 320,
       "height": 300
     },
     "terminal": {
       "title": "CLI",
-      "content": "<div class=\"terminal\"><div class=\"terminal-line\">Orbit OS v 0.1.0 CLI</div><div class=\"terminal-line\">(c) 2025 CyborgsDream</div><div class=\"terminal-line\">Orbit OS v 0.1.0 started.</div><div class=\"terminal-line\">System date: {DATE}</div><div class=\"terminal-line\">System time: {TIME}</div><div class=\"terminal-line\"><br></div><div class=\"terminal-line\"><span class=\"prompt\">1&gt;</span> <span class=\"cursor\">█</span></div></div>",
+      "content": "<div class=\"terminal\"><div class=\"terminal-line\">Orbit OS v 0.1.1 CLI</div><div class=\"terminal-line\">(c) 2025 CyborgsDream</div><div class=\"terminal-line\">Orbit OS v 0.1.1 started.</div><div class=\"terminal-line\">System date: {DATE}</div><div class=\"terminal-line\">System time: {TIME}</div><div class=\"terminal-line\"><br></div><div class=\"terminal-line\"><span class=\"prompt\">1&gt;</span> <span class=\"cursor\">█</span></div></div>",
       "width": 450,
       "height": 250
     },
     "text-editor": {
-        "title": "Text Editor",
-        "content": "<div class=\"text-editor\" style=\"display:flex;flex-direction:column;height:100%\"><div style=\"text-align:right;margin-bottom:5px;\"><button id=\"text-editor-export\" style=\"font-size:16px;\">Export PDF</button></div><textarea id=\"text-editor-area\" style=\"flex:1;background:#fff;border:1px solid #aaa;padding:5px;font-family:monospace;font-size:18px;\">Welcome to Orbit OS v 0.1.0!\n\nThe workspace has been retuned for Docu Monster Studio Pro 0.1.0.\n• All desktop icons are ready for Orbit OS v 0.1.0 apps\n• Click any icon to open its application\n• Wallpaper layering stays click-through\n\nLaunch Docu Monster Studio Pro 0.1.0 to design spreads and export PDFs straight from Orbit OS v 0.1.0.</textarea></div>",
-        "width": 500,
-        "height": 350
-      },
-    "notes": {
-        "title": "Notes",
-        "content": "<textarea id=\"notes-area\" style=\"width:100%;height:100%;\"></textarea>",
-        "width": 400,
-        "height": 300
-      },
+      "title": "Text Editor",
+      "content": "<div class=\"text-editor\" style=\"display:flex;flex-direction:column;height:100%\"><div style=\"text-align:right;margin-bottom:5px;\"><button id=\"text-editor-export\" style=\"font-size:16px;\">Export PDF</button></div><textarea id=\"text-editor-area\" style=\"flex:1;background:#fff;border:1px solid #aaa;padding:5px;font-family:monospace;font-size:18px;\">Welcome to Orbit OS v 0.1.1!\n\n• Crafted for focused creative work.\n• Windows snap, remember their state, and respect your layout.\n• Use the status bar for live service feedback.\n\nStay tuned for additional native tools in upcoming builds.</textarea></div>",
+      "width": 500,
+      "height": 350
+    },
     "calculator": {
         "title": "Calculator",
         "content": "<div class=\"calculator\"><div class=\"calc-display\" id=\"calc-display\">0</div><button class=\"calc-btn\" onclick=\"clearCalc()\">C</button><button class=\"calc-btn\" onclick=\"appendCalc('%')\">%</button><button class=\"calc-btn\" onclick=\"appendCalc('←')\">←</button><button class=\"calc-btn operator\" onclick=\"appendCalc('/')\">×</button><button class=\"calc-btn\" onclick=\"appendCalc('7')\">7</button><button class=\"calc-btn\" onclick=\"appendCalc('8')\">8</button><button class=\"calc-btn\" onclick=\"appendCalc('9')\">9</button><button class=\"calc-btn operator\" onclick=\"appendCalc('*')\">×</button><button class=\"calc-btn\" onclick=\"appendCalc('4')\">4</button><button class=\"calc-btn\" onclick=\"appendCalc('5')\">5</button><button class=\"calc-btn\" onclick=\"appendCalc('6')\">6</button><button class=\"calc-btn operator\" onclick=\"appendCalc('-')\">-</button><button class=\"calc-btn\" onclick=\"appendCalc('1')\">1</button><button class=\"calc-btn\" onclick=\"appendCalc('2')\">2</button><button class=\"calc-btn\" onclick=\"appendCalc('3')\">3</button><button class=\"calc-btn operator\" onclick=\"appendCalc('+')\">+</button><button class=\"calc-btn\" onclick=\"appendCalc('0')\">0</button><button class=\"calc-btn\" onclick=\"appendCalc('.')\">.</button><button class=\"calc-btn operator\" onclick=\"calculate()\">=</button></div>",
@@ -280,30 +227,6 @@
       "content": "<iframe src=\"scanx.html\" style=\"width:100%;height:100%;border:none;background:#f4f6ff;\"></iframe>",
       "width": 900,
       "height": 640
-    },
-    "cloud-storage": {
-      "title": "Cloud Storage",
-      "content": "<iframe src=\"cloud-storage.html\" style=\"width:100%;height:100%;border:none;\"></iframe>",
-      "width": 500,
-      "height": 350
-    },
-    "retro-list": {
-      "title": "RETRO-LIST LZW12",
-      "content": "<iframe src=\"retro-list.html\" style=\"width:100%;height:100%;border:none;\"></iframe>",
-      "width": 800,
-      "height": 600
-    },
-    "jokes": {
-      "title": "Random Joke",
-      "content": "<div id=\"joke-area\" style=\"padding:10px;font-size:18px\">Loading...</div><button onclick=\"fetchJoke()\" style=\"margin-top:10px\">New Joke</button>",
-      "width": 400,
-      "height": 200
-    },
-    "activity": {
-      "title": "Random Activity",
-      "content": "<div id=\"activity-area\" style=\"padding:10px;font-size:18px\">Click the button for an activity</div><button onclick=\"fetchActivity()\" style=\"margin-top:10px\">Get Activity</button>",
-      "width": 400,
-      "height": 200
     },
     "mini-app": {
       "title": "Mini App",
