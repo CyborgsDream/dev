@@ -16,7 +16,7 @@
           "type": "file-manager"
         },
         {
-          "label": "Exit Orbit OS v 0.1.2"
+          "label": "Exit Orbit OS v 0.1.3"
         }
       ]
     },
@@ -94,11 +94,38 @@
       ]
     }
   ],
-  "status": "Orbit OS v 0.1.2 ready.",
+  "status": "Orbit OS v 0.1.3 ready.",
+  "terminal": {
+    "banner": [
+      "Orbit OS v{version} CLI",
+      "(c) 2025 CyborgsDream",
+      "System date: {date}",
+      "System time: {time}",
+      ""
+    ],
+    "hint": "Type <strong>help</strong> or try <code>status</code>.",
+    "responses": {
+      "status": [
+        "Core services: ONLINE",
+        "Creative drives mounted successfully.",
+        "Build version: v{version}"
+      ],
+      "whoami": "orbit-user",
+      "ls apps": [
+        "cloud-storage.html",
+        "documonster.html",
+        "scanx.html"
+      ]
+    },
+    "fallback": {
+      "type": "info",
+      "message": "Command \"{command}\" executed."
+    }
+  },
   "welcome": {
-    "title": "Orbit OS v 0.1.2",
+    "title": "Orbit OS v 0.1.3",
     "lines": [
-      "Welcome to Orbit OS v 0.1.2.",
+      "Welcome to Orbit OS v 0.1.3.",
       "Built in-house for independent creators.",
       "(c) 2025 CyborgsDream"
     ],
@@ -154,19 +181,19 @@
   "windows": {
     "system-info": {
       "title": "System Information",
-      "content": "<h2>Orbit OS v 0.1.2 Demo Machine</h2><p>Motorola 68030 @ 25MHz</p><p>2MB Chip RAM + 8MB Fast RAM</p><p>Kickstart 2.04</p><p>Orbit OS v 0.1.2</p><p>Display: 640x512 (ECS)</p><p>Floppy: 880KB 3.5\"</p><p>HD: 120MB SCSI</p><div style=\"margin-top: 20px; text-align: center;\"><div style=\"display: inline-block; padding: 10px; background: #0000aa; color: white;\">Creative Control</div></div>",
+      "content": "<h2>Orbit OS v 0.1.3 Demo Machine</h2><p>Motorola 68030 @ 25MHz</p><p>2MB Chip RAM + 8MB Fast RAM</p><p>Kickstart 2.04</p><p>Orbit OS v 0.1.3</p><p>Display: 640x512 (ECS)</p><p>Floppy: 880KB 3.5\"</p><p>HD: 120MB SCSI</p><div style=\"margin-top: 20px; text-align: center;\"><div style=\"display: inline-block; padding: 10px; background: #0000aa; color: white;\">Creative Control</div></div>",
       "width": 320,
       "height": 300
     },
     "terminal": {
       "title": "CLI",
-      "content": "<div class=\"terminal\" role=\"application\"><div class=\"terminal-screen\" tabindex=\"0\" aria-label=\"Orbit OS command line\"><div class=\"terminal-output\"></div><div class=\"terminal-input-line\"><span class=\"terminal-prompt\">orbit&gt;</span><span class=\"terminal-input\" aria-live=\"polite\"></span><span class=\"terminal-cursor\">█</span></div></div><div class=\"terminal-hints\">Type <strong>help</strong> to list available commands.</div></div>",
+      "content": "<div class=\"terminal\" role=\"application\"><div class=\"terminal-screen\" tabindex=\"0\" aria-label=\"Orbit OS command line\"><div class=\"terminal-output\"></div><div class=\"terminal-input-line\"><span class=\"terminal-prompt\">orbit&gt;</span><span class=\"terminal-input\" aria-live=\"polite\"></span><span class=\"terminal-cursor\">█</span></div></div><div class=\"terminal-hints\">Type <strong>help</strong> or try <code>status</code>.</div></div>",
       "width": 520,
       "height": 320
     },
     "text-editor": {
       "title": "Text Editor",
-      "content": "<div class=\"text-editor text-editor--wrap text-editor--mono\"><div class=\"text-editor-toolbar\"><div class=\"text-editor-menu\"><button type=\"button\" data-action=\"options\" class=\"text-editor-btn\" aria-expanded=\"false\">Options</button><button type=\"button\" data-action=\"new\" class=\"text-editor-btn\">New</button><button type=\"button\" data-action=\"save\" class=\"text-editor-btn\">Save</button><button type=\"button\" data-action=\"load\" class=\"text-editor-btn\">Load</button><button type=\"button\" data-action=\"word-count\" class=\"text-editor-btn\">Word Count</button><input type=\"file\" id=\"text-editor-file\" accept=\".txt,.md,.json,text/plain\" hidden></div><div class=\"text-editor-spacer\"></div><button type=\"button\" id=\"text-editor-export\" class=\"text-editor-btn primary\">Export PDF</button></div><div class=\"text-editor-options\" id=\"text-editor-options\" aria-hidden=\"true\"><label class=\"text-editor-option\"><span>Soft wrap text</span><input type=\"checkbox\" id=\"text-editor-option-wrap\" checked></label><label class=\"text-editor-option\"><span>Monospace mode</span><input type=\"checkbox\" id=\"text-editor-option-mono\" checked></label><label class=\"text-editor-option\"><span>Auto-save drafts</span><input type=\"checkbox\" id=\"text-editor-option-autosave\" checked></label><label class=\"text-editor-option text-editor-option--filename\"><span>Default filename</span><input type=\"text\" id=\"text-editor-option-filename\" value=\"orbit-notes.txt\" spellcheck=\"false\"></label><div class=\"text-editor-option text-editor-option--actions\"><span>Need your last copy?</span><button type=\"button\" id=\"text-editor-restore\" class=\"text-editor-btn subtle\">Restore Last Draft</button></div></div><div class=\"text-editor-status-row\"><div id=\"text-editor-status\">Ready.</div><div id=\"text-editor-stats\"></div></div><textarea id=\"text-editor-area\" class=\"text-editor-area\" autocomplete=\"off\">Welcome to Orbit OS v 0.1.2!\n\n• Crafted for focused creative work.\n• Windows snap, remember their state, and respect your layout.\n• Use the menu above to manage drafts.\n\nStay tuned for additional native tools in upcoming builds.</textarea></div>",
+      "content": "<div class=\"text-editor text-editor--wrap text-editor--mono\"><div class=\"text-editor-toolbar\"><div class=\"text-editor-menu\"><button type=\"button\" data-action=\"options\" class=\"text-editor-btn\" aria-expanded=\"false\">Options</button><button type=\"button\" data-action=\"new\" class=\"text-editor-btn\">New</button><button type=\"button\" data-action=\"save\" class=\"text-editor-btn\">Save</button><button type=\"button\" data-action=\"load\" class=\"text-editor-btn\">Load</button><button type=\"button\" data-action=\"word-count\" class=\"text-editor-btn\">Word Count</button><input type=\"file\" id=\"text-editor-file\" accept=\".txt,.md,.json,text/plain\" hidden></div><div class=\"text-editor-spacer\"></div><button type=\"button\" id=\"text-editor-export\" class=\"text-editor-btn primary\">Export PDF</button></div><div class=\"text-editor-options\" id=\"text-editor-options\" aria-hidden=\"true\"><label class=\"text-editor-option\"><span>Soft wrap text</span><input type=\"checkbox\" id=\"text-editor-option-wrap\" checked></label><label class=\"text-editor-option\"><span>Monospace mode</span><input type=\"checkbox\" id=\"text-editor-option-mono\" checked></label><label class=\"text-editor-option\"><span>Auto-save drafts</span><input type=\"checkbox\" id=\"text-editor-option-autosave\" checked></label><label class=\"text-editor-option text-editor-option--filename\"><span>Default filename</span><input type=\"text\" id=\"text-editor-option-filename\" value=\"orbit-notes.txt\" spellcheck=\"false\"></label><div class=\"text-editor-option text-editor-option--actions\"><span>Need your last copy?</span><button type=\"button\" id=\"text-editor-restore\" class=\"text-editor-btn subtle\">Restore Last Draft</button></div></div><div class=\"text-editor-status-row\"><div id=\"text-editor-status\">Ready.</div><div id=\"text-editor-stats\"></div></div><textarea id=\"text-editor-area\" class=\"text-editor-area\" autocomplete=\"off\">Welcome to Orbit OS v 0.1.3!\n\n• Crafted for focused creative work.\n• Windows snap, remember their state, and respect your layout.\n• Use the menu above to manage drafts.\n\nStay tuned for additional native tools in upcoming builds.</textarea></div>",
       "width": 560,
       "height": 420
     },

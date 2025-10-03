@@ -1,7 +1,7 @@
 {
   "apps": [
     {
-      "name": "Orbit OS v 0.1.2",
+      "name": "Orbit OS v 0.1.3",
       "file": "apps/app1/app-index.html",
       "short": "lorem ipsum doloret sit amet",
       "long": "This is the first demo showcasing features."
