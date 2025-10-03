@@ -12,7 +12,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Orbit OS v 0.1.2</title>
+    <title>Orbit OS v 0.1.3</title>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=VT323&display=swap">
     <style>
         * {
@@ -250,7 +250,7 @@
         }
         
         .window-content {
-            padding: 15px;
+            padding: 10px;
             flex: 1;
             overflow: auto;
             color: #000;
@@ -417,7 +417,7 @@
         .terminal-screen {
             flex: 1;
             overflow: auto;
-            padding: 12px;
+            padding: 10px;
             outline: none;
         }
 
@@ -1084,6 +1084,9 @@
         const scanxFrames = new Set();
 
         const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+        const ORBIT_VERSION = '0.1.3';
+        window.ORBIT_VERSION = ORBIT_VERSION;
+        window.ORBIT_TERMINAL_CONFIG = {};
 
         function setBootProgress(value, status) {
             if (!bootLoader) return;
@@ -1842,6 +1845,7 @@
             const res = await fetch('app-data/app1.json');
             setBootProgress(0.38, 'Loading system manifest…');
             appData = await res.json();
+            window.ORBIT_TERMINAL_CONFIG = appData.terminal || {};
             console.info('System manifest loaded.');
             setBootProgress(0.5, 'Mounting creative drives…');
 
