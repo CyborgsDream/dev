@@ -1319,861 +1319,864 @@
   if (!gl) {
     console.error('WebGL2 is required for the Terrain experience.');
     hideLoader(false);
-    return;
+  } else {
+    initTerrain(gl, canvas);
   }
 
-  const ZX_PALETTE = retroPalettes.zx.map(hex => [
-    ((hex >> 16) & 255) / 255,
-    ((hex >> 8) & 255) / 255,
-    (hex & 255) / 255
-  ]);
-  const PET_PALETTE = retroPalettes.petscii.map(hex => [
-    ((hex >> 16) & 255) / 255,
-    ((hex >> 8) & 255) / 255,
-    (hex & 255) / 255
-  ]);
+  function initTerrain(gl, canvas) {
+      const ZX_PALETTE = retroPalettes.zx.map(hex => [
+        ((hex >> 16) & 255) / 255,
+        ((hex >> 8) & 255) / 255,
+        (hex & 255) / 255
+      ]);
+      const PET_PALETTE = retroPalettes.petscii.map(hex => [
+        ((hex >> 16) & 255) / 255,
+        ((hex >> 8) & 255) / 255,
+        (hex & 255) / 255
+      ]);
 
-  const flattenedZX = new Float32Array(ZX_PALETTE.flat());
-  const flattenedPET = new Float32Array(PET_PALETTE.flat());
+      const flattenedZX = new Float32Array(ZX_PALETTE.flat());
+      const flattenedPET = new Float32Array(PET_PALETTE.flat());
 
-  function createShader(type, source) {
-    const shader = gl.createShader(type);
-    gl.shaderSource(shader, source);
-    gl.compileShader(shader);
-    if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
-      const error = gl.getShaderInfoLog(shader) || 'Unknown shader compilation error';
-      gl.deleteShader(shader);
-      throw new Error(error);
-    }
-    return shader;
-  }
-
-  function createProgram(vertexSrc, fragmentSrc) {
-    const program = gl.createProgram();
-    gl.attachShader(program, createShader(gl.VERTEX_SHADER, vertexSrc));
-    gl.attachShader(program, createShader(gl.FRAGMENT_SHADER, fragmentSrc));
-    gl.linkProgram(program);
-    if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
-      const error = gl.getProgramInfoLog(program) || 'Unknown program link error';
-      gl.deleteProgram(program);
-      throw new Error(error);
-    }
-    return program;
-  }
-
-  function hash(ix, iz) {
-    const s = Math.sin(ix * 127.1 + iz * 311.7) * 43758.5453123;
-    return s - Math.floor(s);
-  }
-
-  function smooth(t) {
-    return t * t * (3 - 2 * t);
-  }
-
-  function lerp(a, b, t) {
-    return a + (b - a) * t;
-  }
-
-  function noise2(x, z) {
-    const ix = Math.floor(x);
-    const iz = Math.floor(z);
-    const fx = x - ix;
-    const fz = z - iz;
-    const a = hash(ix, iz);
-    const b = hash(ix + 1, iz);
-    const c = hash(ix, iz + 1);
-    const d = hash(ix + 1, iz + 1);
-    const ux = smooth(fx);
-    const uz = smooth(fz);
-    return lerp(lerp(a, b, ux), lerp(c, d, ux), uz);
-  }
-
-  function fbm(x, z, octaves = 5) {
-    let amp = 1;
-    let freq = 0.0045;
-    let sum = 0;
-    let norm = 0;
-    for (let i = 0; i < octaves; i++) {
-      sum += amp * noise2(x * freq, z * freq);
-      norm += amp;
-      amp *= 0.5;
-      freq *= 2;
-    }
-    return sum / Math.max(1e-5, norm);
-  }
-
-  function generateTerrainGeometry(size, segments, onProgress) {
-    const vertexCount = (segments + 1) * (segments + 1);
-    const positions = new Float32Array(vertexCount * 3);
-    const normals = new Float32Array(vertexCount * 3);
-    const uvs = new Float32Array(vertexCount * 2);
-    const heights = new Float32Array(vertexCount);
-    const indices = new Uint32Array(segments * segments * 6);
-    const halfSize = size / 2;
-    const step = size / segments;
-
-    let vertexIndex = 0;
-    for (let z = 0; z <= segments; z++) {
-      if (onProgress) onProgress(z / (segments + 1));
-      for (let x = 0; x <= segments; x++) {
-        const worldX = -halfSize + x * step;
-        const worldZ = -halfSize + z * step;
-        const height = fbm(worldX, worldZ) * 120 - 36;
-        const idx = vertexIndex * 3;
-        positions[idx] = worldX;
-        positions[idx + 1] = height;
-        positions[idx + 2] = worldZ;
-        heights[vertexIndex] = height;
-        const uvIdx = vertexIndex * 2;
-        uvs[uvIdx] = x / segments;
-        uvs[uvIdx + 1] = z / segments;
-        vertexIndex += 1;
+      function createShader(type, source) {
+        const shader = gl.createShader(type);
+        gl.shaderSource(shader, source);
+        gl.compileShader(shader);
+        if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
+          const error = gl.getShaderInfoLog(shader) || 'Unknown shader compilation error';
+          gl.deleteShader(shader);
+          throw new Error(error);
+        }
+        return shader;
       }
-    }
 
-    const sample = (ix, iz) => {
-      const clampedX = Math.max(0, Math.min(segments, ix));
-      const clampedZ = Math.max(0, Math.min(segments, iz));
-      return heights[clampedZ * (segments + 1) + clampedX];
-    };
-
-    vertexIndex = 0;
-    for (let z = 0; z <= segments; z++) {
-      for (let x = 0; x <= segments; x++) {
-        const left = sample(x - 1, z);
-        const right = sample(x + 1, z);
-        const down = sample(x, z - 1);
-        const up = sample(x, z + 1);
-        const dx = (right - left) / (2 * step);
-        const dz = (up - down) / (2 * step);
-        const nx = -dx;
-        const ny = 1;
-        const nz = -dz;
-        const length = Math.hypot(nx, ny, nz) || 1;
-        const idx = vertexIndex * 3;
-        normals[idx] = nx / length;
-        normals[idx + 1] = ny / length;
-        normals[idx + 2] = nz / length;
-        vertexIndex += 1;
+      function createProgram(vertexSrc, fragmentSrc) {
+        const program = gl.createProgram();
+        gl.attachShader(program, createShader(gl.VERTEX_SHADER, vertexSrc));
+        gl.attachShader(program, createShader(gl.FRAGMENT_SHADER, fragmentSrc));
+        gl.linkProgram(program);
+        if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
+          const error = gl.getProgramInfoLog(program) || 'Unknown program link error';
+          gl.deleteProgram(program);
+          throw new Error(error);
+        }
+        return program;
       }
-    }
 
-    let writeIndex = 0;
-    for (let z = 0; z < segments; z++) {
-      for (let x = 0; x < segments; x++) {
-        const a = z * (segments + 1) + x;
-        const b = a + 1;
-        const c = (z + 1) * (segments + 1) + x;
-        const d = c + 1;
-        indices[writeIndex++] = a;
-        indices[writeIndex++] = c;
-        indices[writeIndex++] = b;
-        indices[writeIndex++] = b;
-        indices[writeIndex++] = c;
-        indices[writeIndex++] = d;
+      function hash(ix, iz) {
+        const s = Math.sin(ix * 127.1 + iz * 311.7) * 43758.5453123;
+        return s - Math.floor(s);
       }
-    }
-
-    return { positions, normals, uvs, indices, heights, segments, size, step };
-  }
-
-  const vertexShaderSource = `#version 300 es
-`
-    + `precision highp float;
-`
-    + `layout(location = 0) in vec3 aPosition;
-`
-    + `layout(location = 1) in vec3 aNormal;
-`
-    + `layout(location = 2) in vec2 aUv;
-`
-    + `uniform mat4 uProjection;
-`
-    + `uniform mat4 uView;
-`
-    + `uniform mat4 uModel;
-`
-    + `out vec3 vNormal;
-`
-    + `out vec3 vWorldPos;
-`
-    + `out vec2 vUv;
-`
-    + `void main() {
-`
-    + `  vec4 worldPos = uModel * vec4(aPosition, 1.0);
-`
-    + `  vWorldPos = worldPos.xyz;
-`
-    + `  vNormal = mat3(uModel) * aNormal;
-`
-    + `  vUv = aUv;
-`
-    + `  gl_Position = uProjection * uView * worldPos;
-`
-    + `}`;
-
-  const fragmentShaderSource = `#version 300 es
-`
-    + `precision highp float;
-`
-    + `in vec3 vNormal;
-`
-    + `in vec3 vWorldPos;
-`
-    + `in vec2 vUv;
-`
-    + `uniform vec3 uLightDir;
-`
-    + `uniform vec3 uFogColor;
-`
-    + `uniform vec3 uCameraPos;
-`
-    + `uniform float uFogNear;
-`
-    + `uniform float uFogFar;
-`
-    + `uniform float uGridSize;
-`
-    + `uniform int uRenderMode;
-`
-    + `uniform vec3 uZXPalette[16];
-`
-    + `uniform vec3 uPetsciiPalette[16];
-`
-    + `out vec4 outColor;
-`
-    + `float gridFactor(vec2 uv, float gridSize) {
-`
-    + `  vec2 scaled = fract(uv * gridSize);
-`
-    + `  vec2 dist = min(scaled, 1.0 - scaled);
-`
-    + `  float edge = min(dist.x, dist.y);
-`
-    + `  return smoothstep(0.0, 0.12, edge * 8.0);
-`
-    + `}
-`
-    + `vec3 quantize(vec3 color, vec3 palette[16]) {
-`
-    + `  float best = 1e9;
-`
-    + `  vec3 chosen = color;
-`
-    + `  for (int i = 0; i < 16; i++) {
-`
-    + `    vec3 p = palette[i];
-`
-    + `    float d = distance(color, p);
-`
-    + `    if (d < best) {
-`
-    + `      best = d;
-`
-    + `      chosen = p;
-`
-    + `    }
-`
-    + `  }
-`
-    + `  return chosen;
-`
-    + `}
-`
-    + `void main() {
-`
-    + `  vec3 normal = normalize(vNormal);
-`
-    + `  float diffuse = max(dot(normal, normalize(uLightDir)), 0.0);
-`
-    + `  float ambient = 0.25;
-`
-    + `  float lighting = ambient + diffuse * 0.85;
-`
-    + `  float h = clamp((vWorldPos.y + 48.0) / 160.0, 0.0, 1.0);
-`
-    + `  vec3 low = vec3(0.05, 0.15, 0.25);
-`
-    + `  vec3 mid = vec3(0.18, 0.38, 0.45);
-`
-    + `  vec3 high = vec3(0.82, 0.82, 0.78);
-`
-    + `  vec3 base = mix(low, mid, smoothstep(0.0, 0.55, h));
-`
-    + `  base = mix(base, high, smoothstep(0.45, 1.0, h));
-`
-    + `  vec3 color = base * lighting;
-`
-    + `  if (uRenderMode == 1) {
-`
-    + `    float grid = gridFactor(vUv, uGridSize);
-`
-    + `    vec3 wireBase = mix(vec3(0.03, 0.16, 0.28), vec3(0.4, 0.82, 1.0), grid);
-`
-    + `    color = mix(vec3(0.1, 0.22, 0.36), wireBase, lighting);
-`
-    + `  } else if (uRenderMode == 2) {
-`
-    + `    color = quantize(color, uZXPalette);
-`
-    + `  } else if (uRenderMode == 3) {
-`
-    + `    color = quantize(color, uPetsciiPalette);
-`
-    + `  }
-`
-    + `  float dist = distance(uCameraPos, vWorldPos);
-`
-    + `  float fogFactor = clamp((uFogFar - dist) / (uFogFar - uFogNear), 0.0, 1.0);
-`
-    + `  vec3 finalColor = mix(uFogColor, color, fogFactor);
-`
-    + `  outColor = vec4(finalColor, 1.0);
-`
-    + `}`;
-
-  const program = createProgram(vertexShaderSource, fragmentShaderSource);
-  gl.useProgram(program);
-
-  updateLoaderStatus('Generating terrain mesh…');
-  const geometry = generateTerrainGeometry(600, 160, fraction => {
-    setLoaderPhaseRange(10, 65);
-    reportLoaderPhaseProgress(fraction);
-  });
-
-  const vao = gl.createVertexArray();
-  gl.bindVertexArray(vao);
-
-  const positionBuffer = gl.createBuffer();
-  gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
-  gl.bufferData(gl.ARRAY_BUFFER, geometry.positions, gl.STATIC_DRAW);
-  gl.enableVertexAttribArray(0);
-  gl.vertexAttribPointer(0, 3, gl.FLOAT, false, 0, 0);
-
-  const normalBuffer = gl.createBuffer();
-  gl.bindBuffer(gl.ARRAY_BUFFER, normalBuffer);
-  gl.bufferData(gl.ARRAY_BUFFER, geometry.normals, gl.STATIC_DRAW);
-  gl.enableVertexAttribArray(1);
-  gl.vertexAttribPointer(1, 3, gl.FLOAT, false, 0, 0);
-
-  const uvBuffer = gl.createBuffer();
-  gl.bindBuffer(gl.ARRAY_BUFFER, uvBuffer);
-  gl.bufferData(gl.ARRAY_BUFFER, geometry.uvs, gl.STATIC_DRAW);
-  gl.enableVertexAttribArray(2);
-  gl.vertexAttribPointer(2, 2, gl.FLOAT, false, 0, 0);
-
-  const indexBuffer = gl.createBuffer();
-  gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBuffer);
-  gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, geometry.indices, gl.STATIC_DRAW);
-
-  gl.bindVertexArray(null);
-
-  const uniforms = {
-    projection: gl.getUniformLocation(program, 'uProjection'),
-    view: gl.getUniformLocation(program, 'uView'),
-    model: gl.getUniformLocation(program, 'uModel'),
-    lightDir: gl.getUniformLocation(program, 'uLightDir'),
-    fogColor: gl.getUniformLocation(program, 'uFogColor'),
-    fogNear: gl.getUniformLocation(program, 'uFogNear'),
-    fogFar: gl.getUniformLocation(program, 'uFogFar'),
-    cameraPos: gl.getUniformLocation(program, 'uCameraPos'),
-    renderMode: gl.getUniformLocation(program, 'uRenderMode'),
-    gridSize: gl.getUniformLocation(program, 'uGridSize'),
-    zxPalette: gl.getUniformLocation(program, 'uZXPalette[0]'),
-    petsciiPalette: gl.getUniformLocation(program, 'uPetsciiPalette[0]')
-  };
-
-  const identityMatrix = new Float32Array([1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1]);
-  gl.useProgram(program);
-  gl.uniformMatrix4fv(uniforms.model, false, identityMatrix);
-  gl.uniform3fv(uniforms.lightDir, new Float32Array([-0.35, 0.9, 0.32]));
-  gl.uniform1f(uniforms.gridSize, geometry.segments);
-  if (uniforms.zxPalette) {
-    gl.uniform3fv(uniforms.zxPalette, flattenedZX);
-  }
-  if (uniforms.petsciiPalette) {
-    gl.uniform3fv(uniforms.petsciiPalette, flattenedPET);
-  }
-
-  gl.enable(gl.DEPTH_TEST);
-  gl.enable(gl.CULL_FACE);
-  gl.cullFace(gl.BACK);
-
-  function mat4Perspective(out, fovy, aspect, near, far) {
-    const f = 1 / Math.tan(fovy / 2);
-    out[0] = f / aspect;
-    out[1] = 0;
-    out[2] = 0;
-    out[3] = 0;
-    out[4] = 0;
-    out[5] = f;
-    out[6] = 0;
-    out[7] = 0;
-    out[8] = 0;
-    out[9] = 0;
-    out[10] = (far + near) / (near - far);
-    out[11] = -1;
-    out[12] = 0;
-    out[13] = 0;
-    out[14] = (2 * far * near) / (near - far);
-    out[15] = 0;
-    return out;
-  }
-
-  function mat4LookAt(out, eye, center, up) {
-    const fx = center[0] - eye[0];
-    const fy = center[1] - eye[1];
-    const fz = center[2] - eye[2];
-    const fl = Math.hypot(fx, fy, fz) || 1;
-    const f0 = fx / fl;
-    const f1 = fy / fl;
-    const f2 = fz / fl;
-
-    const sx = f1 * up[2] - f2 * up[1];
-    const sy = f2 * up[0] - f0 * up[2];
-    const sz = f0 * up[1] - f1 * up[0];
-    const sl = Math.hypot(sx, sy, sz) || 1;
-    const s0 = sx / sl;
-    const s1 = sy / sl;
-    const s2 = sz / sl;
-
-    const ux = s1 * f2 - s2 * f1;
-    const uy = s2 * f0 - s0 * f2;
-    const uz = s0 * f1 - s1 * f0;
-
-    out[0] = s0; out[1] = ux; out[2] = -f0; out[3] = 0;
-    out[4] = s1; out[5] = uy; out[6] = -f1; out[7] = 0;
-    out[8] = s2; out[9] = uz; out[10] = -f2; out[11] = 0;
-    out[12] = -(s0 * eye[0] + s1 * eye[1] + s2 * eye[2]);
-    out[13] = -(ux * eye[0] + uy * eye[1] + uz * eye[2]);
-    out[14] = f0 * eye[0] + f1 * eye[1] + f2 * eye[2];
-    out[15] = 1;
-    return out;
-  }
-
-  const viewMatrix = new Float32Array(16);
-  const projectionMatrix = new Float32Array(16);
-
-  const hudPosition = document.querySelector('[data-hud="position"]');
-  const hudHeading = document.querySelector('[data-hud="heading"]');
-  const hudChunk = document.querySelector('[data-hud="chunk"]');
-  const hudSpeed = document.querySelector('[data-hud="speed"]');
-
-  const camera = {
-    target: new Float32Array([0, 0, 0]),
-    position: new Float32Array([0, 0, 0]),
-    yaw: Math.PI * 0.75,
-    pitch: -0.55,
-    minPitch: -1.25,
-    maxPitch: -0.12,
-    distance: 440,
-    minDistance: 140,
-    maxDistance: 820,
-    verticalOffset: 42,
-    speed: 82,
-    turnSpeed: 1.4,
-    smoothing: 8,
-    heightSample: geometry,
-    lastMoveTime: performance.now(),
-    lastTarget: new Float32Array([0, 0, 0]),
-    currentSpeed: 0
-  };
-
-  const keyState = Object.create(null);
-  const pointerState = {
-    active: false,
-    id: null,
-    lastX: 0,
-    lastY: 0,
-    pointerType: 'mouse'
-  };
-
-  function getHeightAt(x, z) {
-    const { size, segments, step, heights } = geometry;
-    const half = size / 2;
-    const fx = (x + half) / step;
-    const fz = (z + half) / step;
-    const ix = Math.max(0, Math.min(segments, Math.floor(fx)));
-    const iz = Math.max(0, Math.min(segments, Math.floor(fz)));
-    const fracX = fx - ix;
-    const fracZ = fz - iz;
-    const base = iz * (segments + 1) + ix;
-    const a = heights[base];
-    const b = heights[base + 1] ?? a;
-    const c = heights[base + segments + 1] ?? a;
-    const d = heights[base + segments + 2] ?? a;
-    const top = lerp(a, b, fracX);
-    const bottom = lerp(c, d, fracX);
-    return lerp(top, bottom, fracZ);
-  }
-
-  function updateCamera(dt) {
-    const forward = [Math.sin(camera.yaw), 0, Math.cos(camera.yaw)];
-    const right = [Math.cos(camera.yaw), 0, -Math.sin(camera.yaw)];
-    let moveX = 0;
-    let moveZ = 0;
-    const forwardInput = (keyState['w'] || keyState['W'] || keyState['ArrowUp'] ? 1 : 0)
-      - (keyState['s'] || keyState['S'] || keyState['ArrowDown'] ? 1 : 0);
-    const strafeInput = (keyState['d'] || keyState['D'] ? 1 : 0)
-      - (keyState['a'] || keyState['A'] ? 1 : 0);
-    moveX += forward[0] * forwardInput + right[0] * strafeInput;
-    moveZ += forward[2] * forwardInput + right[2] * strafeInput;
-
-    if (keyState['ArrowLeft']) camera.yaw -= camera.turnSpeed * dt;
-    if (keyState['ArrowRight']) camera.yaw += camera.turnSpeed * dt;
-
-    const len = Math.hypot(moveX, moveZ);
-    if (len > 0) {
-      moveX /= len;
-      moveZ /= len;
-      const speed = camera.speed * dt;
-      camera.target[0] += moveX * speed;
-      camera.target[2] += moveZ * speed;
-    }
-
-    camera.yaw = (camera.yaw + Math.PI * 2) % (Math.PI * 2);
-
-    const targetHeight = getHeightAt(camera.target[0], camera.target[2]);
-    camera.target[1] = targetHeight + camera.verticalOffset;
-
-    const cosPitch = Math.cos(camera.pitch);
-    const sinPitch = Math.sin(camera.pitch);
-    const distance = camera.distance;
-    camera.position[0] = camera.target[0] + Math.sin(camera.yaw) * cosPitch * distance;
-    camera.position[1] = camera.target[1] + sinPitch * distance;
-    camera.position[2] = camera.target[2] + Math.cos(camera.yaw) * cosPitch * distance;
-
-    const dx = camera.target[0] - camera.lastTarget[0];
-    const dz = camera.target[2] - camera.lastTarget[2];
-    const moveSpeed = Math.hypot(dx, dz) / Math.max(dt, 1e-5);
-    camera.currentSpeed = camera.currentSpeed * 0.85 + moveSpeed * 0.15;
-    camera.lastTarget[0] = camera.target[0];
-    camera.lastTarget[1] = camera.target[1];
-    camera.lastTarget[2] = camera.target[2];
-  }
-
-  function updateHud(dt) {
-    if (hudPosition) {
-      hudPosition.textContent = `${camera.target[0].toFixed(1)}, ${camera.target[1].toFixed(1)}, ${camera.target[2].toFixed(1)}`;
-    }
-    if (hudHeading) {
-      const yawDeg = ((camera.yaw * 180 / Math.PI) % 360 + 360) % 360;
-      const pitchDeg = camera.pitch * 180 / Math.PI;
-      hudHeading.textContent = `${yawDeg.toFixed(0)}° / ${pitchDeg.toFixed(0)}°`;
-    }
-    if (hudChunk) {
-      const chunkSize = geometry.step * 10;
-      const cx = Math.round(camera.target[0] / chunkSize);
-      const cz = Math.round(camera.target[2] / chunkSize);
-      hudChunk.textContent = `${cx}, ${cz}`;
-    }
-    if (hudSpeed) {
-      hudSpeed.textContent = `${(camera.currentSpeed).toFixed(1)} m/s`;
-    }
-  }
-
-  function resizeViewport(width, height) {
-    canvas.width = width;
-    canvas.height = height;
-    gl.viewport(0, 0, width, height);
-    mat4Perspective(projectionMatrix, Math.PI / 3.4, width / height, 0.1, 2000);
-    gl.useProgram(program);
-    gl.uniformMatrix4fv(uniforms.projection, false, projectionMatrix);
-  }
-
-  resizeViewport(defaultResolution.width, defaultResolution.height);
-
-  const upVector = [0, 1, 0];
-  let currentRenderMode = 0;
-  let fogNear = 260;
-  let fogFar = 980;
-  const fogColor = new Float32Array(renderModeFogColors.default);
-
-  function applyRenderMode(mode) {
-    currentRenderMode = mode;
-    const key = mode === 0 ? 'default' : mode === 1 ? 'wire' : mode === 2 ? 'zx' : 'petscii';
-    const color = renderModeFogColors[key];
-    fogColor[0] = color[0];
-    fogColor[1] = color[1];
-    fogColor[2] = color[2];
-    fogNear = mode === 2 ? 180 : 260;
-    fogFar = mode === 2 ? 720 : 980;
-    canvas.style.backgroundColor = renderModeCanvasBackgrounds[key];
-  }
-
-  applyRenderMode(0);
-
-  const fps = fpsMonitor;
-  const controls = {
-    dragSensitivity: 0.0045,
-    touchDragSensitivity: 0.0028
-  };
-
-  canvas.addEventListener('pointerdown', event => {
-    pointerState.active = true;
-    pointerState.id = event.pointerId;
-    pointerState.lastX = event.clientX;
-    pointerState.lastY = event.clientY;
-    pointerState.pointerType = event.pointerType || 'mouse';
-    canvas.setPointerCapture(event.pointerId);
-    canvas.style.cursor = 'grabbing';
-  });
-
-  canvas.addEventListener('pointermove', event => {
-    if (!pointerState.active || event.pointerId !== pointerState.id) return;
-    const dx = event.clientX - pointerState.lastX;
-    const dy = event.clientY - pointerState.lastY;
-    pointerState.lastX = event.clientX;
-    pointerState.lastY = event.clientY;
-    const sensitivity = pointerState.pointerType === 'touch'
-      ? controls.touchDragSensitivity
-      : controls.dragSensitivity;
-    camera.yaw -= dx * sensitivity;
-    camera.pitch = Math.max(camera.minPitch, Math.min(camera.maxPitch, camera.pitch - dy * sensitivity));
-  });
-
-  const clearPointer = () => {
-    pointerState.active = false;
-    pointerState.id = null;
-    canvas.style.cursor = 'grab';
-  };
-
-  canvas.addEventListener('pointerup', clearPointer);
-  canvas.addEventListener('pointercancel', clearPointer);
-  canvas.addEventListener('lostpointercapture', clearPointer);
-  canvas.addEventListener('pointerleave', clearPointer);
-
-  canvas.addEventListener('wheel', event => {
-    const delta = Math.sign(event.deltaY);
-    camera.distance = Math.max(camera.minDistance, Math.min(camera.maxDistance, camera.distance + delta * 36));
-    event.preventDefault();
-  }, { passive: false });
-
-  window.addEventListener('keydown', event => {
-    keyState[event.key] = true;
-  });
-
-  window.addEventListener('keyup', event => {
-    keyState[event.key] = false;
-  });
-
-  window.addEventListener('blur', () => {
-    for (const key of Object.keys(keyState)) keyState[key] = false;
-    clearPointer();
-  });
-
-  function animate(now) {
-    const dt = (now - (animate.lastTime || now)) / 1000;
-    animate.lastTime = now;
-
-    updateCamera(dt);
-    updateHud(dt);
-
-    gl.bindVertexArray(vao);
-    gl.useProgram(program);
-    mat4LookAt(viewMatrix, camera.position, camera.target, upVector);
-    gl.uniformMatrix4fv(uniforms.view, false, viewMatrix);
-    gl.uniform3fv(uniforms.cameraPos, camera.position);
-    gl.uniform3fv(uniforms.fogColor, fogColor);
-    gl.uniform1f(uniforms.fogNear, fogNear);
-    gl.uniform1f(uniforms.fogFar, fogFar);
-    gl.uniform1i(uniforms.renderMode, currentRenderMode);
-
-    gl.clearColor(fogColor[0], fogColor[1], fogColor[2], 1);
-    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-    gl.drawElements(gl.TRIANGLES, geometry.indices.length, gl.UNSIGNED_INT, 0);
-
-    fps.begin();
-    fps.end();
-
-    requestAnimationFrame(animate);
-  }
-
-  setLoaderPhaseRange(70, 100);
-  reportLoaderPhaseProgress(0.2);
-  updateLoaderStatus('Calibrating viewport…');
-
-  requestAnimationFrame(animate);
-  setProgress(100);
-  setTimeout(() => {
-    stopLoaderAnimation();
-    hideLoader(true);
-  }, 260);
-
-  const triggerVhsEffect = (() => {
-    let timeoutId = null;
-    return () => {
-      canvasWrap.classList.remove('vhs-glitch');
-      void canvasWrap.offsetWidth;
-      canvasWrap.classList.add('vhs-glitch');
-      if (timeoutId) clearTimeout(timeoutId);
-      timeoutId = setTimeout(() => canvasWrap.classList.remove('vhs-glitch'), 650);
-    };
-  })();
-
-  const renderModeButtons = document.querySelectorAll('[data-render-mode]');
-  const renderModeMap = { default: 0, wire: 1, zx: 2, petscii: 3 };
-
-  function setRenderModeByKey(key, announce = true) {
-    const mode = renderModeMap[key] ?? 0;
-    applyRenderMode(mode);
-    gl.useProgram(program);
-    gl.uniform1i(uniforms.renderMode, mode);
-    renderModeButtons.forEach(btn => {
-      const isActive = btn.dataset.renderMode === key;
-      btn.classList.toggle('is-active', isActive);
-      btn.setAttribute('aria-pressed', String(isActive));
-    });
-    if (announce) {
-      console.log(`Render mode changed to ${key.toUpperCase()}.`);
-    }
-  }
-
-  renderModeButtons.forEach(btn => {
-    btn.addEventListener('click', () => {
-      const mode = btn.dataset.renderMode;
-      setRenderModeByKey(mode);
-      triggerVhsEffect();
-    });
-  });
-
-  const resolutionSelect = document.getElementById('resolution-select');
-  const resolutionDisplay = document.getElementById('resolution-display');
-  let currentResolution = defaultResolution;
-
-  function updateCanvasLayout() {
-    const aspect = currentResolution.width / currentResolution.height;
-    const availableWidth = Math.max(100, window.innerWidth);
-    const availableHeight = Math.max(100, window.innerHeight);
-    let displayWidth = availableWidth;
-    let displayHeight = displayWidth / aspect;
-    if (displayHeight > availableHeight) {
-      const scale = availableHeight / displayHeight;
-      displayWidth = Math.floor(displayWidth * scale);
-      displayHeight = availableHeight;
-    }
-    canvas.style.width = `${displayWidth}px`;
-    canvas.style.height = `${displayHeight}px`;
-    canvasWrap.style.width = `${displayWidth}px`;
-    canvasWrap.style.height = `${displayHeight}px`;
-  }
-
-  function applyResolution(res) {
-    currentResolution = res;
-    resizeViewport(res.width, res.height);
-    resolutionDisplay.textContent = `${res.label} — ${res.width} × ${res.height}`;
-    updateCanvasLayout();
-    console.log(`Resolution set to ${res.width}×${res.height} (${res.label}).`);
-  }
-
-  resolutionSelect.addEventListener('change', () => {
-    const [w, h] = resolutionSelect.value.split('x').map(Number);
-    const chosen = RESOLUTIONS.find(r => r.width === w && r.height === h) || defaultResolution;
-    applyResolution(chosen);
-    triggerVhsEffect();
-  });
-
-  const fullscreenBtn = document.getElementById('fullscreen-btn');
-
-  const isFullscreenActive = () => Boolean(document.fullscreenElement || document.webkitFullscreenElement || document.msFullscreenElement);
-
-  function updateFullscreenButton() {
-    const isMobile = document.body.classList.contains('is-mobile');
-    fullscreenBtn.textContent = isFullscreenActive()
-      ? 'Exit Fullscreen'
-      : (isMobile ? 'Fullscreen' : 'Enter Fullscreen');
-    const shouldShow = isFullscreenActive() || window.innerWidth >= 720 || isMobile;
-    fullscreenBtn.style.display = shouldShow ? 'inline-flex' : 'none';
-  }
-
-  fullscreenBtn.addEventListener('click', () => {
-    if (isFullscreenActive()) {
-      (document.exitFullscreen || document.webkitExitFullscreen || document.msExitFullscreen)?.call(document);
-    } else {
-      const target = document.documentElement;
-      (target.requestFullscreen || target.webkitRequestFullscreen || target.msRequestFullscreen)?.call(target);
-    }
-  });
-
-  ['fullscreenchange', 'webkitfullscreenchange', 'msfullscreenchange'].forEach(eventName => {
-    document.addEventListener(eventName, () => {
-      updateCanvasLayout();
+
+      function smooth(t) {
+        return t * t * (3 - 2 * t);
+      }
+
+      function lerp(a, b, t) {
+        return a + (b - a) * t;
+      }
+
+      function noise2(x, z) {
+        const ix = Math.floor(x);
+        const iz = Math.floor(z);
+        const fx = x - ix;
+        const fz = z - iz;
+        const a = hash(ix, iz);
+        const b = hash(ix + 1, iz);
+        const c = hash(ix, iz + 1);
+        const d = hash(ix + 1, iz + 1);
+        const ux = smooth(fx);
+        const uz = smooth(fz);
+        return lerp(lerp(a, b, ux), lerp(c, d, ux), uz);
+      }
+
+      function fbm(x, z, octaves = 5) {
+        let amp = 1;
+        let freq = 0.0045;
+        let sum = 0;
+        let norm = 0;
+        for (let i = 0; i < octaves; i++) {
+          sum += amp * noise2(x * freq, z * freq);
+          norm += amp;
+          amp *= 0.5;
+          freq *= 2;
+        }
+        return sum / Math.max(1e-5, norm);
+      }
+
+      function generateTerrainGeometry(size, segments, onProgress) {
+        const vertexCount = (segments + 1) * (segments + 1);
+        const positions = new Float32Array(vertexCount * 3);
+        const normals = new Float32Array(vertexCount * 3);
+        const uvs = new Float32Array(vertexCount * 2);
+        const heights = new Float32Array(vertexCount);
+        const indices = new Uint32Array(segments * segments * 6);
+        const halfSize = size / 2;
+        const step = size / segments;
+
+        let vertexIndex = 0;
+        for (let z = 0; z <= segments; z++) {
+          if (onProgress) onProgress(z / (segments + 1));
+          for (let x = 0; x <= segments; x++) {
+            const worldX = -halfSize + x * step;
+            const worldZ = -halfSize + z * step;
+            const height = fbm(worldX, worldZ) * 120 - 36;
+            const idx = vertexIndex * 3;
+            positions[idx] = worldX;
+            positions[idx + 1] = height;
+            positions[idx + 2] = worldZ;
+            heights[vertexIndex] = height;
+            const uvIdx = vertexIndex * 2;
+            uvs[uvIdx] = x / segments;
+            uvs[uvIdx + 1] = z / segments;
+            vertexIndex += 1;
+          }
+        }
+
+        const sample = (ix, iz) => {
+          const clampedX = Math.max(0, Math.min(segments, ix));
+          const clampedZ = Math.max(0, Math.min(segments, iz));
+          return heights[clampedZ * (segments + 1) + clampedX];
+        };
+
+        vertexIndex = 0;
+        for (let z = 0; z <= segments; z++) {
+          for (let x = 0; x <= segments; x++) {
+            const left = sample(x - 1, z);
+            const right = sample(x + 1, z);
+            const down = sample(x, z - 1);
+            const up = sample(x, z + 1);
+            const dx = (right - left) / (2 * step);
+            const dz = (up - down) / (2 * step);
+            const nx = -dx;
+            const ny = 1;
+            const nz = -dz;
+            const length = Math.hypot(nx, ny, nz) || 1;
+            const idx = vertexIndex * 3;
+            normals[idx] = nx / length;
+            normals[idx + 1] = ny / length;
+            normals[idx + 2] = nz / length;
+            vertexIndex += 1;
+          }
+        }
+
+        let writeIndex = 0;
+        for (let z = 0; z < segments; z++) {
+          for (let x = 0; x < segments; x++) {
+            const a = z * (segments + 1) + x;
+            const b = a + 1;
+            const c = (z + 1) * (segments + 1) + x;
+            const d = c + 1;
+            indices[writeIndex++] = a;
+            indices[writeIndex++] = c;
+            indices[writeIndex++] = b;
+            indices[writeIndex++] = b;
+            indices[writeIndex++] = c;
+            indices[writeIndex++] = d;
+          }
+        }
+
+        return { positions, normals, uvs, indices, heights, segments, size, step };
+      }
+
+      const vertexShaderSource = `#version 300 es
+    `
+        + `precision highp float;
+    `
+        + `layout(location = 0) in vec3 aPosition;
+    `
+        + `layout(location = 1) in vec3 aNormal;
+    `
+        + `layout(location = 2) in vec2 aUv;
+    `
+        + `uniform mat4 uProjection;
+    `
+        + `uniform mat4 uView;
+    `
+        + `uniform mat4 uModel;
+    `
+        + `out vec3 vNormal;
+    `
+        + `out vec3 vWorldPos;
+    `
+        + `out vec2 vUv;
+    `
+        + `void main() {
+    `
+        + `  vec4 worldPos = uModel * vec4(aPosition, 1.0);
+    `
+        + `  vWorldPos = worldPos.xyz;
+    `
+        + `  vNormal = mat3(uModel) * aNormal;
+    `
+        + `  vUv = aUv;
+    `
+        + `  gl_Position = uProjection * uView * worldPos;
+    `
+        + `}`;
+
+      const fragmentShaderSource = `#version 300 es
+    `
+        + `precision highp float;
+    `
+        + `in vec3 vNormal;
+    `
+        + `in vec3 vWorldPos;
+    `
+        + `in vec2 vUv;
+    `
+        + `uniform vec3 uLightDir;
+    `
+        + `uniform vec3 uFogColor;
+    `
+        + `uniform vec3 uCameraPos;
+    `
+        + `uniform float uFogNear;
+    `
+        + `uniform float uFogFar;
+    `
+        + `uniform float uGridSize;
+    `
+        + `uniform int uRenderMode;
+    `
+        + `uniform vec3 uZXPalette[16];
+    `
+        + `uniform vec3 uPetsciiPalette[16];
+    `
+        + `out vec4 outColor;
+    `
+        + `float gridFactor(vec2 uv, float gridSize) {
+    `
+        + `  vec2 scaled = fract(uv * gridSize);
+    `
+        + `  vec2 dist = min(scaled, 1.0 - scaled);
+    `
+        + `  float edge = min(dist.x, dist.y);
+    `
+        + `  return smoothstep(0.0, 0.12, edge * 8.0);
+    `
+        + `}
+    `
+        + `vec3 quantize(vec3 color, vec3 palette[16]) {
+    `
+        + `  float best = 1e9;
+    `
+        + `  vec3 chosen = color;
+    `
+        + `  for (int i = 0; i < 16; i++) {
+    `
+        + `    vec3 p = palette[i];
+    `
+        + `    float d = distance(color, p);
+    `
+        + `    if (d < best) {
+    `
+        + `      best = d;
+    `
+        + `      chosen = p;
+    `
+        + `    }
+    `
+        + `  }
+    `
+        + `  return chosen;
+    `
+        + `}
+    `
+        + `void main() {
+    `
+        + `  vec3 normal = normalize(vNormal);
+    `
+        + `  float diffuse = max(dot(normal, normalize(uLightDir)), 0.0);
+    `
+        + `  float ambient = 0.25;
+    `
+        + `  float lighting = ambient + diffuse * 0.85;
+    `
+        + `  float h = clamp((vWorldPos.y + 48.0) / 160.0, 0.0, 1.0);
+    `
+        + `  vec3 low = vec3(0.05, 0.15, 0.25);
+    `
+        + `  vec3 mid = vec3(0.18, 0.38, 0.45);
+    `
+        + `  vec3 high = vec3(0.82, 0.82, 0.78);
+    `
+        + `  vec3 base = mix(low, mid, smoothstep(0.0, 0.55, h));
+    `
+        + `  base = mix(base, high, smoothstep(0.45, 1.0, h));
+    `
+        + `  vec3 color = base * lighting;
+    `
+        + `  if (uRenderMode == 1) {
+    `
+        + `    float grid = gridFactor(vUv, uGridSize);
+    `
+        + `    vec3 wireBase = mix(vec3(0.03, 0.16, 0.28), vec3(0.4, 0.82, 1.0), grid);
+    `
+        + `    color = mix(vec3(0.1, 0.22, 0.36), wireBase, lighting);
+    `
+        + `  } else if (uRenderMode == 2) {
+    `
+        + `    color = quantize(color, uZXPalette);
+    `
+        + `  } else if (uRenderMode == 3) {
+    `
+        + `    color = quantize(color, uPetsciiPalette);
+    `
+        + `  }
+    `
+        + `  float dist = distance(uCameraPos, vWorldPos);
+    `
+        + `  float fogFactor = clamp((uFogFar - dist) / (uFogFar - uFogNear), 0.0, 1.0);
+    `
+        + `  vec3 finalColor = mix(uFogColor, color, fogFactor);
+    `
+        + `  outColor = vec4(finalColor, 1.0);
+    `
+        + `}`;
+
+      const program = createProgram(vertexShaderSource, fragmentShaderSource);
+      gl.useProgram(program);
+
+      updateLoaderStatus('Generating terrain mesh…');
+      const geometry = generateTerrainGeometry(600, 160, fraction => {
+        setLoaderPhaseRange(10, 65);
+        reportLoaderPhaseProgress(fraction);
+      });
+
+      const vao = gl.createVertexArray();
+      gl.bindVertexArray(vao);
+
+      const positionBuffer = gl.createBuffer();
+      gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
+      gl.bufferData(gl.ARRAY_BUFFER, geometry.positions, gl.STATIC_DRAW);
+      gl.enableVertexAttribArray(0);
+      gl.vertexAttribPointer(0, 3, gl.FLOAT, false, 0, 0);
+
+      const normalBuffer = gl.createBuffer();
+      gl.bindBuffer(gl.ARRAY_BUFFER, normalBuffer);
+      gl.bufferData(gl.ARRAY_BUFFER, geometry.normals, gl.STATIC_DRAW);
+      gl.enableVertexAttribArray(1);
+      gl.vertexAttribPointer(1, 3, gl.FLOAT, false, 0, 0);
+
+      const uvBuffer = gl.createBuffer();
+      gl.bindBuffer(gl.ARRAY_BUFFER, uvBuffer);
+      gl.bufferData(gl.ARRAY_BUFFER, geometry.uvs, gl.STATIC_DRAW);
+      gl.enableVertexAttribArray(2);
+      gl.vertexAttribPointer(2, 2, gl.FLOAT, false, 0, 0);
+
+      const indexBuffer = gl.createBuffer();
+      gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBuffer);
+      gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, geometry.indices, gl.STATIC_DRAW);
+
+      gl.bindVertexArray(null);
+
+      const uniforms = {
+        projection: gl.getUniformLocation(program, 'uProjection'),
+        view: gl.getUniformLocation(program, 'uView'),
+        model: gl.getUniformLocation(program, 'uModel'),
+        lightDir: gl.getUniformLocation(program, 'uLightDir'),
+        fogColor: gl.getUniformLocation(program, 'uFogColor'),
+        fogNear: gl.getUniformLocation(program, 'uFogNear'),
+        fogFar: gl.getUniformLocation(program, 'uFogFar'),
+        cameraPos: gl.getUniformLocation(program, 'uCameraPos'),
+        renderMode: gl.getUniformLocation(program, 'uRenderMode'),
+        gridSize: gl.getUniformLocation(program, 'uGridSize'),
+        zxPalette: gl.getUniformLocation(program, 'uZXPalette[0]'),
+        petsciiPalette: gl.getUniformLocation(program, 'uPetsciiPalette[0]')
+      };
+
+      const identityMatrix = new Float32Array([1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1]);
+      gl.useProgram(program);
+      gl.uniformMatrix4fv(uniforms.model, false, identityMatrix);
+      gl.uniform3fv(uniforms.lightDir, new Float32Array([-0.35, 0.9, 0.32]));
+      gl.uniform1f(uniforms.gridSize, geometry.segments);
+      if (uniforms.zxPalette) {
+        gl.uniform3fv(uniforms.zxPalette, flattenedZX);
+      }
+      if (uniforms.petsciiPalette) {
+        gl.uniform3fv(uniforms.petsciiPalette, flattenedPET);
+      }
+
+      gl.enable(gl.DEPTH_TEST);
+      gl.enable(gl.CULL_FACE);
+      gl.cullFace(gl.BACK);
+
+      function mat4Perspective(out, fovy, aspect, near, far) {
+        const f = 1 / Math.tan(fovy / 2);
+        out[0] = f / aspect;
+        out[1] = 0;
+        out[2] = 0;
+        out[3] = 0;
+        out[4] = 0;
+        out[5] = f;
+        out[6] = 0;
+        out[7] = 0;
+        out[8] = 0;
+        out[9] = 0;
+        out[10] = (far + near) / (near - far);
+        out[11] = -1;
+        out[12] = 0;
+        out[13] = 0;
+        out[14] = (2 * far * near) / (near - far);
+        out[15] = 0;
+        return out;
+      }
+
+      function mat4LookAt(out, eye, center, up) {
+        const fx = center[0] - eye[0];
+        const fy = center[1] - eye[1];
+        const fz = center[2] - eye[2];
+        const fl = Math.hypot(fx, fy, fz) || 1;
+        const f0 = fx / fl;
+        const f1 = fy / fl;
+        const f2 = fz / fl;
+
+        const sx = f1 * up[2] - f2 * up[1];
+        const sy = f2 * up[0] - f0 * up[2];
+        const sz = f0 * up[1] - f1 * up[0];
+        const sl = Math.hypot(sx, sy, sz) || 1;
+        const s0 = sx / sl;
+        const s1 = sy / sl;
+        const s2 = sz / sl;
+
+        const ux = s1 * f2 - s2 * f1;
+        const uy = s2 * f0 - s0 * f2;
+        const uz = s0 * f1 - s1 * f0;
+
+        out[0] = s0; out[1] = ux; out[2] = -f0; out[3] = 0;
+        out[4] = s1; out[5] = uy; out[6] = -f1; out[7] = 0;
+        out[8] = s2; out[9] = uz; out[10] = -f2; out[11] = 0;
+        out[12] = -(s0 * eye[0] + s1 * eye[1] + s2 * eye[2]);
+        out[13] = -(ux * eye[0] + uy * eye[1] + uz * eye[2]);
+        out[14] = f0 * eye[0] + f1 * eye[1] + f2 * eye[2];
+        out[15] = 1;
+        return out;
+      }
+
+      const viewMatrix = new Float32Array(16);
+      const projectionMatrix = new Float32Array(16);
+
+      const hudPosition = document.querySelector('[data-hud="position"]');
+      const hudHeading = document.querySelector('[data-hud="heading"]');
+      const hudChunk = document.querySelector('[data-hud="chunk"]');
+      const hudSpeed = document.querySelector('[data-hud="speed"]');
+
+      const camera = {
+        target: new Float32Array([0, 0, 0]),
+        position: new Float32Array([0, 0, 0]),
+        yaw: Math.PI * 0.75,
+        pitch: -0.55,
+        minPitch: -1.25,
+        maxPitch: -0.12,
+        distance: 440,
+        minDistance: 140,
+        maxDistance: 820,
+        verticalOffset: 42,
+        speed: 82,
+        turnSpeed: 1.4,
+        smoothing: 8,
+        heightSample: geometry,
+        lastMoveTime: performance.now(),
+        lastTarget: new Float32Array([0, 0, 0]),
+        currentSpeed: 0
+      };
+
+      const keyState = Object.create(null);
+      const pointerState = {
+        active: false,
+        id: null,
+        lastX: 0,
+        lastY: 0,
+        pointerType: 'mouse'
+      };
+
+      function getHeightAt(x, z) {
+        const { size, segments, step, heights } = geometry;
+        const half = size / 2;
+        const fx = (x + half) / step;
+        const fz = (z + half) / step;
+        const ix = Math.max(0, Math.min(segments, Math.floor(fx)));
+        const iz = Math.max(0, Math.min(segments, Math.floor(fz)));
+        const fracX = fx - ix;
+        const fracZ = fz - iz;
+        const base = iz * (segments + 1) + ix;
+        const a = heights[base];
+        const b = heights[base + 1] ?? a;
+        const c = heights[base + segments + 1] ?? a;
+        const d = heights[base + segments + 2] ?? a;
+        const top = lerp(a, b, fracX);
+        const bottom = lerp(c, d, fracX);
+        return lerp(top, bottom, fracZ);
+      }
+
+      function updateCamera(dt) {
+        const forward = [Math.sin(camera.yaw), 0, Math.cos(camera.yaw)];
+        const right = [Math.cos(camera.yaw), 0, -Math.sin(camera.yaw)];
+        let moveX = 0;
+        let moveZ = 0;
+        const forwardInput = (keyState['w'] || keyState['W'] || keyState['ArrowUp'] ? 1 : 0)
+          - (keyState['s'] || keyState['S'] || keyState['ArrowDown'] ? 1 : 0);
+        const strafeInput = (keyState['d'] || keyState['D'] ? 1 : 0)
+          - (keyState['a'] || keyState['A'] ? 1 : 0);
+        moveX += forward[0] * forwardInput + right[0] * strafeInput;
+        moveZ += forward[2] * forwardInput + right[2] * strafeInput;
+
+        if (keyState['ArrowLeft']) camera.yaw -= camera.turnSpeed * dt;
+        if (keyState['ArrowRight']) camera.yaw += camera.turnSpeed * dt;
+
+        const len = Math.hypot(moveX, moveZ);
+        if (len > 0) {
+          moveX /= len;
+          moveZ /= len;
+          const speed = camera.speed * dt;
+          camera.target[0] += moveX * speed;
+          camera.target[2] += moveZ * speed;
+        }
+
+        camera.yaw = (camera.yaw + Math.PI * 2) % (Math.PI * 2);
+
+        const targetHeight = getHeightAt(camera.target[0], camera.target[2]);
+        camera.target[1] = targetHeight + camera.verticalOffset;
+
+        const cosPitch = Math.cos(camera.pitch);
+        const sinPitch = Math.sin(camera.pitch);
+        const distance = camera.distance;
+        camera.position[0] = camera.target[0] + Math.sin(camera.yaw) * cosPitch * distance;
+        camera.position[1] = camera.target[1] + sinPitch * distance;
+        camera.position[2] = camera.target[2] + Math.cos(camera.yaw) * cosPitch * distance;
+
+        const dx = camera.target[0] - camera.lastTarget[0];
+        const dz = camera.target[2] - camera.lastTarget[2];
+        const moveSpeed = Math.hypot(dx, dz) / Math.max(dt, 1e-5);
+        camera.currentSpeed = camera.currentSpeed * 0.85 + moveSpeed * 0.15;
+        camera.lastTarget[0] = camera.target[0];
+        camera.lastTarget[1] = camera.target[1];
+        camera.lastTarget[2] = camera.target[2];
+      }
+
+      function updateHud(dt) {
+        if (hudPosition) {
+          hudPosition.textContent = `${camera.target[0].toFixed(1)}, ${camera.target[1].toFixed(1)}, ${camera.target[2].toFixed(1)}`;
+        }
+        if (hudHeading) {
+          const yawDeg = ((camera.yaw * 180 / Math.PI) % 360 + 360) % 360;
+          const pitchDeg = camera.pitch * 180 / Math.PI;
+          hudHeading.textContent = `${yawDeg.toFixed(0)}° / ${pitchDeg.toFixed(0)}°`;
+        }
+        if (hudChunk) {
+          const chunkSize = geometry.step * 10;
+          const cx = Math.round(camera.target[0] / chunkSize);
+          const cz = Math.round(camera.target[2] / chunkSize);
+          hudChunk.textContent = `${cx}, ${cz}`;
+        }
+        if (hudSpeed) {
+          hudSpeed.textContent = `${(camera.currentSpeed).toFixed(1)} m/s`;
+        }
+      }
+
+      function resizeViewport(width, height) {
+        canvas.width = width;
+        canvas.height = height;
+        gl.viewport(0, 0, width, height);
+        mat4Perspective(projectionMatrix, Math.PI / 3.4, width / height, 0.1, 2000);
+        gl.useProgram(program);
+        gl.uniformMatrix4fv(uniforms.projection, false, projectionMatrix);
+      }
+
+      resizeViewport(defaultResolution.width, defaultResolution.height);
+
+      const upVector = [0, 1, 0];
+      let currentRenderMode = 0;
+      let fogNear = 260;
+      let fogFar = 980;
+      const fogColor = new Float32Array(renderModeFogColors.default);
+
+      function applyRenderMode(mode) {
+        currentRenderMode = mode;
+        const key = mode === 0 ? 'default' : mode === 1 ? 'wire' : mode === 2 ? 'zx' : 'petscii';
+        const color = renderModeFogColors[key];
+        fogColor[0] = color[0];
+        fogColor[1] = color[1];
+        fogColor[2] = color[2];
+        fogNear = mode === 2 ? 180 : 260;
+        fogFar = mode === 2 ? 720 : 980;
+        canvas.style.backgroundColor = renderModeCanvasBackgrounds[key];
+      }
+
+      applyRenderMode(0);
+
+      const fps = fpsMonitor;
+      const controls = {
+        dragSensitivity: 0.0045,
+        touchDragSensitivity: 0.0028
+      };
+
+      canvas.addEventListener('pointerdown', event => {
+        pointerState.active = true;
+        pointerState.id = event.pointerId;
+        pointerState.lastX = event.clientX;
+        pointerState.lastY = event.clientY;
+        pointerState.pointerType = event.pointerType || 'mouse';
+        canvas.setPointerCapture(event.pointerId);
+        canvas.style.cursor = 'grabbing';
+      });
+
+      canvas.addEventListener('pointermove', event => {
+        if (!pointerState.active || event.pointerId !== pointerState.id) return;
+        const dx = event.clientX - pointerState.lastX;
+        const dy = event.clientY - pointerState.lastY;
+        pointerState.lastX = event.clientX;
+        pointerState.lastY = event.clientY;
+        const sensitivity = pointerState.pointerType === 'touch'
+          ? controls.touchDragSensitivity
+          : controls.dragSensitivity;
+        camera.yaw -= dx * sensitivity;
+        camera.pitch = Math.max(camera.minPitch, Math.min(camera.maxPitch, camera.pitch - dy * sensitivity));
+      });
+
+      const clearPointer = () => {
+        pointerState.active = false;
+        pointerState.id = null;
+        canvas.style.cursor = 'grab';
+      };
+
+      canvas.addEventListener('pointerup', clearPointer);
+      canvas.addEventListener('pointercancel', clearPointer);
+      canvas.addEventListener('lostpointercapture', clearPointer);
+      canvas.addEventListener('pointerleave', clearPointer);
+
+      canvas.addEventListener('wheel', event => {
+        const delta = Math.sign(event.deltaY);
+        camera.distance = Math.max(camera.minDistance, Math.min(camera.maxDistance, camera.distance + delta * 36));
+        event.preventDefault();
+      }, { passive: false });
+
+      window.addEventListener('keydown', event => {
+        keyState[event.key] = true;
+      });
+
+      window.addEventListener('keyup', event => {
+        keyState[event.key] = false;
+      });
+
+      window.addEventListener('blur', () => {
+        for (const key of Object.keys(keyState)) keyState[key] = false;
+        clearPointer();
+      });
+
+      function animate(now) {
+        const dt = (now - (animate.lastTime || now)) / 1000;
+        animate.lastTime = now;
+
+        updateCamera(dt);
+        updateHud(dt);
+
+        gl.bindVertexArray(vao);
+        gl.useProgram(program);
+        mat4LookAt(viewMatrix, camera.position, camera.target, upVector);
+        gl.uniformMatrix4fv(uniforms.view, false, viewMatrix);
+        gl.uniform3fv(uniforms.cameraPos, camera.position);
+        gl.uniform3fv(uniforms.fogColor, fogColor);
+        gl.uniform1f(uniforms.fogNear, fogNear);
+        gl.uniform1f(uniforms.fogFar, fogFar);
+        gl.uniform1i(uniforms.renderMode, currentRenderMode);
+
+        gl.clearColor(fogColor[0], fogColor[1], fogColor[2], 1);
+        gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+        gl.drawElements(gl.TRIANGLES, geometry.indices.length, gl.UNSIGNED_INT, 0);
+
+        fps.begin();
+        fps.end();
+
+        requestAnimationFrame(animate);
+      }
+
+      setLoaderPhaseRange(70, 100);
+      reportLoaderPhaseProgress(0.2);
+      updateLoaderStatus('Calibrating viewport…');
+
+      requestAnimationFrame(animate);
+      setProgress(100);
+      setTimeout(() => {
+        stopLoaderAnimation();
+        hideLoader(true);
+      }, 260);
+
+      const triggerVhsEffect = (() => {
+        let timeoutId = null;
+        return () => {
+          canvasWrap.classList.remove('vhs-glitch');
+          void canvasWrap.offsetWidth;
+          canvasWrap.classList.add('vhs-glitch');
+          if (timeoutId) clearTimeout(timeoutId);
+          timeoutId = setTimeout(() => canvasWrap.classList.remove('vhs-glitch'), 650);
+        };
+      })();
+
+      const renderModeButtons = document.querySelectorAll('[data-render-mode]');
+      const renderModeMap = { default: 0, wire: 1, zx: 2, petscii: 3 };
+
+      function setRenderModeByKey(key, announce = true) {
+        const mode = renderModeMap[key] ?? 0;
+        applyRenderMode(mode);
+        gl.useProgram(program);
+        gl.uniform1i(uniforms.renderMode, mode);
+        renderModeButtons.forEach(btn => {
+          const isActive = btn.dataset.renderMode === key;
+          btn.classList.toggle('is-active', isActive);
+          btn.setAttribute('aria-pressed', String(isActive));
+        });
+        if (announce) {
+          console.log(`Render mode changed to ${key.toUpperCase()}.`);
+        }
+      }
+
+      renderModeButtons.forEach(btn => {
+        btn.addEventListener('click', () => {
+          const mode = btn.dataset.renderMode;
+          setRenderModeByKey(mode);
+          triggerVhsEffect();
+        });
+      });
+
+      const resolutionSelect = document.getElementById('resolution-select');
+      const resolutionDisplay = document.getElementById('resolution-display');
+      let currentResolution = defaultResolution;
+
+      function updateCanvasLayout() {
+        const aspect = currentResolution.width / currentResolution.height;
+        const availableWidth = Math.max(100, window.innerWidth);
+        const availableHeight = Math.max(100, window.innerHeight);
+        let displayWidth = availableWidth;
+        let displayHeight = displayWidth / aspect;
+        if (displayHeight > availableHeight) {
+          const scale = availableHeight / displayHeight;
+          displayWidth = Math.floor(displayWidth * scale);
+          displayHeight = availableHeight;
+        }
+        canvas.style.width = `${displayWidth}px`;
+        canvas.style.height = `${displayHeight}px`;
+        canvasWrap.style.width = `${displayWidth}px`;
+        canvasWrap.style.height = `${displayHeight}px`;
+      }
+
+      function applyResolution(res) {
+        currentResolution = res;
+        resizeViewport(res.width, res.height);
+        resolutionDisplay.textContent = `${res.label} — ${res.width} × ${res.height}`;
+        updateCanvasLayout();
+        console.log(`Resolution set to ${res.width}×${res.height} (${res.label}).`);
+      }
+
+      resolutionSelect.addEventListener('change', () => {
+        const [w, h] = resolutionSelect.value.split('x').map(Number);
+        const chosen = RESOLUTIONS.find(r => r.width === w && r.height === h) || defaultResolution;
+        applyResolution(chosen);
+        triggerVhsEffect();
+      });
+
+      const fullscreenBtn = document.getElementById('fullscreen-btn');
+
+      const isFullscreenActive = () => Boolean(document.fullscreenElement || document.webkitFullscreenElement || document.msFullscreenElement);
+
+      function updateFullscreenButton() {
+        const isMobile = document.body.classList.contains('is-mobile');
+        fullscreenBtn.textContent = isFullscreenActive()
+          ? 'Exit Fullscreen'
+          : (isMobile ? 'Fullscreen' : 'Enter Fullscreen');
+        const shouldShow = isFullscreenActive() || window.innerWidth >= 720 || isMobile;
+        fullscreenBtn.style.display = shouldShow ? 'inline-flex' : 'none';
+      }
+
+      fullscreenBtn.addEventListener('click', () => {
+        if (isFullscreenActive()) {
+          (document.exitFullscreen || document.webkitExitFullscreen || document.msExitFullscreen)?.call(document);
+        } else {
+          const target = document.documentElement;
+          (target.requestFullscreen || target.webkitRequestFullscreen || target.msRequestFullscreen)?.call(target);
+        }
+      });
+
+      ['fullscreenchange', 'webkitfullscreenchange', 'msfullscreenchange'].forEach(eventName => {
+        document.addEventListener(eventName, () => {
+          updateCanvasLayout();
+          updateFullscreenButton();
+        });
+      });
+
+      const controlPad = document.getElementById('control-pad');
+      controlPad.querySelectorAll('button[data-key]').forEach(btn => {
+        const key = btn.dataset.key;
+        btn.addEventListener('pointerdown', event => {
+          keyState[key] = true;
+          btn.setPointerCapture?.(event.pointerId);
+        });
+        const end = () => { keyState[key] = false; };
+        btn.addEventListener('pointerup', end);
+        btn.addEventListener('pointerleave', end);
+        btn.addEventListener('lostpointercapture', end);
+        btn.addEventListener('pointercancel', end);
+      });
+
+      function updateResponsiveState() {
+        const isMobile = window.innerWidth <= 720;
+        document.body.classList.toggle('is-mobile', isMobile);
+      }
+
+      window.addEventListener('resize', () => {
+        updateResponsiveState();
+        updateCanvasLayout();
+        updateFullscreenButton();
+      });
+      window.addEventListener('orientationchange', () => {
+        updateResponsiveState();
+        updateCanvasLayout();
+        updateFullscreenButton();
+      });
+
+      const controlUi = document.getElementById('control-ui');
+      const foldBtn = document.getElementById('ui-fold-btn');
+      function setControlFolded(folded) {
+        if (!controlUi) return;
+        controlUi.classList.toggle('folded', folded);
+        foldBtn?.setAttribute('aria-expanded', String(!folded));
+        foldBtn?.setAttribute('aria-label', folded ? 'Expand control panel' : 'Collapse control panel');
+      }
+      foldBtn?.addEventListener('click', () => {
+        const next = !controlUi.classList.contains('folded');
+        setControlFolded(next);
+        console.log(`Control interface ${next ? 'folded' : 'expanded'}.`);
+      });
+
+      const consoleDock = document.getElementById('console-dock');
+      const consoleFoldBtn = document.getElementById('console-fold-btn');
+      const consoleStatus = document.getElementById('console-status');
+      const consoleLog = document.getElementById('console-log');
+      initConsoleLogs({ container: consoleLog, removeAfter: 0 });
+
+      function setConsoleFolded(folded) {
+        consoleDock.classList.toggle('folded', folded);
+        consoleFoldBtn?.setAttribute('aria-expanded', String(!folded));
+        consoleFoldBtn?.setAttribute('aria-label', folded ? 'Expand console log' : 'Collapse console log');
+        consoleStatus.textContent = folded ? 'Folded' : 'Live';
+      }
+
+      consoleFoldBtn?.addEventListener('click', () => {
+        const next = !consoleDock.classList.contains('folded');
+        setConsoleFolded(next);
+      });
+
+      setConsoleFolded(true);
+      setControlFolded(false);
+      updateResponsiveState();
+      applyResolution(currentResolution);
       updateFullscreenButton();
-    });
-  });
+      updateCanvasLayout();
+      setRenderModeByKey('default', false);
 
-  const controlPad = document.getElementById('control-pad');
-  controlPad.querySelectorAll('button[data-key]').forEach(btn => {
-    const key = btn.dataset.key;
-    btn.addEventListener('pointerdown', event => {
-      keyState[key] = true;
-      btn.setPointerCapture?.(event.pointerId);
-    });
-    const end = () => { keyState[key] = false; };
-    btn.addEventListener('pointerup', end);
-    btn.addEventListener('pointerleave', end);
-    btn.addEventListener('lostpointercapture', end);
-    btn.addEventListener('pointercancel', end);
-  });
-
-  function updateResponsiveState() {
-    const isMobile = window.innerWidth <= 720;
-    document.body.classList.toggle('is-mobile', isMobile);
+      console.log('Terrain ready.');
   }
-
-  window.addEventListener('resize', () => {
-    updateResponsiveState();
-    updateCanvasLayout();
-    updateFullscreenButton();
-  });
-  window.addEventListener('orientationchange', () => {
-    updateResponsiveState();
-    updateCanvasLayout();
-    updateFullscreenButton();
-  });
-
-  const controlUi = document.getElementById('control-ui');
-  const foldBtn = document.getElementById('ui-fold-btn');
-  function setControlFolded(folded) {
-    if (!controlUi) return;
-    controlUi.classList.toggle('folded', folded);
-    foldBtn?.setAttribute('aria-expanded', String(!folded));
-    foldBtn?.setAttribute('aria-label', folded ? 'Expand control panel' : 'Collapse control panel');
-  }
-  foldBtn?.addEventListener('click', () => {
-    const next = !controlUi.classList.contains('folded');
-    setControlFolded(next);
-    console.log(`Control interface ${next ? 'folded' : 'expanded'}.`);
-  });
-
-  const consoleDock = document.getElementById('console-dock');
-  const consoleFoldBtn = document.getElementById('console-fold-btn');
-  const consoleStatus = document.getElementById('console-status');
-  const consoleLog = document.getElementById('console-log');
-  initConsoleLogs({ container: consoleLog, removeAfter: 0 });
-
-  function setConsoleFolded(folded) {
-    consoleDock.classList.toggle('folded', folded);
-    consoleFoldBtn?.setAttribute('aria-expanded', String(!folded));
-    consoleFoldBtn?.setAttribute('aria-label', folded ? 'Expand console log' : 'Collapse console log');
-    consoleStatus.textContent = folded ? 'Folded' : 'Live';
-  }
-
-  consoleFoldBtn?.addEventListener('click', () => {
-    const next = !consoleDock.classList.contains('folded');
-    setConsoleFolded(next);
-  });
-
-  setConsoleFolded(true);
-  setControlFolded(false);
-  updateResponsiveState();
-  applyResolution(currentResolution);
-  updateFullscreenButton();
-  updateCanvasLayout();
-  setRenderModeByKey('default', false);
-
-  console.log('Terrain ready.');
   </script>
 
 </body>
