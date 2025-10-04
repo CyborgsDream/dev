@@ -1894,6 +1894,8 @@
 
       const upVector = [0, 1, 0];
       let currentRenderMode = 0;
+      let currentRenderModeKey = 'default';
+      let lastNonZxModeKey = 'default';
       let fogNear = 260;
       let fogFar = 980;
       const fogColor = new Float32Array(renderModeFogColors.default);
@@ -2024,17 +2026,24 @@
       const renderModeMap = { default: 0, wire: 1, zx: 2, petscii: 3 };
 
       function setRenderModeByKey(key, announce = true) {
-        const mode = renderModeMap[key] ?? 0;
+        const normalizedKey = Object.prototype.hasOwnProperty.call(renderModeMap, key)
+          ? key
+          : 'default';
+        const mode = renderModeMap[normalizedKey];
         applyRenderMode(mode);
         gl.useProgram(program);
         gl.uniform1i(uniforms.renderMode, mode);
         renderModeButtons.forEach(btn => {
-          const isActive = btn.dataset.renderMode === key;
+          const isActive = btn.dataset.renderMode === normalizedKey;
           btn.classList.toggle('is-active', isActive);
           btn.setAttribute('aria-pressed', String(isActive));
         });
+        currentRenderModeKey = normalizedKey;
+        if (normalizedKey !== 'zx') {
+          lastNonZxModeKey = normalizedKey;
+        }
         if (announce) {
-          console.log(`Render mode changed to ${key.toUpperCase()}.`);
+          console.log(`Render mode changed to ${normalizedKey.toUpperCase()}.`);
         }
       }
 
@@ -2044,6 +2053,14 @@
           setRenderModeByKey(mode);
           triggerVhsEffect();
         });
+      });
+
+      window.addEventListener('keydown', event => {
+        if (event.code !== 'KeyZ' || !event.shiftKey || event.repeat) return;
+        event.preventDefault();
+        const nextKey = currentRenderModeKey === 'zx' ? lastNonZxModeKey : 'zx';
+        setRenderModeByKey(nextKey);
+        triggerVhsEffect();
       });
 
       const resolutionSelect = document.getElementById('resolution-select');
