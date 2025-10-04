@@ -1817,7 +1817,7 @@
       }
 
       function updateCamera(dt) {
-        const forward = [Math.sin(camera.yaw), 0, Math.cos(camera.yaw)];
+        const forward = [-Math.sin(camera.yaw), 0, -Math.cos(camera.yaw)];
         const right = [Math.cos(camera.yaw), 0, -Math.sin(camera.yaw)];
         let moveX = 0;
         let moveZ = 0;
