@@ -1937,7 +1937,7 @@
         const sensitivity = pointerState.pointerType === 'touch'
           ? controls.touchDragSensitivity
           : controls.dragSensitivity;
-        camera.yaw -= dx * sensitivity;
+        camera.yaw += dx * sensitivity;
         camera.pitch = Math.max(camera.minPitch, Math.min(camera.maxPitch, camera.pitch - dy * sensitivity));
       });
 
