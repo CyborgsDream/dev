@@ -91,18 +91,6 @@
       max-height: 100%;
       image-rendering: pixelated;
     }
-    body.terrain-fallback-mode #control-pad,
-    body.terrain-fallback-mode #fullscreen-btn,
-    body.terrain-fallback-mode #fps {
-      display: none;
-    }
-    body.terrain-fallback-mode #hud-overlay {
-      opacity: 0.78;
-    }
-    .render-mode-btn.is-disabled {
-      opacity: 0.45 !important;
-      cursor: not-allowed;
-    }
     #loader {
       position: fixed;
       inset: 0;
@@ -123,46 +111,56 @@
       gap: 20px;
       text-align: center;
       padding: 28px 32px;
-      border: none;
-      background: none;
-      box-shadow: none;
-      backdrop-filter: none;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      background: rgba(2, 8, 23, 0.65);
+      box-shadow: 0 28px 40px rgba(0, 0, 0, 0.45);
+      backdrop-filter: blur(12px);
     }
     #loader .loader-icon {
-      width: 192px;
-      height: 144px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      background: none;
-      border: none;
-      box-shadow: none;
-      position: relative;
-      image-rendering: pixelated;
+      width: min(180px, 36vw);
+      aspect-ratio: 1 / 1;
+      display: grid;
+      place-items: center;
+      perspective: 1200px;
     }
-    #loader .loader-icon::after {
-      display: none;
-    }
-    #loader .loader-icon canvas {
+    #loader .loader-icon svg {
       width: 100%;
       height: 100%;
-      display: block;
-      image-rendering: pixelated;
-      background: transparent;
-      border: none !important;
-      box-shadow: none !important;
+      fill: none;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      animation: loader-torus-spin 6.8s linear infinite;
+      transform-origin: 50% 50%;
+      transform-style: preserve-3d;
+      transform-box: fill-box;
+      will-change: transform;
+      backface-visibility: hidden;
+      filter: drop-shadow(0 0 12px rgba(111, 208, 255, 0.45));
     }
-    @media (max-width: 620px) {
-      #loader .loader-icon {
-        transform: scale(0.82);
-      }
+    #loader .loader-icon .torus-body {
+      opacity: 0.95;
+    }
+    #loader .loader-icon .torus-highlight {
+      stroke-dasharray: 62 160;
+      stroke-dashoffset: 0;
+      animation: loader-torus-glide 3.2s ease-in-out infinite;
+      mix-blend-mode: screen;
+    }
+    @keyframes loader-torus-spin {
+      0% { transform: rotateX(22deg) rotateY(0deg) rotateZ(0deg); }
+      25% { transform: rotateX(10deg) rotateY(90deg) rotateZ(45deg); }
+      50% { transform: rotateX(-22deg) rotateY(180deg) rotateZ(90deg); }
+      75% { transform: rotateX(-10deg) rotateY(270deg) rotateZ(135deg); }
+      100% { transform: rotateX(22deg) rotateY(360deg) rotateZ(180deg); }
+    }
+    @keyframes loader-torus-glide {
+      0% { stroke-dashoffset: 0; opacity: 0.35; }
+      50% { stroke-dashoffset: -80; opacity: 0.9; }
+      100% { stroke-dashoffset: -160; opacity: 0.35; }
     }
     #loader .loader-text {
       font-size: 0.54em;
       letter-spacing: 0.28em;
-    }
-    #loader.is-error .loader-text {
-      color: #ff5b5b;
     }
     #loader .loader-meta {
       font-size: 0.36em;
@@ -170,8 +168,11 @@
       color: rgba(255, 255, 255, 0.68);
     }
     @media (prefers-reduced-motion: reduce) {
-      #loader .loader-icon {
-        transform: none;
+      #loader .loader-icon svg {
+        animation-duration: 12s !important;
+      }
+      #loader .loader-icon .torus-highlight {
+        animation-duration: 7s !important;
       }
     }
     #loader #progress {
@@ -608,7 +609,7 @@
       transform: translateX(-50%);
       display: grid;
       gap: 6px;
-      padding: 14px 20px;
+      padding: 12px 16px;
       background: rgba(2, 8, 23, 0.42);
       border: 1px solid rgba(255, 255, 255, 0.16);
       box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08), 0 12px 24px rgba(0, 0, 0, 0.35);
@@ -617,8 +618,7 @@
       color: var(--text-white);
       letter-spacing: 0.12em;
       text-transform: uppercase;
-      min-width: min(420px, 94vw);
-      max-width: min(560px, 94vw);
+      min-width: min(320px, 90vw);
       z-index: 42;
       backdrop-filter: blur(12px);
       pointer-events: auto;
@@ -641,7 +641,7 @@
     }
     .hud-render-modes {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(118px, 1fr));
+      grid-auto-flow: column;
       gap: 8px;
       justify-content: center;
       pointer-events: auto;
@@ -838,7 +838,7 @@
       display: none;
     }
     body.is-mobile .hud-render-modes {
-      grid-template-columns: 1fr;
+      grid-auto-flow: row;
       gap: 6px;
     }
     body.is-mobile .hud-render-modes button {
@@ -910,7 +910,7 @@
             <path d="M9 10h2v2H9zm4 0h2v2h-2zm-2 3h2v2h-2z" fill="var(--accent-orange)"></path>
           </svg>
         </span>
-        <span>RESOLUTION</span>
+        <span>Games Mode</span>
       </h2>
         <button id="ui-fold-btn" type="button" aria-label="Collapse control panel" aria-expanded="true" aria-controls="ui-foldable">
           <span class="fold-icon" aria-hidden="true">
@@ -925,23 +925,14 @@
       <label for="resolution-select">Resolution</label>
       <div class="select-wrap">
         <select id="resolution-select" aria-label="Resolution selector">
-        <option value="256x192">ZX Spectrum — 256 × 192</option>
-        <option value="320x200">Commodore 64 — 320 × 200</option>
-        <option value="320x256">Amiga 500 (PAL Lowres) — 320 × 256</option>
-        <option value="640x512">Amiga 500 (PAL HiRes) — 640 × 512</option>
-        <option value="640x480">VGA Era — 640 × 480</option>
-        <option value="800x600">SVGA Era — 800 × 600</option>
-        <option value="640x360">EDTV 360p — 640 × 360</option>
-        <option value="854x480">Wide 480p — 854 × 480</option>
-        <option value="960x540">qHD 540p — 960 × 540</option>
-        <option value="1024x576">WSVGA — 1024 × 576</option>
-        <option value="1280x720" selected>HD 720p — 1280 × 720</option>
-        <option value="1366x768">HD 768p — 1366 × 768</option>
-        <option value="1600x900">HD+ — 1600 × 900</option>
-        <option value="1920x1080">Full HD — 1920 × 1080</option>
-        <option value="2560x1440">Quad HD — 2560 × 1440</option>
-        <option value="3200x1800">QHD+ — 3200 × 1800</option>
-        <option value="3840x2160">4K Ultra HD — 3840 × 2160</option>
+        <option value="256x144">144p — 256 × 144</option>
+        <option value="426x240">240p — 426 × 240</option>
+        <option value="640x360">360p — 640 × 360</option>
+        <option value="854x480">480p — 854 × 480</option>
+        <option value="1280x720" selected>720p — 1280 × 720</option>
+        <option value="1920x1080">1080p — 1920 × 1080</option>
+        <option value="2560x1440">1440p — 2560 × 1440</option>
+        <option value="3840x2160">2160p — 3840 × 2160</option>
         </select>
       </div>
     </div>
@@ -964,10 +955,8 @@
       <span>Orbital Metrics Stream — Vectors Locked</span>
     </div>
     <div class="hud-render-modes" role="group" aria-label="Rendering mode">
-      <button type="button" class="render-mode-btn is-active" data-render-mode="default" aria-pressed="true">Default</button>
-      <button type="button" class="render-mode-btn" data-render-mode="wire" aria-pressed="false">Wired Vectors</button>
-      <button type="button" class="render-mode-btn" data-render-mode="zx" aria-pressed="false">ZX Spectrum</button>
-      <button type="button" class="render-mode-btn" data-render-mode="petscii" aria-pressed="false">Commodore PETSCII</button>
+      <button type="button" class="render-mode-btn is-active" data-render-mode="default">Default</button>
+      <button type="button" class="render-mode-btn" data-render-mode="wire">Wired Vectors</button>
     </div>
     <div class="hud-line"><span>Position</span><span class="hud-value" data-hud="position">0, 0, 0</span></div>
     <div class="hud-line"><span>Heading</span><span class="hud-value" data-hud="heading">0° / 0°</span></div>
@@ -994,178 +983,107 @@
   <div id="loader">
     <div class="loader-content">
       <div class="loader-icon" aria-hidden="true">
-        <canvas id="loader-canvas" width="192" height="144" role="presentation"></canvas>
+        <svg viewBox="0 0 120 120" role="presentation">
+          <defs>
+            <radialGradient id="loaderTorusFill" cx="50%" cy="38%" r="60%">
+              <stop offset="0%" stop-color="#9ddcff" stop-opacity="0.9"></stop>
+              <stop offset="45%" stop-color="#3e84dd" stop-opacity="0.98"></stop>
+              <stop offset="100%" stop-color="#162f59" stop-opacity="1"></stop>
+            </radialGradient>
+            <linearGradient id="loaderTorusEdge" x1="20%" y1="0%" x2="80%" y2="100%">
+              <stop offset="0%" stop-color="#9bd6ff"></stop>
+              <stop offset="100%" stop-color="#2b5fa9"></stop>
+            </linearGradient>
+          </defs>
+          <path
+            class="torus-body"
+            fill="url(#loaderTorusFill)"
+            stroke="url(#loaderTorusEdge)"
+            stroke-width="3"
+            fill-rule="evenodd"
+            d="M60 16c24.3 0 44 19.7 44 44s-19.7 44-44 44S16 84.3 16 60 35.7 16 60 16zm0 20c-13.3 0-24 10.7-24 24s10.7 24 24 24 24-10.7 24-24S73.3 36 60 36z"
+          ></path>
+          <circle
+            class="torus-highlight"
+            cx="60"
+            cy="60"
+            r="34"
+            fill="none"
+            stroke="#d8f4ff"
+            stroke-width="5"
+            stroke-linecap="round"
+          ></circle>
+        </svg>
       </div>
       <div class="loader-text">Loading <span id="progress">0%</span></div>
       <div class="loader-meta">© 2025 Cyborgs Dream</div>
     </div>
   </div>
-  
   <script type="module">
+  import * as THREE from 'https://unpkg.com/three@0.160.0/build/three.module.js';
   import { initConsoleLogs } from '../../shared/consolelogs.js';
 
-  const loaderEl = document.getElementById('loader');
-  const loaderProgressEl = document.getElementById('progress');
-  const loaderTextEl = loaderEl?.querySelector('.loader-text');
-  const loaderMetaEl = loaderEl?.querySelector('.loader-meta');
+  const consoleLogEl = document.getElementById('console-log');
+  const consoleDock = document.getElementById('console-dock');
+  const consoleFoldBtn = document.getElementById('console-fold-btn');
+  const consoleStatus = document.getElementById('console-status');
+  let setConsoleFolded = null;
 
-  let loaderProgressValue = 0;
-  let loaderPhaseStart = 0;
-  let loaderPhaseEnd = 100;
-  let loaderStatusMessage = '';
+  initConsoleLogs({ container: consoleLogEl, removeAfter: null });
+  console.log('Console dock folded for minimal footprint.');
 
-  function refreshLoaderProgressText() {
-    if (!loaderProgressEl) return;
-    const percentText = `${Math.round(loaderProgressValue)}%`;
-    loaderProgressEl.textContent = loaderStatusMessage
-      ? `${percentText} (${loaderStatusMessage})`
-      : percentText;
+  if (consoleFoldBtn && consoleDock) {
+    const syncConsoleFold = (folded) => {
+      consoleDock.classList.toggle('folded', folded);
+      consoleFoldBtn.setAttribute('aria-expanded', String(!folded));
+      if (consoleStatus) {
+        consoleStatus.textContent = folded ? 'Folded' : 'Expanded';
+      }
+      const label = folded ? 'Expand console log' : 'Collapse console log';
+      consoleFoldBtn.setAttribute('aria-label', label);
+    };
+    setConsoleFolded = syncConsoleFold;
+    consoleFoldBtn.addEventListener('click', () => {
+      const next = !consoleDock.classList.contains('folded');
+      syncConsoleFold(next);
+      console.log(`Console log ${next ? 'folded' : 'expanded'}.`);
+    });
+    syncConsoleFold(consoleDock.classList.contains('folded'));
   }
 
-  function setProgress(percent) {
-    loaderProgressValue = Number.isFinite(percent)
-      ? Math.max(0, Math.min(100, percent))
-      : 0;
-    refreshLoaderProgressText();
-  }
+  const hudElements = {
+    position: document.querySelector('[data-hud="position"]'),
+    heading: document.querySelector('[data-hud="heading"]'),
+    chunk: document.querySelector('[data-hud="chunk"]'),
+    speed: document.querySelector('[data-hud="speed"]')
+  };
+  console.log('HUD telemetry overlay online.');
+  console.log('Compact terrain interface scaling engaged.');
 
-  function setLoaderPhaseRange(start, end) {
-    loaderPhaseStart = Number.isFinite(start) ? Math.max(0, Math.min(100, start)) : 0;
-    loaderPhaseEnd = Number.isFinite(end)
-      ? Math.max(loaderPhaseStart, Math.min(100, end))
-      : loaderPhaseStart;
-  }
-
-  function reportLoaderPhaseProgress(fraction) {
-    const span = loaderPhaseEnd - loaderPhaseStart;
-    const clamped = Number.isFinite(fraction) ? Math.max(0, Math.min(1, fraction)) : 0;
-    const percent = loaderPhaseStart + span * clamped;
-    setProgress(percent);
-  }
-
-  function updateLoaderStatus(message) {
-    loaderStatusMessage = typeof message === 'string' ? message.trim() : '';
-    refreshLoaderProgressText();
-  }
-
-  function hideLoader(success = true) {
-    if (!loaderEl) return;
-    if (!success) {
-      loaderEl.classList.add('is-error');
-      if (loaderTextEl) loaderTextEl.textContent = 'Terrain offline mode';
-      if (loaderMetaEl) loaderMetaEl.textContent = 'Fallback renderer active';
-      return;
-    }
-    loaderEl.style.pointerEvents = 'none';
-    loaderEl.style.transition = 'opacity 0.8s ease';
-    loaderEl.style.opacity = '0';
-    setTimeout(() => loaderEl.remove(), 900);
-  }
+  const renderModeButtons = document.querySelectorAll('[data-render-mode]');
+  const renderModeDescriptions = {
+    default: 'default shading',
+    wire: 'wired vectors'
+  };
+  let currentRenderMode = 'default';
+  const wireTerrainColor = new THREE.Color(0x8fd6ff);
+  const wireBlockColor = new THREE.Color(0xffb86b);
+  let defaultTerrainColor = null;
 
   const RESOLUTIONS = [
-    { label: 'ZX Spectrum', width: 256, height: 192 },
-    { label: 'Commodore 64', width: 320, height: 200 },
-    { label: 'Amiga 500 PAL Lowres', width: 320, height: 256 },
-    { label: 'Amiga 500 PAL HiRes', width: 640, height: 512 },
-    { label: 'VGA Era', width: 640, height: 480 },
-    { label: 'SVGA Era', width: 800, height: 600 },
-    { label: 'EDTV 360p', width: 640, height: 360 },
-    { label: 'Wide 480p', width: 854, height: 480 },
-    { label: 'qHD 540p', width: 960, height: 540 },
-    { label: 'WSVGA', width: 1024, height: 576 },
-    { label: 'HD 720p', width: 1280, height: 720 },
-    { label: 'HD 768p', width: 1366, height: 768 },
-    { label: 'HD+', width: 1600, height: 900 },
-    { label: 'Full HD', width: 1920, height: 1080 },
-    { label: 'Quad HD', width: 2560, height: 1440 },
-    { label: 'QHD+', width: 3200, height: 1800 },
-    { label: '4K Ultra HD', width: 3840, height: 2160 }
+    { label: '144p', width: 256, height: 144 },
+    { label: '240p', width: 426, height: 240 },
+    { label: '360p', width: 640, height: 360 },
+    { label: '480p', width: 854, height: 480 },
+    { label: '720p', width: 1280, height: 720 },
+    { label: '1080p', width: 1920, height: 1080 },
+    { label: '1440p', width: 2560, height: 1440 },
+    { label: '2160p', width: 3840, height: 2160 }
   ];
 
-  const defaultResolution = RESOLUTIONS.find(r => r.width === 1280 && r.height === 720) || RESOLUTIONS[0];
-
-  const retroPalettes = {
-    zx: [
-      0x000000, 0x0000d7, 0xd70000, 0xd700d7,
-      0x00d700, 0x00d7d7, 0xd7d700, 0xd7d7d7,
-      0x000000, 0x0000ff, 0xff0000, 0xff00ff,
-      0x00ff00, 0x00ffff, 0xffff00, 0xffffff
-    ],
-    petscii: [
-      0x000000, 0xffffff, 0x68372b, 0x70a4b2,
-      0x6f3d86, 0x588d43, 0x352879, 0xb8c76f,
-      0x6f4f25, 0x433900, 0x9a6759, 0x444444,
-      0x6c6c6c, 0x9ad284, 0x6c5eb5, 0x959595
-    ]
-  };
-
-  const renderModeFogColors = {
-    default: [0.02, 0.08, 0.15],
-    wire: [0.02, 0.08, 0.15],
-    zx: [0.0, 0.0, 0.52],
-    petscii: [0.0, 0.08, 0.05]
-  };
-
-  const renderModeCanvasBackgrounds = {
-    default: '#020817',
-    wire: '#020817',
-    zx: '#0000d7',
-    petscii: '#00140a'
-  };
-
-  let stopLoaderAnimation = () => {};
-  {
-    const loaderCanvas = document.getElementById('loader-canvas');
-    if (loaderCanvas) {
-      const ctx = loaderCanvas.getContext('2d', { alpha: true });
-      if (ctx) {
-        ctx.imageSmoothingEnabled = false;
-        const width = loaderCanvas.width;
-        const height = loaderCanvas.height;
-        const centerX = width / 2;
-        const centerY = height / 2;
-        const tau = Math.PI * 2;
-        let rafId = null;
-        const faces = 20;
-        const radius = Math.min(width, height) * 0.22;
-        const baseHue = 208;
-        const draw = (time) => {
-          ctx.clearRect(0, 0, width, height);
-          ctx.save();
-          ctx.translate(centerX, centerY);
-          ctx.rotate(time * 0.00035);
-          for (let i = 0; i < faces; i++) {
-            const angle = (i / faces) * tau;
-            const x = Math.cos(angle) * radius;
-            const y = Math.sin(angle) * radius;
-            const hue = (baseHue + i * 9) % 360;
-            const scale = 0.4 + (Math.sin(time * 0.001 + i * 1.3) + 1) * 0.3;
-            ctx.save();
-            ctx.translate(x, y);
-            ctx.rotate(angle + time * 0.0005);
-            ctx.scale(scale, scale);
-            ctx.fillStyle = `hsla(${hue}, 72%, 62%, 0.85)`;
-            ctx.beginPath();
-            ctx.moveTo(0, -22);
-            ctx.lineTo(18, 12);
-            ctx.lineTo(-18, 12);
-            ctx.closePath();
-            ctx.fill();
-            ctx.restore();
-          }
-          ctx.restore();
-          rafId = requestAnimationFrame(draw);
-        };
-        rafId = requestAnimationFrame(draw);
-        stopLoaderAnimation = () => {
-          if (rafId !== null) {
-            cancelAnimationFrame(rafId);
-            rafId = null;
-          }
-        };
-      }
-    }
-  }
+  const loaderEl = document.getElementById('loader');
+  const progressEl = document.getElementById('progress');
+  function setProgress(p){ progressEl.textContent = Math.round(p) + '%'; }
 
   const fpsHolder = document.getElementById('fps');
 
@@ -1188,6 +1106,8 @@
       this.titleEl.innerHTML = `${iconMarkup}<span class="label">Performance</span>`;
       this.dom.appendChild(this.titleEl);
 
+      this.styles = getComputedStyle(document.documentElement);
+
       this.readoutEl = document.createElement('div');
       this.readoutEl.className = 'fps-readout';
 
@@ -1206,11 +1126,13 @@
       this.graphCanvas.width = 160;
       this.graphCanvas.height = 60;
       this.graphCanvas.className = 'fps-graph';
+      this.graphCanvas.setAttribute('aria-hidden', 'true');
       this.graphCtx = this.graphCanvas.getContext('2d');
 
       this.maxSamples = this.graphCanvas.width;
       this.samples = new Array(this.maxSamples).fill(0);
       this.referenceFps = 120;
+
       this.sampleWindow = 250;
       this.frameCount = 0;
       this.lastSample = performance.now();
@@ -1218,9 +1140,8 @@
 
       this.dom.appendChild(this.readoutEl);
       this.dom.appendChild(this.graphCanvas);
-      container.appendChild(this.dom);
-
       this.drawGraph();
+      container.appendChild(this.dom);
     }
 
     begin() {}
@@ -1255,11 +1176,10 @@
       const height = this.graphCanvas.height;
       ctx.clearRect(0, 0, width, height);
 
-      const style = getComputedStyle(document.documentElement);
-      const background = style.getPropertyValue('--navy-900').trim() || '#020817';
-      const gridColor = style.getPropertyValue('--graph-grid').trim() || 'rgba(255, 255, 255, 0.18)';
-      const fillColor = style.getPropertyValue('--graph-fill').trim() || 'rgba(255, 139, 47, 0.18)';
-      const lineColor = style.getPropertyValue('--graph-line').trim() || '#ff8b2f';
+      const background = this.styles.getPropertyValue('--navy-900').trim() || '#020817';
+      const gridColor = this.styles.getPropertyValue('--graph-grid').trim() || 'rgba(255, 255, 255, 0.18)';
+      const fillColor = this.styles.getPropertyValue('--graph-fill').trim() || 'rgba(255, 139, 47, 0.18)';
+      const lineColor = this.styles.getPropertyValue('--graph-line').trim() || '#ff8b2f';
 
       ctx.fillStyle = background;
       ctx.fillRect(0, 0, width, height);
@@ -1300,7 +1220,11 @@
         const x = (i / (this.samples.length - 1 || 1)) * width;
         const normalized = Math.min(1, value / scaleMax);
         const y = height - verticalPadding - normalized * usableHeight;
-        if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+        if (i === 0) {
+          ctx.moveTo(x, y);
+        } else {
+          ctx.lineTo(x, y);
+        }
       }
       ctx.strokeStyle = lineColor;
       ctx.lineWidth = 1.5;
@@ -1310,897 +1234,1175 @@
 
   const fpsMonitor = new FpsMonitor(fpsHolder);
 
+  const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
+  renderer.setPixelRatio(1);
   const canvasWrap = document.getElementById('canvas-wrap');
-  const canvas = document.createElement('canvas');
-  canvas.id = 'terrain-canvas';
-  canvasWrap.appendChild(canvas);
+  canvasWrap.appendChild(renderer.domElement);
+  renderer.domElement.style.cursor = 'grab';
+  renderer.domElement.style.touchAction = 'none';
+  renderer.domElement.tabIndex = 0;
+  renderer.domElement.setAttribute('aria-label', 'Interactive terrain viewport');
 
-  const gl = canvas.getContext('webgl2', { antialias: true, alpha: false });
-  if (!gl) {
-    console.error('WebGL2 is required for the Terrain experience.');
-    hideLoader(false);
-  } else {
-    initTerrain(gl, canvas);
+  const scene = new THREE.Scene();
+  const fogColor = new THREE.Color(0x020817);
+  scene.fog = new THREE.Fog(fogColor, 380, 760);
+  renderer.setClearColor(fogColor);
+  scene.add(new THREE.AmbientLight(0x666666));
+  const sunLight = new THREE.DirectionalLight(0xffffff, 1.2);
+  sunLight.position.set(260, 220, -500);
+  scene.add(sunLight);
+  scene.add(sunLight.target);
+  const sunLightOffset = new THREE.Vector3(260, 220, -500);
+  const sunLightDesired = new THREE.Vector3();
+  const sunLightTargetDesired = new THREE.Vector3();
+
+  function createSkyDomeMaterial() {
+    const uniforms = {
+      horizonColor: { value: new THREE.Color('#0f1d30') },
+      midColor: { value: new THREE.Color('#2e4f7d') },
+      zenithColor: { value: new THREE.Color('#79b5ff') },
+      glowColor: { value: new THREE.Color('#ffe6c2') },
+      glowStrength: { value: 0.12 },
+      time: { value: 0 }
+    };
+
+    const material = new THREE.ShaderMaterial({
+      uniforms,
+      vertexShader: `
+        varying vec3 vWorldPosition;
+        void main() {
+          vec4 worldPosition = modelMatrix * vec4(position, 1.0);
+          vWorldPosition = worldPosition.xyz;
+          gl_Position = projectionMatrix * viewMatrix * worldPosition;
+        }
+      `,
+      fragmentShader: `
+        varying vec3 vWorldPosition;
+        uniform vec3 horizonColor;
+        uniform vec3 midColor;
+        uniform vec3 zenithColor;
+        uniform vec3 glowColor;
+        uniform float glowStrength;
+        uniform float time;
+
+        void main() {
+          vec3 worldDir = normalize(vWorldPosition);
+          float vertical = clamp(worldDir.y * 0.5 + 0.5, 0.0, 1.0);
+          float midBlend = smoothstep(0.15, 0.65, vertical);
+          vec3 base = mix(horizonColor, midColor, midBlend);
+          base = mix(base, zenithColor, smoothstep(0.45, 1.0, vertical));
+
+          float glow = pow(1.0 - vertical, 1.8);
+          float pulse = 0.65 + 0.35 * sin(time * 0.12);
+          vec3 color = base + glow * glowStrength * pulse * glowColor;
+          gl_FragColor = vec4(clamp(color, 0.0, 1.0), 1.0);
+        }
+      `,
+      side: THREE.BackSide,
+      depthWrite: false,
+      fog: false
+    });
+
+    return { material, uniforms };
   }
 
-  function initTerrain(gl, canvas) {
-      const ZX_PALETTE = retroPalettes.zx.map(hex => [
-        ((hex >> 16) & 255) / 255,
-        ((hex >> 8) & 255) / 255,
-        (hex & 255) / 255
-      ]);
-      const PET_PALETTE = retroPalettes.petscii.map(hex => [
-        ((hex >> 16) & 255) / 255,
-        ((hex >> 8) & 255) / 255,
-        (hex & 255) / 255
-      ]);
-
-      const flattenedZX = new Float32Array(ZX_PALETTE.flat());
-      const flattenedPET = new Float32Array(PET_PALETTE.flat());
-
-      function createShader(type, source) {
-        const shader = gl.createShader(type);
-        gl.shaderSource(shader, source);
-        gl.compileShader(shader);
-        if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
-          const error = gl.getShaderInfoLog(shader) || 'Unknown shader compilation error';
-          gl.deleteShader(shader);
-          throw new Error(error);
-        }
-        return shader;
-      }
-
-      function createProgram(vertexSrc, fragmentSrc) {
-        const program = gl.createProgram();
-        gl.attachShader(program, createShader(gl.VERTEX_SHADER, vertexSrc));
-        gl.attachShader(program, createShader(gl.FRAGMENT_SHADER, fragmentSrc));
-        gl.linkProgram(program);
-        if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
-          const error = gl.getProgramInfoLog(program) || 'Unknown program link error';
-          gl.deleteProgram(program);
-          throw new Error(error);
-        }
-        return program;
-      }
-
-      function hash(ix, iz) {
-        const s = Math.sin(ix * 127.1 + iz * 311.7) * 43758.5453123;
-        return s - Math.floor(s);
-      }
-
-      function smooth(t) {
-        return t * t * (3 - 2 * t);
-      }
-
-      function lerp(a, b, t) {
-        return a + (b - a) * t;
-      }
-
-      function noise2(x, z) {
-        const ix = Math.floor(x);
-        const iz = Math.floor(z);
-        const fx = x - ix;
-        const fz = z - iz;
-        const a = hash(ix, iz);
-        const b = hash(ix + 1, iz);
-        const c = hash(ix, iz + 1);
-        const d = hash(ix + 1, iz + 1);
-        const ux = smooth(fx);
-        const uz = smooth(fz);
-        return lerp(lerp(a, b, ux), lerp(c, d, ux), uz);
-      }
-
-      function fbm(x, z, octaves = 5) {
-        let amp = 1;
-        let freq = 0.0045;
-        let sum = 0;
-        let norm = 0;
-        for (let i = 0; i < octaves; i++) {
-          sum += amp * noise2(x * freq, z * freq);
-          norm += amp;
-          amp *= 0.5;
-          freq *= 2;
-        }
-        return sum / Math.max(1e-5, norm);
-      }
-
-      function generateTerrainGeometry(size, segments, onProgress) {
-        const vertexCount = (segments + 1) * (segments + 1);
-        const positions = new Float32Array(vertexCount * 3);
-        const normals = new Float32Array(vertexCount * 3);
-        const uvs = new Float32Array(vertexCount * 2);
-        const heights = new Float32Array(vertexCount);
-        const indices = new Uint32Array(segments * segments * 6);
-        const halfSize = size / 2;
-        const step = size / segments;
-
-        let vertexIndex = 0;
-        for (let z = 0; z <= segments; z++) {
-          if (onProgress) onProgress(z / (segments + 1));
-          for (let x = 0; x <= segments; x++) {
-            const worldX = -halfSize + x * step;
-            const worldZ = -halfSize + z * step;
-            const height = fbm(worldX, worldZ) * 120 - 36;
-            const idx = vertexIndex * 3;
-            positions[idx] = worldX;
-            positions[idx + 1] = height;
-            positions[idx + 2] = worldZ;
-            heights[vertexIndex] = height;
-            const uvIdx = vertexIndex * 2;
-            uvs[uvIdx] = x / segments;
-            uvs[uvIdx + 1] = z / segments;
-            vertexIndex += 1;
-          }
-        }
-
-        const sample = (ix, iz) => {
-          const clampedX = Math.max(0, Math.min(segments, ix));
-          const clampedZ = Math.max(0, Math.min(segments, iz));
-          return heights[clampedZ * (segments + 1) + clampedX];
-        };
-
-        vertexIndex = 0;
-        for (let z = 0; z <= segments; z++) {
-          for (let x = 0; x <= segments; x++) {
-            const left = sample(x - 1, z);
-            const right = sample(x + 1, z);
-            const down = sample(x, z - 1);
-            const up = sample(x, z + 1);
-            const dx = (right - left) / (2 * step);
-            const dz = (up - down) / (2 * step);
-            const nx = -dx;
-            const ny = 1;
-            const nz = -dz;
-            const length = Math.hypot(nx, ny, nz) || 1;
-            const idx = vertexIndex * 3;
-            normals[idx] = nx / length;
-            normals[idx + 1] = ny / length;
-            normals[idx + 2] = nz / length;
-            vertexIndex += 1;
-          }
-        }
-
-        let writeIndex = 0;
-        for (let z = 0; z < segments; z++) {
-          for (let x = 0; x < segments; x++) {
-            const a = z * (segments + 1) + x;
-            const b = a + 1;
-            const c = (z + 1) * (segments + 1) + x;
-            const d = c + 1;
-            indices[writeIndex++] = a;
-            indices[writeIndex++] = c;
-            indices[writeIndex++] = b;
-            indices[writeIndex++] = b;
-            indices[writeIndex++] = c;
-            indices[writeIndex++] = d;
-          }
-        }
-
-        return { positions, normals, uvs, indices, heights, segments, size, step };
-      }
-
-      const vertexShaderSource = `#version 300 es
-    `
-        + `precision highp float;
-    `
-        + `layout(location = 0) in vec3 aPosition;
-    `
-        + `layout(location = 1) in vec3 aNormal;
-    `
-        + `layout(location = 2) in vec2 aUv;
-    `
-        + `uniform mat4 uProjection;
-    `
-        + `uniform mat4 uView;
-    `
-        + `uniform mat4 uModel;
-    `
-        + `out vec3 vNormal;
-    `
-        + `out vec3 vWorldPos;
-    `
-        + `out vec2 vUv;
-    `
-        + `void main() {
-    `
-        + `  vec4 worldPos = uModel * vec4(aPosition, 1.0);
-    `
-        + `  vWorldPos = worldPos.xyz;
-    `
-        + `  vNormal = mat3(uModel) * aNormal;
-    `
-        + `  vUv = aUv;
-    `
-        + `  gl_Position = uProjection * uView * worldPos;
-    `
-        + `}`;
-
-      const fragmentShaderSource = `#version 300 es
-    `
-        + `precision highp float;
-    `
-        + `in vec3 vNormal;
-    `
-        + `in vec3 vWorldPos;
-    `
-        + `in vec2 vUv;
-    `
-        + `uniform vec3 uLightDir;
-    `
-        + `uniform vec3 uFogColor;
-    `
-        + `uniform vec3 uCameraPos;
-    `
-        + `uniform float uFogNear;
-    `
-        + `uniform float uFogFar;
-    `
-        + `uniform float uGridSize;
-    `
-        + `uniform int uRenderMode;
-    `
-        + `uniform vec3 uZXPalette[16];
-    `
-        + `uniform vec3 uPetsciiPalette[16];
-    `
-        + `out vec4 outColor;
-    `
-        + `float gridFactor(vec2 uv, float gridSize) {
-    `
-        + `  vec2 scaled = fract(uv * gridSize);
-    `
-        + `  vec2 dist = min(scaled, 1.0 - scaled);
-    `
-        + `  float edge = min(dist.x, dist.y);
-    `
-        + `  return smoothstep(0.0, 0.12, edge * 8.0);
-    `
-        + `}
-    `
-        + `vec3 quantize(vec3 color, vec3 palette[16]) {
-    `
-        + `  float best = 1e9;
-    `
-        + `  vec3 chosen = color;
-    `
-        + `  for (int i = 0; i < 16; i++) {
-    `
-        + `    vec3 p = palette[i];
-    `
-        + `    float d = distance(color, p);
-    `
-        + `    if (d < best) {
-    `
-        + `      best = d;
-    `
-        + `      chosen = p;
-    `
-        + `    }
-    `
-        + `  }
-    `
-        + `  return chosen;
-    `
-        + `}
-    `
-        + `void main() {
-    `
-        + `  vec3 normal = normalize(vNormal);
-    `
-        + `  float diffuse = max(dot(normal, normalize(uLightDir)), 0.0);
-    `
-        + `  float ambient = 0.25;
-    `
-        + `  float lighting = ambient + diffuse * 0.85;
-    `
-        + `  float h = clamp((vWorldPos.y + 48.0) / 160.0, 0.0, 1.0);
-    `
-        + `  vec3 low = vec3(0.05, 0.15, 0.25);
-    `
-        + `  vec3 mid = vec3(0.18, 0.38, 0.45);
-    `
-        + `  vec3 high = vec3(0.82, 0.82, 0.78);
-    `
-        + `  vec3 base = mix(low, mid, smoothstep(0.0, 0.55, h));
-    `
-        + `  base = mix(base, high, smoothstep(0.45, 1.0, h));
-    `
-        + `  vec3 color = base * lighting;
-    `
-        + `  if (uRenderMode == 1) {
-    `
-        + `    float grid = gridFactor(vUv, uGridSize);
-    `
-        + `    vec3 wireBase = mix(vec3(0.03, 0.16, 0.28), vec3(0.4, 0.82, 1.0), grid);
-    `
-        + `    color = mix(vec3(0.1, 0.22, 0.36), wireBase, lighting);
-    `
-        + `  } else if (uRenderMode == 2) {
-    `
-        + `    color = quantize(color, uZXPalette);
-    `
-        + `  } else if (uRenderMode == 3) {
-    `
-        + `    color = quantize(color, uPetsciiPalette);
-    `
-        + `  }
-    `
-        + `  float dist = distance(uCameraPos, vWorldPos);
-    `
-        + `  float fogFactor = clamp((uFogFar - dist) / (uFogFar - uFogNear), 0.0, 1.0);
-    `
-        + `  vec3 finalColor = mix(uFogColor, color, fogFactor);
-    `
-        + `  outColor = vec4(finalColor, 1.0);
-    `
-        + `}`;
-
-      const program = createProgram(vertexShaderSource, fragmentShaderSource);
-      gl.useProgram(program);
-
-      updateLoaderStatus('Generating terrain mesh…');
-      const geometry = generateTerrainGeometry(600, 160, fraction => {
-        setLoaderPhaseRange(10, 65);
-        reportLoaderPhaseProgress(fraction);
-      });
-
-      const vao = gl.createVertexArray();
-      gl.bindVertexArray(vao);
-
-      const positionBuffer = gl.createBuffer();
-      gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
-      gl.bufferData(gl.ARRAY_BUFFER, geometry.positions, gl.STATIC_DRAW);
-      gl.enableVertexAttribArray(0);
-      gl.vertexAttribPointer(0, 3, gl.FLOAT, false, 0, 0);
-
-      const normalBuffer = gl.createBuffer();
-      gl.bindBuffer(gl.ARRAY_BUFFER, normalBuffer);
-      gl.bufferData(gl.ARRAY_BUFFER, geometry.normals, gl.STATIC_DRAW);
-      gl.enableVertexAttribArray(1);
-      gl.vertexAttribPointer(1, 3, gl.FLOAT, false, 0, 0);
-
-      const uvBuffer = gl.createBuffer();
-      gl.bindBuffer(gl.ARRAY_BUFFER, uvBuffer);
-      gl.bufferData(gl.ARRAY_BUFFER, geometry.uvs, gl.STATIC_DRAW);
-      gl.enableVertexAttribArray(2);
-      gl.vertexAttribPointer(2, 2, gl.FLOAT, false, 0, 0);
-
-      const indexBuffer = gl.createBuffer();
-      gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBuffer);
-      gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, geometry.indices, gl.STATIC_DRAW);
-
-      gl.bindVertexArray(null);
-
-      const uniforms = {
-        projection: gl.getUniformLocation(program, 'uProjection'),
-        view: gl.getUniformLocation(program, 'uView'),
-        model: gl.getUniformLocation(program, 'uModel'),
-        lightDir: gl.getUniformLocation(program, 'uLightDir'),
-        fogColor: gl.getUniformLocation(program, 'uFogColor'),
-        fogNear: gl.getUniformLocation(program, 'uFogNear'),
-        fogFar: gl.getUniformLocation(program, 'uFogFar'),
-        cameraPos: gl.getUniformLocation(program, 'uCameraPos'),
-        renderMode: gl.getUniformLocation(program, 'uRenderMode'),
-        gridSize: gl.getUniformLocation(program, 'uGridSize'),
-        zxPalette: gl.getUniformLocation(program, 'uZXPalette[0]'),
-        petsciiPalette: gl.getUniformLocation(program, 'uPetsciiPalette[0]')
-      };
-
-      const identityMatrix = new Float32Array([1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1]);
-      gl.useProgram(program);
-      gl.uniformMatrix4fv(uniforms.model, false, identityMatrix);
-      gl.uniform3fv(uniforms.lightDir, new Float32Array([-0.35, 0.9, 0.32]));
-      gl.uniform1f(uniforms.gridSize, geometry.segments);
-      if (uniforms.zxPalette) {
-        gl.uniform3fv(uniforms.zxPalette, flattenedZX);
-      }
-      if (uniforms.petsciiPalette) {
-        gl.uniform3fv(uniforms.petsciiPalette, flattenedPET);
-      }
-
-      gl.enable(gl.DEPTH_TEST);
-      gl.enable(gl.CULL_FACE);
-      gl.cullFace(gl.BACK);
-
-      function mat4Perspective(out, fovy, aspect, near, far) {
-        const f = 1 / Math.tan(fovy / 2);
-        out[0] = f / aspect;
-        out[1] = 0;
-        out[2] = 0;
-        out[3] = 0;
-        out[4] = 0;
-        out[5] = f;
-        out[6] = 0;
-        out[7] = 0;
-        out[8] = 0;
-        out[9] = 0;
-        out[10] = (far + near) / (near - far);
-        out[11] = -1;
-        out[12] = 0;
-        out[13] = 0;
-        out[14] = (2 * far * near) / (near - far);
-        out[15] = 0;
-        return out;
-      }
-
-      function mat4LookAt(out, eye, center, up) {
-        let zx = eye[0] - center[0];
-        let zy = eye[1] - center[1];
-        let zz = eye[2] - center[2];
-        let len = Math.hypot(zx, zy, zz);
-        if (len === 0) {
-          zz = 1;
-        } else {
-          zx /= len;
-          zy /= len;
-          zz /= len;
-        }
-
-        let xx = up[1] * zz - up[2] * zy;
-        let xy = up[2] * zx - up[0] * zz;
-        let xz = up[0] * zy - up[1] * zx;
-        len = Math.hypot(xx, xy, xz);
-        if (len !== 0) {
-          xx /= len;
-          xy /= len;
-          xz /= len;
-        }
-
-        const yx = zy * xz - zz * xy;
-        const yy = zz * xx - zx * xz;
-        const yz = zx * xy - zy * xx;
-
-        out[0] = xx; out[1] = yx; out[2] = zx; out[3] = 0;
-        out[4] = xy; out[5] = yy; out[6] = zy; out[7] = 0;
-        out[8] = xz; out[9] = yz; out[10] = zz; out[11] = 0;
-        out[12] = -(xx * eye[0] + xy * eye[1] + xz * eye[2]);
-        out[13] = -(yx * eye[0] + yy * eye[1] + yz * eye[2]);
-        out[14] = -(zx * eye[0] + zy * eye[1] + zz * eye[2]);
-        out[15] = 1;
-        return out;
-      }
-
-      const viewMatrix = new Float32Array(16);
-      const projectionMatrix = new Float32Array(16);
-
-      const hudPosition = document.querySelector('[data-hud="position"]');
-      const hudHeading = document.querySelector('[data-hud="heading"]');
-      const hudChunk = document.querySelector('[data-hud="chunk"]');
-      const hudSpeed = document.querySelector('[data-hud="speed"]');
-
-      const camera = {
-        target: new Float32Array([0, 0, 0]),
-        position: new Float32Array([0, 0, 0]),
-        yaw: Math.PI * 0.75,
-        pitch: 0.55,
-        minPitch: 0.12,
-        maxPitch: 1.25,
-        distance: 440,
-        minDistance: 140,
-        maxDistance: 820,
-        verticalOffset: 42,
-        speed: 82,
-        turnSpeed: 1.4,
-        smoothing: 8,
-        heightSample: geometry,
-        lastMoveTime: performance.now(),
-        lastTarget: new Float32Array([0, 0, 0]),
-        currentSpeed: 0
-      };
-
-      const keyState = Object.create(null);
-      const pointerState = {
-        active: false,
-        id: null,
-        lastX: 0,
-        lastY: 0,
-        pointerType: 'mouse'
-      };
-
-      function getHeightAt(x, z) {
-        const { size, segments, step, heights } = geometry;
-        const half = size / 2;
-        const fx = (x + half) / step;
-        const fz = (z + half) / step;
-        const ix = Math.max(0, Math.min(segments, Math.floor(fx)));
-        const iz = Math.max(0, Math.min(segments, Math.floor(fz)));
-        const fracX = fx - ix;
-        const fracZ = fz - iz;
-        const base = iz * (segments + 1) + ix;
-        const a = heights[base];
-        const b = heights[base + 1] ?? a;
-        const c = heights[base + segments + 1] ?? a;
-        const d = heights[base + segments + 2] ?? a;
-        const top = lerp(a, b, fracX);
-        const bottom = lerp(c, d, fracX);
-        return lerp(top, bottom, fracZ);
-      }
-
-      function updateCamera(dt) {
-        const forward = [Math.sin(camera.yaw), 0, Math.cos(camera.yaw)];
-        const right = [Math.cos(camera.yaw), 0, -Math.sin(camera.yaw)];
-        let moveX = 0;
-        let moveZ = 0;
-        const forwardInput = (keyState['w'] || keyState['W'] || keyState['ArrowUp'] ? 1 : 0)
-          - (keyState['s'] || keyState['S'] || keyState['ArrowDown'] ? 1 : 0);
-        const strafeInput = (keyState['d'] || keyState['D'] ? 1 : 0)
-          - (keyState['a'] || keyState['A'] ? 1 : 0);
-        moveX += forward[0] * forwardInput + right[0] * strafeInput;
-        moveZ += forward[2] * forwardInput + right[2] * strafeInput;
-
-        if (keyState['ArrowLeft']) camera.yaw -= camera.turnSpeed * dt;
-        if (keyState['ArrowRight']) camera.yaw += camera.turnSpeed * dt;
-
-        const len = Math.hypot(moveX, moveZ);
-        if (len > 0) {
-          moveX /= len;
-          moveZ /= len;
-          const speed = camera.speed * dt;
-          camera.target[0] += moveX * speed;
-          camera.target[2] += moveZ * speed;
-        }
-
-        camera.yaw = (camera.yaw + Math.PI * 2) % (Math.PI * 2);
-
-        const targetHeight = getHeightAt(camera.target[0], camera.target[2]);
-        camera.target[1] = targetHeight + camera.verticalOffset;
-
-        const cosPitch = Math.cos(camera.pitch);
-        const sinPitch = Math.sin(camera.pitch);
-        const distance = camera.distance;
-        camera.position[0] = camera.target[0] - Math.sin(camera.yaw) * cosPitch * distance;
-        camera.position[1] = camera.target[1] + sinPitch * distance;
-        camera.position[2] = camera.target[2] - Math.cos(camera.yaw) * cosPitch * distance;
-
-        const dx = camera.target[0] - camera.lastTarget[0];
-        const dz = camera.target[2] - camera.lastTarget[2];
-        const moveSpeed = Math.hypot(dx, dz) / Math.max(dt, 1e-5);
-        camera.currentSpeed = camera.currentSpeed * 0.85 + moveSpeed * 0.15;
-        camera.lastTarget[0] = camera.target[0];
-        camera.lastTarget[1] = camera.target[1];
-        camera.lastTarget[2] = camera.target[2];
-      }
-
-      function updateHud(dt) {
-        if (hudPosition) {
-          hudPosition.textContent = `${camera.target[0].toFixed(1)}, ${camera.target[1].toFixed(1)}, ${camera.target[2].toFixed(1)}`;
-        }
-        if (hudHeading) {
-          const yawDeg = ((camera.yaw * 180 / Math.PI) % 360 + 360) % 360;
-          const pitchDeg = camera.pitch * 180 / Math.PI;
-          hudHeading.textContent = `${yawDeg.toFixed(0)}° / ${pitchDeg.toFixed(0)}°`;
-        }
-        if (hudChunk) {
-          const chunkSize = geometry.step * 10;
-          const cx = Math.round(camera.target[0] / chunkSize);
-          const cz = Math.round(camera.target[2] / chunkSize);
-          hudChunk.textContent = `${cx}, ${cz}`;
-        }
-        if (hudSpeed) {
-          hudSpeed.textContent = `${(camera.currentSpeed).toFixed(1)} m/s`;
-        }
-      }
-
-      function resizeViewport(width, height) {
-        canvas.width = width;
-        canvas.height = height;
-        gl.viewport(0, 0, width, height);
-        mat4Perspective(projectionMatrix, Math.PI / 3.4, width / height, 0.1, 2000);
-        gl.useProgram(program);
-        gl.uniformMatrix4fv(uniforms.projection, false, projectionMatrix);
-      }
-
-      resizeViewport(defaultResolution.width, defaultResolution.height);
-
-      const upVector = [0, 1, 0];
-      let currentRenderMode = 0;
-      let currentRenderModeKey = 'default';
-      let lastNonZxModeKey = 'default';
-      let fogNear = 260;
-      let fogFar = 980;
-      const fogColor = new Float32Array(renderModeFogColors.default);
-
-      function applyRenderMode(mode) {
-        currentRenderMode = mode;
-        const key = mode === 0 ? 'default' : mode === 1 ? 'wire' : mode === 2 ? 'zx' : 'petscii';
-        const color = renderModeFogColors[key];
-        fogColor[0] = color[0];
-        fogColor[1] = color[1];
-        fogColor[2] = color[2];
-        fogNear = mode === 2 ? 180 : 260;
-        fogFar = mode === 2 ? 720 : 980;
-        canvas.style.backgroundColor = renderModeCanvasBackgrounds[key];
-      }
-
-      applyRenderMode(0);
-
-      const fps = fpsMonitor;
-      const controls = {
-        dragSensitivity: 0.0045,
-        touchDragSensitivity: 0.0028
-      };
-
-      canvas.addEventListener('pointerdown', event => {
-        pointerState.active = true;
-        pointerState.id = event.pointerId;
-        pointerState.lastX = event.clientX;
-        pointerState.lastY = event.clientY;
-        pointerState.pointerType = event.pointerType || 'mouse';
-        canvas.setPointerCapture(event.pointerId);
-        canvas.style.cursor = 'grabbing';
-      });
-
-      canvas.addEventListener('pointermove', event => {
-        if (!pointerState.active || event.pointerId !== pointerState.id) return;
-        const dx = event.clientX - pointerState.lastX;
-        const dy = event.clientY - pointerState.lastY;
-        pointerState.lastX = event.clientX;
-        pointerState.lastY = event.clientY;
-        const sensitivity = pointerState.pointerType === 'touch'
-          ? controls.touchDragSensitivity
-          : controls.dragSensitivity;
-        camera.yaw += dx * sensitivity;
-        camera.pitch = Math.max(camera.minPitch, Math.min(camera.maxPitch, camera.pitch - dy * sensitivity));
-      });
-
-      const clearPointer = () => {
-        pointerState.active = false;
-        pointerState.id = null;
-        canvas.style.cursor = 'grab';
-      };
-
-      canvas.addEventListener('pointerup', clearPointer);
-      canvas.addEventListener('pointercancel', clearPointer);
-      canvas.addEventListener('lostpointercapture', clearPointer);
-      canvas.addEventListener('pointerleave', clearPointer);
-
-      canvas.addEventListener('wheel', event => {
-        const delta = Math.sign(event.deltaY);
-        camera.distance = Math.max(camera.minDistance, Math.min(camera.maxDistance, camera.distance + delta * 36));
-        event.preventDefault();
-      }, { passive: false });
-
-      window.addEventListener('keydown', event => {
-        keyState[event.key] = true;
-      });
-
-      window.addEventListener('keyup', event => {
-        keyState[event.key] = false;
-      });
-
-      window.addEventListener('blur', () => {
-        for (const key of Object.keys(keyState)) keyState[key] = false;
-        clearPointer();
-      });
-
-      function animate(now) {
-        const dt = (now - (animate.lastTime || now)) / 1000;
-        animate.lastTime = now;
-
-        updateCamera(dt);
-        updateHud(dt);
-
-        gl.bindVertexArray(vao);
-        gl.useProgram(program);
-        mat4LookAt(viewMatrix, camera.position, camera.target, upVector);
-        gl.uniformMatrix4fv(uniforms.view, false, viewMatrix);
-        gl.uniform3fv(uniforms.cameraPos, camera.position);
-        gl.uniform3fv(uniforms.fogColor, fogColor);
-        gl.uniform1f(uniforms.fogNear, fogNear);
-        gl.uniform1f(uniforms.fogFar, fogFar);
-        gl.uniform1i(uniforms.renderMode, currentRenderMode);
-
-        gl.clearColor(fogColor[0], fogColor[1], fogColor[2], 1);
-        gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-        gl.drawElements(gl.TRIANGLES, geometry.indices.length, gl.UNSIGNED_INT, 0);
-
-        fps.begin();
-        fps.end();
-
-        requestAnimationFrame(animate);
-      }
-
-      setLoaderPhaseRange(70, 100);
-      reportLoaderPhaseProgress(0.2);
-      updateLoaderStatus('Calibrating viewport…');
-
-      requestAnimationFrame(animate);
-      setProgress(100);
-      setTimeout(() => {
-        stopLoaderAnimation();
-        hideLoader(true);
-      }, 260);
-
-      const triggerVhsEffect = (() => {
-        let timeoutId = null;
-        return () => {
-          canvasWrap.classList.remove('vhs-glitch');
-          void canvasWrap.offsetWidth;
-          canvasWrap.classList.add('vhs-glitch');
-          if (timeoutId) clearTimeout(timeoutId);
-          timeoutId = setTimeout(() => canvasWrap.classList.remove('vhs-glitch'), 650);
-        };
-      })();
-
-      const renderModeButtons = document.querySelectorAll('[data-render-mode]');
-      const renderModeMap = { default: 0, wire: 1, zx: 2, petscii: 3 };
-
-      function setRenderModeByKey(key, announce = true) {
-        const normalizedKey = Object.prototype.hasOwnProperty.call(renderModeMap, key)
-          ? key
-          : 'default';
-        const mode = renderModeMap[normalizedKey];
-        applyRenderMode(mode);
-        gl.useProgram(program);
-        gl.uniform1i(uniforms.renderMode, mode);
-        renderModeButtons.forEach(btn => {
-          const isActive = btn.dataset.renderMode === normalizedKey;
-          btn.classList.toggle('is-active', isActive);
-          btn.setAttribute('aria-pressed', String(isActive));
-        });
-        currentRenderModeKey = normalizedKey;
-        if (normalizedKey !== 'zx') {
-          lastNonZxModeKey = normalizedKey;
-        }
-        if (announce) {
-          console.log(`Render mode changed to ${normalizedKey.toUpperCase()}.`);
-        }
-      }
-
-      renderModeButtons.forEach(btn => {
-        btn.addEventListener('click', () => {
-          const mode = btn.dataset.renderMode;
-          setRenderModeByKey(mode);
-          triggerVhsEffect();
-        });
-      });
-
-      window.addEventListener('keydown', event => {
-        if (event.code !== 'KeyZ' || !event.shiftKey || event.repeat) return;
-        event.preventDefault();
-        const nextKey = currentRenderModeKey === 'zx' ? lastNonZxModeKey : 'zx';
-        setRenderModeByKey(nextKey);
-        triggerVhsEffect();
-      });
-
-      const resolutionSelect = document.getElementById('resolution-select');
-      const resolutionDisplay = document.getElementById('resolution-display');
-      let currentResolution = defaultResolution;
-
-      function updateCanvasLayout() {
-        const aspect = currentResolution.width / currentResolution.height;
-        const availableWidth = Math.max(100, window.innerWidth);
-        const availableHeight = Math.max(100, window.innerHeight);
-        let displayWidth = availableWidth;
-        let displayHeight = displayWidth / aspect;
-        if (displayHeight > availableHeight) {
-          const scale = availableHeight / displayHeight;
-          displayWidth = Math.floor(displayWidth * scale);
-          displayHeight = availableHeight;
-        }
-        canvas.style.width = `${displayWidth}px`;
-        canvas.style.height = `${displayHeight}px`;
-        canvasWrap.style.width = `${displayWidth}px`;
-        canvasWrap.style.height = `${displayHeight}px`;
-      }
-
-      function applyResolution(res) {
-        currentResolution = res;
-        resizeViewport(res.width, res.height);
-        resolutionDisplay.textContent = `${res.label} — ${res.width} × ${res.height}`;
-        updateCanvasLayout();
-        console.log(`Resolution set to ${res.width}×${res.height} (${res.label}).`);
-      }
-
-      resolutionSelect.addEventListener('change', () => {
-        const [w, h] = resolutionSelect.value.split('x').map(Number);
-        const chosen = RESOLUTIONS.find(r => r.width === w && r.height === h) || defaultResolution;
-        applyResolution(chosen);
-        triggerVhsEffect();
-      });
-
-      const fullscreenBtn = document.getElementById('fullscreen-btn');
-
-      const isFullscreenActive = () => Boolean(document.fullscreenElement || document.webkitFullscreenElement || document.msFullscreenElement);
-
-      function updateFullscreenButton() {
-        const isMobile = document.body.classList.contains('is-mobile');
-        fullscreenBtn.textContent = isFullscreenActive()
-          ? 'Exit Fullscreen'
-          : (isMobile ? 'Fullscreen' : 'Enter Fullscreen');
-        const shouldShow = isFullscreenActive() || window.innerWidth >= 720 || isMobile;
-        fullscreenBtn.style.display = shouldShow ? 'inline-flex' : 'none';
-      }
-
-      fullscreenBtn.addEventListener('click', () => {
-        if (isFullscreenActive()) {
-          (document.exitFullscreen || document.webkitExitFullscreen || document.msExitFullscreen)?.call(document);
-        } else {
-          const target = document.documentElement;
-          (target.requestFullscreen || target.webkitRequestFullscreen || target.msRequestFullscreen)?.call(target);
-        }
-      });
-
-      ['fullscreenchange', 'webkitfullscreenchange', 'msfullscreenchange'].forEach(eventName => {
-        document.addEventListener(eventName, () => {
-          updateCanvasLayout();
-          updateFullscreenButton();
-        });
-      });
-
-      const controlPad = document.getElementById('control-pad');
-      controlPad.querySelectorAll('button[data-key]').forEach(btn => {
-        const key = btn.dataset.key;
-        btn.addEventListener('pointerdown', event => {
-          keyState[key] = true;
-          btn.setPointerCapture?.(event.pointerId);
-        });
-        const end = () => { keyState[key] = false; };
-        btn.addEventListener('pointerup', end);
-        btn.addEventListener('pointerleave', end);
-        btn.addEventListener('lostpointercapture', end);
-        btn.addEventListener('pointercancel', end);
-      });
-
-      function updateResponsiveState() {
-        const isMobile = window.innerWidth <= 720;
-        document.body.classList.toggle('is-mobile', isMobile);
-      }
-
-      window.addEventListener('resize', () => {
-        updateResponsiveState();
-        updateCanvasLayout();
-        updateFullscreenButton();
-      });
-      window.addEventListener('orientationchange', () => {
-        updateResponsiveState();
-        updateCanvasLayout();
-        updateFullscreenButton();
-      });
-
-      const controlUi = document.getElementById('control-ui');
-      const foldBtn = document.getElementById('ui-fold-btn');
-      function setControlFolded(folded) {
-        if (!controlUi) return;
-        controlUi.classList.toggle('folded', folded);
-        foldBtn?.setAttribute('aria-expanded', String(!folded));
-        foldBtn?.setAttribute('aria-label', folded ? 'Expand control panel' : 'Collapse control panel');
-      }
-      foldBtn?.addEventListener('click', () => {
-        const next = !controlUi.classList.contains('folded');
-        setControlFolded(next);
-        console.log(`Control interface ${next ? 'folded' : 'expanded'}.`);
-      });
-
-      const consoleDock = document.getElementById('console-dock');
-      const consoleFoldBtn = document.getElementById('console-fold-btn');
-      const consoleStatus = document.getElementById('console-status');
-      const consoleLog = document.getElementById('console-log');
-      initConsoleLogs({ container: consoleLog, removeAfter: 0 });
-
-      function setConsoleFolded(folded) {
-        consoleDock.classList.toggle('folded', folded);
-        consoleFoldBtn?.setAttribute('aria-expanded', String(!folded));
-        consoleFoldBtn?.setAttribute('aria-label', folded ? 'Expand console log' : 'Collapse console log');
-        consoleStatus.textContent = folded ? 'Folded' : 'Live';
-      }
-
-      consoleFoldBtn?.addEventListener('click', () => {
-        const next = !consoleDock.classList.contains('folded');
-        setConsoleFolded(next);
-      });
-
-      setConsoleFolded(true);
-      setControlFolded(false);
-      updateResponsiveState();
-      applyResolution(currentResolution);
-      updateFullscreenButton();
-      updateCanvasLayout();
-      setRenderModeByKey('default', false);
-
-      console.log('Terrain ready.');
+  function createCloudTexture() {
+    const canvas = document.createElement('canvas');
+    canvas.width = 256;
+    canvas.height = 128;
+    const ctx = canvas.getContext('2d');
+
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    const shadowColor = 'rgba(136, 176, 220, 0.28)';
+    const highlightColor = 'rgba(255, 255, 255, 0.9)';
+
+    const blobSets = [
+      { x: 68, y: 70, rx: 78, ry: 40, alpha: 0.9 },
+      { x: 110, y: 58, rx: 56, ry: 34, alpha: 0.78 },
+      { x: 154, y: 70, rx: 68, ry: 38, alpha: 0.82 },
+      { x: 206, y: 64, rx: 44, ry: 30, alpha: 0.68 },
+      { x: 92, y: 82, rx: 70, ry: 32, alpha: 0.86 },
+      { x: 138, y: 88, rx: 60, ry: 30, alpha: 0.8 }
+    ];
+
+    for (const blob of blobSets) {
+      ctx.beginPath();
+      ctx.ellipse(blob.x, blob.y, blob.rx, blob.ry, 0, 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(244, 252, 255, ${blob.alpha})`;
+      ctx.fill();
+    }
+
+    const highlightBands = [
+      { x: 104, y: 54, rx: 52, ry: 18 },
+      { x: 152, y: 58, rx: 44, ry: 16 },
+      { x: 188, y: 66, rx: 32, ry: 14 }
+    ];
+    ctx.globalAlpha = 1;
+    for (const band of highlightBands) {
+      ctx.beginPath();
+      ctx.ellipse(band.x, band.y, band.rx, band.ry, 0, 0, Math.PI * 2);
+      ctx.fillStyle = highlightColor;
+      ctx.fill();
+    }
+
+    ctx.globalAlpha = 1;
+    const undersideGradient = ctx.createLinearGradient(0, 72, 0, 128);
+    undersideGradient.addColorStop(0, 'rgba(165, 205, 255, 0.18)');
+    undersideGradient.addColorStop(1, 'rgba(120, 160, 220, 0.42)');
+    ctx.fillStyle = undersideGradient;
+    ctx.fillRect(0, 64, canvas.width, 64);
+
+    const shadowCaps = [
+      { x: 82, y: 90, rx: 70, ry: 28 },
+      { x: 140, y: 98, rx: 62, ry: 26 },
+      { x: 198, y: 92, rx: 52, ry: 24 }
+    ];
+    ctx.fillStyle = shadowColor;
+    for (const cap of shadowCaps) {
+      ctx.beginPath();
+      ctx.ellipse(cap.x, cap.y, cap.rx, cap.ry, 0, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    const sparkleCount = 28;
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.55)';
+    for (let i = 0; i < sparkleCount; i++) {
+      const sx = 30 + Math.random() * (canvas.width - 60);
+      const sy = 40 + Math.random() * 28;
+      const radius = 1.2 + Math.random() * 1.2;
+      ctx.beginPath();
+      ctx.ellipse(sx, sy, radius, radius * 0.6, 0, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    const texture = new THREE.CanvasTexture(canvas);
+    texture.center.set(0.5, 0.5);
+    texture.generateMipmaps = false;
+    texture.magFilter = THREE.LinearFilter;
+    texture.minFilter = THREE.LinearFilter;
+    texture.wrapS = THREE.ClampToEdgeWrapping;
+    texture.wrapT = THREE.ClampToEdgeWrapping;
+    texture.needsUpdate = true;
+    return texture;
   }
+
+  function createBlackHoleCoreTexture() {
+    const size = 512;
+    const canvas = document.createElement('canvas');
+    canvas.width = canvas.height = size;
+    const ctx = canvas.getContext('2d');
+
+    const gradient = ctx.createRadialGradient(size / 2, size / 2, size * 0.12, size / 2, size / 2, size * 0.5);
+    gradient.addColorStop(0, 'rgba(0, 0, 0, 1)');
+    gradient.addColorStop(0.32, 'rgba(2, 4, 10, 1)');
+    gradient.addColorStop(0.5, 'rgba(18, 12, 28, 0.95)');
+    gradient.addColorStop(0.7, 'rgba(22, 14, 40, 0.8)');
+    gradient.addColorStop(1, 'rgba(0, 0, 0, 0)');
+    ctx.fillStyle = gradient;
+    ctx.fillRect(0, 0, size, size);
+
+    for (let i = 0; i < 28; i++) {
+      const radius = size * (0.2 + i * 0.01 + Math.random() * 0.015);
+      ctx.beginPath();
+      ctx.arc(size / 2, size / 2, radius, 0, Math.PI * 2);
+      const opacity = 0.32 - i * 0.008;
+      ctx.strokeStyle = `rgba(122, 72, 160, ${Math.max(0, opacity)})`;
+      ctx.lineWidth = 2 + i * 0.5;
+      ctx.stroke();
+    }
+
+    const texture = new THREE.CanvasTexture(canvas);
+    texture.center.set(0.5, 0.5);
+    texture.generateMipmaps = false;
+    texture.magFilter = THREE.LinearFilter;
+    texture.minFilter = THREE.LinearFilter;
+    texture.wrapS = THREE.ClampToEdgeWrapping;
+    texture.wrapT = THREE.ClampToEdgeWrapping;
+    texture.needsUpdate = true;
+    return texture;
+  }
+
+  function createBlackHoleHaloTexture() {
+    const size = 512;
+    const canvas = document.createElement('canvas');
+    canvas.width = canvas.height = size;
+    const ctx = canvas.getContext('2d');
+
+    const gradient = ctx.createRadialGradient(size / 2, size / 2, size * 0.18, size / 2, size / 2, size * 0.5);
+    gradient.addColorStop(0, 'rgba(0, 0, 0, 0)');
+    gradient.addColorStop(0.35, 'rgba(120, 90, 255, 0.08)');
+    gradient.addColorStop(0.55, 'rgba(180, 120, 255, 0.35)');
+    gradient.addColorStop(0.78, 'rgba(255, 170, 120, 0.28)');
+    gradient.addColorStop(1, 'rgba(0, 0, 0, 0)');
+    ctx.fillStyle = gradient;
+    ctx.fillRect(0, 0, size, size);
+
+    const texture = new THREE.CanvasTexture(canvas);
+    texture.center.set(0.5, 0.5);
+    texture.generateMipmaps = false;
+    texture.magFilter = THREE.LinearFilter;
+    texture.minFilter = THREE.LinearFilter;
+    texture.wrapS = THREE.ClampToEdgeWrapping;
+    texture.wrapT = THREE.ClampToEdgeWrapping;
+    texture.needsUpdate = true;
+    return texture;
+  }
+
+  function createAccretionDiskTexture() {
+    const size = 1024;
+    const canvas = document.createElement('canvas');
+    canvas.width = size;
+    canvas.height = size;
+    const ctx = canvas.getContext('2d');
+
+    ctx.translate(size / 2, size / 2);
+    ctx.rotate(-Math.PI / 8);
+
+    const radialGradient = ctx.createRadialGradient(0, 0, size * 0.12, 0, 0, size * 0.48);
+    radialGradient.addColorStop(0, 'rgba(0, 0, 0, 0)');
+    radialGradient.addColorStop(0.35, 'rgba(80, 30, 120, 0.6)');
+    radialGradient.addColorStop(0.55, 'rgba(190, 90, 255, 0.55)');
+    radialGradient.addColorStop(0.75, 'rgba(255, 180, 120, 0.4)');
+    radialGradient.addColorStop(1, 'rgba(0, 0, 0, 0)');
+    ctx.fillStyle = radialGradient;
+    ctx.fillRect(-size / 2, -size / 2, size, size);
+
+    const arcCount = 26;
+    ctx.lineWidth = 8;
+    ctx.strokeStyle = 'rgba(255, 220, 180, 0.28)';
+    for (let i = 0; i < arcCount; i++) {
+      const radius = size * (0.18 + i * 0.009 + Math.random() * 0.004);
+      const start = Math.random() * Math.PI * 2;
+      const length = Math.PI * (0.45 + Math.random() * 0.25);
+      ctx.globalAlpha = 0.3 + Math.random() * 0.4;
+      ctx.beginPath();
+      ctx.arc(0, 0, radius, start, start + length);
+      ctx.stroke();
+    }
+
+    const innerGlow = ctx.createRadialGradient(0, 0, size * 0.08, 0, 0, size * 0.28);
+    innerGlow.addColorStop(0, 'rgba(255, 255, 255, 0.45)');
+    innerGlow.addColorStop(0.6, 'rgba(255, 150, 120, 0.08)');
+    innerGlow.addColorStop(1, 'rgba(0, 0, 0, 0)');
+    ctx.globalAlpha = 1;
+    ctx.fillStyle = innerGlow;
+    ctx.beginPath();
+    ctx.arc(0, 0, size * 0.35, 0, Math.PI * 2);
+    ctx.fill();
+
+    const texture = new THREE.CanvasTexture(canvas);
+    texture.center.set(0.5, 0.5);
+    texture.generateMipmaps = false;
+    texture.magFilter = THREE.LinearFilter;
+    texture.minFilter = THREE.LinearFilter;
+    texture.wrapS = THREE.ClampToEdgeWrapping;
+    texture.wrapT = THREE.ClampToEdgeWrapping;
+    texture.needsUpdate = true;
+    return texture;
+  }
+
+  const { material: skyMaterial, uniforms: skyUniforms } = createSkyDomeMaterial();
+  const skyGeometry = new THREE.SphereGeometry(4200, 48, 24);
+  const skyDome = new THREE.Mesh(skyGeometry, skyMaterial);
+  skyDome.renderOrder = -6;
+  scene.add(skyDome);
+
+  const cloudTexture = createCloudTexture();
+  const cloudSprites = [];
+  const cloudGroup = new THREE.Group();
+  cloudGroup.renderOrder = -4;
+  const cloudMaterial = new THREE.SpriteMaterial({
+    map: cloudTexture,
+    transparent: true,
+    opacity: 0.68,
+    depthWrite: false,
+    depthTest: false
+  });
+  const cloudCount = 12;
+  for (let i = 0; i < cloudCount; i++) {
+    const sprite = new THREE.Sprite(cloudMaterial.clone());
+    const scale = 420 + Math.random() * 260;
+    const aspect = 0.58 + Math.random() * 0.12;
+    sprite.scale.set(scale, scale * aspect, 1);
+    sprite.renderOrder = -4;
+    sprite.material.opacity = 0.45 + Math.random() * 0.22;
+    sprite.userData = {
+      radius: 520 + Math.random() * 240,
+      heightOffset: 160 + Math.random() * 140,
+      driftSpeed: 0.06 + Math.random() * 0.06,
+      bobSpeed: 0.4 + Math.random() * 0.3,
+      baseOpacity: sprite.material.opacity,
+      phase: Math.random() * Math.PI * 2
+    };
+    cloudGroup.add(sprite);
+    cloudSprites.push(sprite);
+  }
+  scene.add(cloudGroup);
+
+  const blackHoleTextures = {
+    core: createBlackHoleCoreTexture(),
+    halo: createBlackHoleHaloTexture(),
+    disk: createAccretionDiskTexture()
+  };
+
+  const blackHoleGroup = new THREE.Group();
+  blackHoleGroup.renderOrder = -5;
+  scene.add(blackHoleGroup);
+
+  const blackHoleCore = new THREE.Sprite(new THREE.SpriteMaterial({
+    map: blackHoleTextures.core,
+    transparent: true,
+    depthWrite: false,
+    depthTest: false
+  }));
+  blackHoleCore.scale.set(640, 640, 1);
+  blackHoleGroup.add(blackHoleCore);
+
+  const blackHoleHalo = new THREE.Sprite(new THREE.SpriteMaterial({
+    map: blackHoleTextures.halo,
+    transparent: true,
+    depthWrite: false,
+    depthTest: false,
+    blending: THREE.AdditiveBlending,
+    opacity: 0.68
+  }));
+  blackHoleHalo.scale.set(980, 980, 1);
+  blackHoleGroup.add(blackHoleHalo);
+
+  const blackHoleDisk = new THREE.Sprite(new THREE.SpriteMaterial({
+    map: blackHoleTextures.disk,
+    transparent: true,
+    depthWrite: false,
+    depthTest: true,
+    blending: THREE.AdditiveBlending,
+    opacity: 0.82
+  }));
+  blackHoleDisk.scale.set(1380, 820, 1);
+  blackHoleDisk.material.rotation = Math.PI / 10;
+  blackHoleGroup.add(blackHoleDisk);
+
+  const blackHoleState = {
+    group: blackHoleGroup,
+    core: blackHoleCore,
+    halo: blackHoleHalo,
+    disk: blackHoleDisk,
+    offset: new THREE.Vector3(-420, 110, -980),
+    target: new THREE.Vector3()
+  };
+  blackHoleGroup.position.copy(blackHoleState.offset);
+
+  const camera = new THREE.PerspectiveCamera(50, 16 / 9, 0.1, 3000);
+  const controls = {
+    yaw: 0,
+    pitch: -0.22,
+    yawVelocity: 0,
+    speed: 60,
+    turnSpeed: Math.PI * 0.45,
+    turnSmooth: 3,
+    height: 60,
+    minPitch: -Math.PI / 3,
+    maxPitch: Math.PI / 4,
+    dragSensitivity: 0.0024,
+    touchDragSensitivity: 0.0042
+  };
+  let currentSpeed = 0;
+  camera.position.set(0, controls.height, 160);
+  camera.lookAt(0, 0, 0);
+
+  const keyState = {};
+  const horizontalForward = new THREE.Vector3();
+  const moveVector = new THREE.Vector3();
+  const lookVector = new THREE.Vector3();
+  window.addEventListener('keydown', e => {
+    if (['ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.key)) { keyState[e.key] = true; e.preventDefault(); }
+  });
+  window.addEventListener('keyup', e => {
+    if (['ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.key)) { keyState[e.key] = false; e.preventDefault(); }
+  });
+
+  const onscreenButtons = document.querySelectorAll('#control-pad button[data-key]');
+  onscreenButtons.forEach(btn => {
+    const key = btn.dataset.key;
+    const activate = ev => { keyState[key] = true; ev.preventDefault(); };
+    const deactivate = ev => { keyState[key] = false; ev.preventDefault(); };
+    btn.addEventListener('mousedown', activate);
+    btn.addEventListener('touchstart', activate, { passive: false });
+    const endEvents = ['mouseleave','mouseup','touchend','touchcancel'];
+    endEvents.forEach(evt => btn.addEventListener(evt, deactivate));
+    window.addEventListener('mouseup', () => { keyState[key] = false; });
+    window.addEventListener('touchend', () => { keyState[key] = false; });
+    window.addEventListener('touchcancel', () => { keyState[key] = false; });
+  });
+
+  const pointerState = {
+    active: false,
+    pointerId: null,
+    lastX: 0,
+    lastY: 0,
+    pointerType: null,
+    hasLogged: false
+  };
+
+  function beginPointerDrag(event) {
+    if (pointerState.active) return;
+    if (event.button !== undefined && event.button !== 0) return;
+    if (event.target.closest('#control-ui, #console-dock')) return;
+    pointerState.active = true;
+    pointerState.pointerId = event.pointerId;
+    pointerState.lastX = event.clientX;
+    pointerState.lastY = event.clientY;
+    pointerState.pointerType = event.pointerType || 'mouse';
+    renderer.domElement.setPointerCapture(event.pointerId);
+    renderer.domElement.style.cursor = 'grabbing';
+    if (!pointerState.hasLogged) {
+      console.log(`Pointer look engaged (${pointerState.pointerType}).`);
+      pointerState.hasLogged = true;
+    }
+    event.preventDefault();
+  }
+
+  function handlePointerMove(event) {
+    if (!pointerState.active || event.pointerId !== pointerState.pointerId) return;
+    const dx = event.clientX - pointerState.lastX;
+    const dy = event.clientY - pointerState.lastY;
+    pointerState.lastX = event.clientX;
+    pointerState.lastY = event.clientY;
+    const sensitivity = event.pointerType === 'touch' ? controls.touchDragSensitivity : controls.dragSensitivity;
+    controls.yaw -= dx * sensitivity;
+    controls.pitch = THREE.MathUtils.clamp(controls.pitch - dy * sensitivity, controls.minPitch, controls.maxPitch);
+    event.preventDefault();
+  }
+
+  function endPointerDrag(event) {
+    if (pointerState.active && (event.pointerId === pointerState.pointerId || event.type === 'pointerleave')) {
+      if (event.pointerId != null && renderer.domElement.hasPointerCapture?.(event.pointerId)) {
+        renderer.domElement.releasePointerCapture(event.pointerId);
+      }
+      pointerState.active = false;
+      pointerState.pointerId = null;
+      renderer.domElement.style.cursor = 'grab';
+    }
+  }
+
+  renderer.domElement.addEventListener('pointerdown', beginPointerDrag);
+  renderer.domElement.addEventListener('pointermove', handlePointerMove);
+  renderer.domElement.addEventListener('pointerup', endPointerDrag);
+  renderer.domElement.addEventListener('pointercancel', endPointerDrag);
+  renderer.domElement.addEventListener('lostpointercapture', endPointerDrag);
+  renderer.domElement.addEventListener('pointerleave', endPointerDrag);
+  window.addEventListener('blur', () => { pointerState.active = false; renderer.domElement.style.cursor = 'grab'; });
+
+  let touchStart = null;
+  window.addEventListener('touchstart', e => {
+    if (e.target.closest('#control-pad') || e.target.closest('#canvas-wrap')) return;
+    touchStart = e.touches[0];
+    e.preventDefault();
+  }, { passive: false });
+  window.addEventListener('touchmove', e => {
+    if (!touchStart || e.target.closest('#control-pad') || e.target.closest('#canvas-wrap')) return;
+    const touch = e.touches[0];
+    const dx = touch.clientX - touchStart.clientX;
+    const dy = touch.clientY - touchStart.clientY;
+    const threshold = 10;
+    keyState['ArrowLeft'] = dx < -threshold;
+    keyState['ArrowRight'] = dx > threshold;
+    keyState['ArrowUp'] = dy < -threshold;
+    keyState['ArrowDown'] = dy > threshold;
+    e.preventDefault();
+  }, { passive: false });
+  window.addEventListener('touchend', e => {
+    if (e.target.closest('#control-pad') || e.target.closest('#canvas-wrap')) return;
+    touchStart = null;
+    keyState['ArrowLeft'] = keyState['ArrowRight'] = keyState['ArrowUp'] = keyState['ArrowDown'] = false;
+    e.preventDefault();
+  });
+
+  function hash(ix, iz){ const s = Math.sin(ix*127.1 + iz*311.7) * 43758.5453123; return s - Math.floor(s); }
+  const lerp = (a,b,t)=> a + (b-a)*t; const smooth = t => t*t*(3-2*t);
+  function noise2(x,z){ const ix=Math.floor(x), iz=Math.floor(z), fx=x-ix, fz=z-iz;
+    const a=hash(ix,iz), b=hash(ix+1,iz), c=hash(ix,iz+1), d=hash(ix+1,iz+1);
+    const ux=smooth(fx), uz=smooth(fz); return lerp( lerp(a,b,ux), lerp(c,d,ux), uz ); }
+  function fbm(x,z,oct=5){ let amp=1,freq=0.02,sum=0,norm=0; for(let i=0;i<oct;i++){ sum+=amp*noise2(x*freq,z*freq); norm+=amp; amp*=0.5; freq*=2; } return sum/norm; }
+
+  const terrainSize = 600;
+  const terrainSegments = 120;
+  const terrain = new THREE.PlaneGeometry(terrainSize, terrainSize, terrainSegments, terrainSegments);
+  terrain.rotateX(-Math.PI/2);
+  const pos = terrain.attributes.position;
+  const basePositions = Float32Array.from(pos.array);
+  const fadeAttribute = new Float32Array(pos.count);
+  const halfSize = terrainSize / 2;
+  const fadeWidth = terrainSize * 0.22;
+  const colorAttribute = new THREE.BufferAttribute(new Float32Array(pos.count * 3), 3);
+  for (let i = 0; i < pos.count; i++) {
+    const ix = i * 3;
+    const x = basePositions[ix];
+    const z = basePositions[ix + 2];
+    const distX = halfSize - Math.abs(x);
+    const distZ = halfSize - Math.abs(z);
+    const edgeDistance = Math.max(0, Math.min(distX, distZ));
+    const fadeStrength = THREE.MathUtils.clamp(edgeDistance / fadeWidth, 0, 1);
+    fadeAttribute[i] = fadeStrength * fadeStrength;
+  }
+  terrain.setAttribute('edgeFade', new THREE.BufferAttribute(fadeAttribute, 1));
+  terrain.setAttribute('color', colorAttribute);
+  const cellSize = terrainSize / terrainSegments;
+  const chunkSize = cellSize * 10;
+  const terrainState = { offsetX: 0, offsetZ: 0 };
+  const plateauHalfSize = chunkSize * 1.5;
+  const plateauBlend = chunkSize * 0.8;
+  const plateauLevel = 0;
+
+  const chunkColorCache = new Map();
+  function chunkRandom(ix, iz, salt = 0) {
+    return hash(ix + salt * 19.19, iz + salt * 7.7);
+  }
+  function getChunkColor(cx, cz) {
+    const key = `${cx},${cz}`;
+    let color = chunkColorCache.get(key);
+    if (!color) {
+      const hue = chunkRandom(cx * 0.61, cz * 0.47, 1);
+      const saturation = 0.35 + chunkRandom(cx * 0.93, cz * 0.78, 2) * 0.3;
+      const lightness = 0.3 + chunkRandom(cx * 1.21, cz * 1.09, 3) * 0.28;
+      color = new THREE.Color().setHSL(hue, saturation, lightness);
+      chunkColorCache.set(key, color);
+    }
+    return color;
+  }
+
+  function refreshTerrain(offsetX, offsetZ) {
+    const colors = colorAttribute.array;
+    for (let i = 0; i < pos.count; i++) {
+      const ix = i * 3;
+      const x = basePositions[ix];
+      const z = basePositions[ix + 2];
+      const worldX = x + offsetX;
+      const worldZ = z + offsetZ;
+      const y = fbm(worldX, worldZ) * 60 - 18;
+      const distanceFromPlateau = Math.max(Math.abs(worldX) - plateauHalfSize, Math.abs(worldZ) - plateauHalfSize);
+      let finalY = y;
+      if (distanceFromPlateau <= plateauBlend) {
+        const t = THREE.MathUtils.clamp(1 - distanceFromPlateau / plateauBlend, 0, 1);
+        const eased = smooth(t);
+        finalY = THREE.MathUtils.lerp(y, plateauLevel, eased);
+      }
+      pos.setY(i, finalY);
+      const chunkX = Math.round(worldX / chunkSize);
+      const chunkZ = Math.round(worldZ / chunkSize);
+      const chunkColor = getChunkColor(chunkX, chunkZ);
+      colors[ix] = chunkColor.r;
+      colors[ix + 1] = chunkColor.g;
+      colors[ix + 2] = chunkColor.b;
+    }
+    pos.needsUpdate = true;
+    colorAttribute.needsUpdate = true;
+    terrain.computeVertexNormals();
+    if (terrain.attributes.normal) {
+      terrain.attributes.normal.needsUpdate = true;
+    }
+    terrain.computeBoundingSphere();
+    terrain.computeBoundingBox();
+  }
+  refreshTerrain(terrainState.offsetX, terrainState.offsetZ);
+  const terrainMaterial = new THREE.MeshStandardMaterial({
+    color: 0xffffff,
+    vertexColors: true,
+    flatShading: true,
+    metalness: 0,
+    roughness: 1
+  });
+  terrainMaterial.onBeforeCompile = shader => {
+    shader.uniforms.edgeFadeColor = { value: fogColor.clone() };
+    shader.vertexShader = shader.vertexShader
+      .replace('#include <common>', `#include <common>\nattribute float edgeFade;\nvarying float vEdgeFade;`)
+      .replace('#include <begin_vertex>', `#include <begin_vertex>\nvEdgeFade = edgeFade;`);
+    shader.fragmentShader = shader.fragmentShader
+      .replace('#include <common>', `#include <common>\nvarying float vEdgeFade;\nuniform vec3 edgeFadeColor;`)
+      .replace('#include <dithering_fragment>', `#include <dithering_fragment>\n  gl_FragColor.rgb = mix(edgeFadeColor, gl_FragColor.rgb, vEdgeFade);`);
+  };
+  const terrainMesh = new THREE.Mesh(terrain, terrainMaterial);
+  terrainMesh.position.set(terrainState.offsetX, 0, terrainState.offsetZ);
+  scene.add(terrainMesh);
+  defaultTerrainColor = terrainMesh.material.color.clone();
+  function snapToChunk(value) { return Math.round(value / chunkSize) * chunkSize; }
+
+  const cityGroup = new THREE.Group();
+  cityGroup.name = 'PlateauCity';
+  terrainMesh.add(cityGroup);
+
+  function buildCityOnPlateau() {
+    cityGroup.clear();
+
+    const plazaSize = plateauHalfSize * 2 - chunkSize * 0.4;
+    const plazaHeight = 1;
+    const plaza = new THREE.Mesh(
+      new THREE.BoxGeometry(plazaSize, plazaHeight, plazaSize),
+      new THREE.MeshStandardMaterial({ color: new THREE.Color(0x1d2432), metalness: 0.2, roughness: 0.85 })
+    );
+    plaza.position.y = plateauLevel - plazaHeight / 2;
+    plaza.receiveShadow = true;
+    cityGroup.add(plaza);
+
+    const pathway = new THREE.Mesh(
+      new THREE.BoxGeometry(plazaSize * 0.7, 0.4, chunkSize * 0.3),
+      new THREE.MeshStandardMaterial({ color: new THREE.Color(0x2c384a), metalness: 0.1, roughness: 0.7 })
+    );
+    pathway.position.y = plateauLevel + 0.01;
+    cityGroup.add(pathway);
+
+    const crossPath = pathway.clone();
+    crossPath.rotation.y = Math.PI / 2;
+    cityGroup.add(crossPath);
+
+    const buildingGeometry = new THREE.BoxGeometry(1, 1, 1);
+    const towerMaterial = new THREE.MeshStandardMaterial({ color: new THREE.Color(0x8fb4ff), metalness: 0.55, roughness: 0.35, emissive: new THREE.Color(0x0b1b3c), emissiveIntensity: 0.12 });
+    const buildingMaterials = [
+      new THREE.MeshStandardMaterial({ color: new THREE.Color(0x3f5c7a), metalness: 0.4, roughness: 0.5 }),
+      new THREE.MeshStandardMaterial({ color: new THREE.Color(0x516b8c), metalness: 0.35, roughness: 0.55 }),
+      new THREE.MeshStandardMaterial({ color: new THREE.Color(0x6884a8), metalness: 0.3, roughness: 0.6 })
+    ];
+
+    const gridCount = 4;
+    const spacing = chunkSize * 0.9;
+    const startOffset = -spacing * (gridCount - 1) / 2;
+    for (let gx = 0; gx < gridCount; gx++) {
+      for (let gz = 0; gz < gridCount; gz++) {
+        const x = startOffset + gx * spacing;
+        const z = startOffset + gz * spacing;
+        const isCenter = Math.abs(x) < chunkSize * 0.2 && Math.abs(z) < chunkSize * 0.2;
+        const width = chunkSize * (0.32 + Math.random() * 0.24);
+        const depth = chunkSize * (0.32 + Math.random() * 0.24);
+        const height = isCenter ? chunkSize * 2.6 : chunkSize * (1.4 + Math.random() * 1.8);
+        const material = isCenter ? towerMaterial : buildingMaterials[(gx + gz) % buildingMaterials.length];
+        const building = new THREE.Mesh(buildingGeometry.clone(), material);
+        building.scale.set(width, height, depth);
+        building.position.set(x, plateauLevel + height / 2, z);
+        building.castShadow = true;
+        building.receiveShadow = true;
+        cityGroup.add(building);
+
+        if (!isCenter && Math.random() > 0.5) {
+          const roofHeight = height * (0.6 + Math.random() * 0.25);
+          const roof = new THREE.Mesh(
+            new THREE.ConeGeometry(width * 0.35, height * 0.25, 4),
+            new THREE.MeshStandardMaterial({ color: new THREE.Color(0xffb347), metalness: 0.3, roughness: 0.5 })
+          );
+          roof.position.set(x, plateauLevel + roofHeight, z);
+          roof.rotation.y = Math.PI / 4;
+          roof.castShadow = true;
+          cityGroup.add(roof);
+        }
+      }
+    }
+
+    const borderHeight = 2.2;
+    const borderThickness = chunkSize * 0.22;
+    const borderLength = plateauHalfSize * 2;
+    const borderMaterial = new THREE.MeshStandardMaterial({ color: new THREE.Color(0x2a3646), metalness: 0.25, roughness: 0.65 });
+    for (let i = 0; i < 4; i++) {
+      const wall = new THREE.Mesh(
+        new THREE.BoxGeometry(borderLength, borderHeight, borderThickness),
+        borderMaterial
+      );
+      wall.position.y = plateauLevel + borderHeight / 2;
+      if (i < 2) {
+        wall.position.z = (i === 0 ? -1 : 1) * (plateauHalfSize - borderThickness / 2);
+      } else {
+        wall.rotation.y = Math.PI / 2;
+        wall.position.x = (i === 2 ? -1 : 1) * (plateauHalfSize - borderThickness / 2);
+      }
+      wall.castShadow = true;
+      wall.receiveShadow = true;
+      cityGroup.add(wall);
+    }
+  }
+
+  buildCityOnPlateau();
+
+  const groundRay = new THREE.Raycaster();
+  const floatingBlocks = [];
+
+  function updateRenderButtons(activeMode) {
+    renderModeButtons.forEach(button => {
+      const isActive = button.dataset.renderMode === activeMode;
+      button.classList.toggle('is-active', isActive);
+      button.setAttribute('aria-pressed', String(isActive));
+    });
+  }
+
+  function applyRenderMode(mode, { announce = true } = {}) {
+    const previousMode = currentRenderMode;
+    currentRenderMode = mode;
+    const isWire = mode === 'wire';
+    if (defaultTerrainColor) {
+      terrainMesh.material.wireframe = isWire;
+      terrainMesh.material.color.copy(isWire ? wireTerrainColor : defaultTerrainColor);
+      terrainMesh.material.needsUpdate = true;
+    }
+    floatingBlocks.forEach(block => {
+      block.material.wireframe = isWire;
+      if (isWire) {
+        block.material.color.copy(wireBlockColor);
+      } else if (block.userData.baseColor) {
+        block.material.color.copy(block.userData.baseColor);
+      }
+      block.material.needsUpdate = true;
+    });
+    updateRenderButtons(mode);
+    if (announce && previousMode !== mode) {
+      const description = renderModeDescriptions[mode] || mode;
+      console.log(`Render mode switched to ${description}.`);
+    }
+  }
+
+  renderModeButtons.forEach(button => {
+    button.addEventListener('click', () => {
+      const mode = button.dataset.renderMode;
+      if (!mode || mode === currentRenderMode) return;
+      applyRenderMode(mode);
+    });
+  });
+
+  applyRenderMode(currentRenderMode, { announce: false });
+
+  function createBlock(x, z) {
+    const size = 2;
+    const color = new THREE.Color().setHSL(Math.random() * 0.15, 0.9, 0.5 + Math.random() * 0.1);
+    const block = new THREE.Mesh(
+      new THREE.BoxGeometry(size, size, size),
+      new THREE.MeshStandardMaterial({ color })
+    );
+    groundRay.set(new THREE.Vector3(x, 100, z), new THREE.Vector3(0, -1, 0));
+    const hit = groundRay.intersectObject(terrainMesh);
+    const y = hit.length ? hit[0].point.y : 0;
+    block.position.set(x, y + size / 2 + 8 * Math.random(), z);
+    block.castShadow = true;
+    block.receiveShadow = true;
+    block.userData.baseColor = block.material.color.clone();
+    if (currentRenderMode === 'wire') {
+      block.material.wireframe = true;
+      block.material.color.copy(wireBlockColor);
+      block.material.needsUpdate = true;
+    }
+    block.userData.base = block.position.clone();
+    block.userData.bobSpeed = 0.35 + Math.random() * 0.3;
+    block.userData.bobAmp = 4 + Math.random() * 6;
+    block.userData.phase = Math.random() * Math.PI * 2;
+    block.userData.windSeed = Math.random() * Math.PI * 2;
+    block.userData.windSpeed = 0.6 + Math.random() * 0.5;
+    block.userData.windStrength = 10 + Math.random() * 6;
+    block.userData.windOffset = new THREE.Vector3();
+    block.userData.windVelocity = new THREE.Vector3();
+    scene.add(block);
+    floatingBlocks.push(block);
+  }
+
+  const blockSpread = terrainSize * 0.48;
+  const cityExclusion = plateauHalfSize + chunkSize * 0.4;
+  async function generateBlocks(count) {
+    let created = 0;
+    while (created < count) {
+      const x = Math.random() * blockSpread * 2 - blockSpread;
+      const z = Math.random() * blockSpread * 2 - blockSpread;
+      if (Math.abs(x) < cityExclusion && Math.abs(z) < cityExclusion) {
+        continue;
+      }
+      createBlock(x, z);
+      created++;
+      if (created % 50 === 0) {
+        setProgress((created / count) * 100);
+        await new Promise(requestAnimationFrame);
+      }
+    }
+    setProgress(100);
+    if (loaderEl) loaderEl.remove();
+    console.log(`Terrain populated with ${count} blocks.`);
+  }
+
+  function updateControls(dt){
+    const yawInput = (keyState['ArrowRight'] ? 1 : 0) - (keyState['ArrowLeft'] ? 1 : 0);
+    const targetYawVelocity = yawInput * controls.turnSpeed;
+    controls.yawVelocity = THREE.MathUtils.damp(controls.yawVelocity, targetYawVelocity, controls.turnSmooth, dt);
+    controls.yaw += controls.yawVelocity * dt;
+    controls.yaw = THREE.MathUtils.euclideanModulo(controls.yaw, Math.PI * 2);
+
+    horizontalForward.set(Math.sin(controls.yaw), 0, -Math.cos(controls.yaw));
+    moveVector.set(0, 0, 0);
+    if (keyState['ArrowUp']) moveVector.add(horizontalForward);
+    if (keyState['ArrowDown']) moveVector.addScaledVector(horizontalForward, -1);
+
+    let speedTarget = 0;
+    if (moveVector.lengthSq() > 0) {
+      moveVector.normalize().multiplyScalar(controls.speed * dt);
+      speedTarget = controls.speed;
+      camera.position.add(moveVector);
+    }
+    currentSpeed = THREE.MathUtils.damp(currentSpeed, speedTarget, 6, dt);
+
+    const cosPitch = Math.cos(controls.pitch);
+    lookVector.set(
+      Math.sin(controls.yaw) * cosPitch,
+      Math.sin(controls.pitch),
+      -Math.cos(controls.yaw) * cosPitch
+    );
+    camera.position.y = controls.height;
+    lookTargetScratch.copy(camera.position).add(lookVector);
+    camera.lookAt(lookTargetScratch);
+  }
+
+  function updateSky(time, dt){
+    skyDome.position.copy(camera.position);
+    const glowTarget = 0.12 + (Math.sin(time * 0.22) + 1) * 0.04;
+    skyUniforms.glowStrength.value = THREE.MathUtils.damp(skyUniforms.glowStrength.value, glowTarget, 2.4, dt);
+    skyUniforms.time.value = time;
+
+    if (blackHoleState) {
+      blackHoleState.target.copy(camera.position).add(blackHoleState.offset);
+      blackHoleState.target.y = camera.position.y * 0.42 + 48;
+      blackHoleState.group.position.lerp(blackHoleState.target, THREE.MathUtils.clamp(dt * 1.4, 0, 1));
+
+      const haloTarget = 0.6 + Math.sin(time * 0.52) * 0.18;
+      const dampedHalo = THREE.MathUtils.damp(blackHoleState.halo.material.opacity, haloTarget, 2.2, dt);
+      blackHoleState.halo.material.opacity = THREE.MathUtils.clamp(dampedHalo, 0.32, 0.9);
+
+      blackHoleState.disk.material.rotation += dt * 0.22;
+      blackHoleState.halo.material.rotation -= dt * 0.08;
+
+      const corePulse = 620 + Math.sin(time * 0.9) * 28;
+      blackHoleState.core.scale.set(corePulse, corePulse, 1);
+      const diskWidth = 1380 + Math.sin(time * 0.4) * 64;
+      const diskHeight = 820 + Math.cos(time * 0.55) * 44;
+      blackHoleState.disk.scale.set(diskWidth, diskHeight, 1);
+    }
+
+    for (const sprite of cloudSprites) {
+      const data = sprite.userData;
+      const angle = time * data.driftSpeed + data.phase;
+      const targetX = camera.position.x + Math.cos(angle) * data.radius;
+      const targetZ = camera.position.z + Math.sin(angle) * data.radius;
+      sprite.position.x = THREE.MathUtils.damp(sprite.position.x, targetX, 3.2, dt);
+      sprite.position.z = THREE.MathUtils.damp(sprite.position.z, targetZ, 3.2, dt);
+      const bob = Math.sin(time * data.bobSpeed + data.phase) * 14;
+      const targetY = camera.position.y + data.heightOffset + bob;
+      sprite.position.y = THREE.MathUtils.damp(sprite.position.y, targetY, 2.4, dt);
+      const targetOpacity = data.baseOpacity + Math.sin(time * 0.32 + data.phase) * 0.1;
+      const dampedOpacity = THREE.MathUtils.damp(sprite.material.opacity, targetOpacity, 2.8, dt);
+      sprite.material.opacity = THREE.MathUtils.clamp(dampedOpacity, 0.28, 0.92);
+      sprite.material.rotation = Math.sin(time * 0.12 + data.phase) * 0.18;
+    }
+  }
+
+  function updateLighting(dt, time, isMoving) {
+    sunLightDesired.copy(camera.position).add(sunLightOffset);
+    sunLightDesired.x += Math.sin(time * 0.18) * 90;
+    sunLightDesired.z += Math.cos(time * 0.16) * 110;
+    const lerpFactor = THREE.MathUtils.clamp(dt * 3.6, 0, 1);
+    sunLight.position.lerp(sunLightDesired, lerpFactor);
+
+    sunLightTargetDesired.copy(camera.position).addScaledVector(lookVector, 60);
+    sunLight.target.position.lerp(sunLightTargetDesired, lerpFactor);
+    sunLight.target.updateMatrixWorld();
+
+    const baseIntensity = 1.05 + Math.sin(time * 0.24) * 0.08;
+    const targetIntensity = baseIntensity + (isMoving ? 0.18 : 0);
+    sunLight.intensity = THREE.MathUtils.damp(sunLight.intensity, targetIntensity, 3.2, dt);
+  }
+
+  function updateTerrainFollow() {
+    const snappedX = snapToChunk(camera.position.x);
+    const snappedZ = snapToChunk(camera.position.z);
+    if (snappedX !== terrainState.offsetX || snappedZ !== terrainState.offsetZ) {
+      terrainState.offsetX = snappedX;
+      terrainState.offsetZ = snappedZ;
+      refreshTerrain(snappedX, snappedZ);
+      terrainMesh.position.set(snappedX, 0, snappedZ);
+      console.log(`Terrain recentered to chunk (${Math.round(snappedX / chunkSize)}, ${Math.round(snappedZ / chunkSize)}).`);
+    }
+  }
+
+  const tempVec = new THREE.Vector3();
+  const lookTargetScratch = new THREE.Vector3();
+  const desiredBlock = new THREE.Vector3();
+  const windScratch = new THREE.Vector3();
+  function updateHud() {
+    if (!hudElements.position) return;
+    const pos = camera.position;
+    hudElements.position.textContent = `${pos.x.toFixed(1)}, ${pos.y.toFixed(1)}, ${pos.z.toFixed(1)}`;
+    const yawDeg = THREE.MathUtils.euclideanModulo(THREE.MathUtils.radToDeg(controls.yaw), 360);
+    const pitchDeg = THREE.MathUtils.radToDeg(controls.pitch);
+    hudElements.heading.textContent = `${yawDeg.toFixed(1)}° / ${pitchDeg.toFixed(1)}°`;
+    hudElements.chunk.textContent = `${Math.round(terrainState.offsetX / chunkSize)}, ${Math.round(terrainState.offsetZ / chunkSize)}`;
+    hudElements.speed.textContent = `${currentSpeed.toFixed(1)} m/s`;
+  }
+  function updateBlocks(dt, time) {
+    const cameraPos = camera.position;
+    const influenceRadius = 60;
+    const influenceRadiusSq = influenceRadius * influenceRadius;
+    for (const block of floatingBlocks) {
+      const data = block.userData;
+      const bob = Math.sin(time * data.bobSpeed + data.phase) * data.bobAmp;
+      desiredBlock.copy(data.base);
+      desiredBlock.y += bob;
+      tempVec.copy(cameraPos).sub(block.position);
+      const distanceSq = tempVec.lengthSq();
+      if (distanceSq < influenceRadiusSq) {
+        const distance = Math.sqrt(distanceSq);
+        const strength = (influenceRadius - distance) / influenceRadius;
+        const windPhase = time * data.windSpeed + data.windSeed;
+        windScratch.set(
+          Math.sin(windPhase),
+          Math.cos(windPhase * 0.8) * 0.3,
+          Math.cos(windPhase * 1.1)
+        );
+        data.windVelocity.addScaledVector(windScratch, strength * data.windStrength * dt);
+      }
+      data.windVelocity.multiplyScalar(Math.max(0, 1 - dt * 2.2));
+      data.windOffset.addScaledVector(data.windVelocity, dt);
+      data.windOffset.multiplyScalar(0.92);
+      desiredBlock.add(data.windOffset);
+      block.position.lerp(desiredBlock, THREE.MathUtils.clamp(dt * 4, 0, 1));
+    }
+  }
+
+  let last = performance.now();
+  function animate(){
+    fpsMonitor.begin();
+    const now = performance.now();
+    const dt = Math.min(0.05, (now - last) / 1000);
+    last = now;
+    updateControls(dt);
+    const isCameraMoving = moveVector.lengthSq() > 1e-6 || currentSpeed > 0.5;
+    updateTerrainFollow();
+    updateHud();
+    updateBlocks(dt, now / 1000);
+    updateSky(now / 1000, dt);
+    updateLighting(dt, now / 1000, isCameraMoving);
+    renderer.render(scene, camera);
+    fpsMonitor.end();
+    requestAnimationFrame(animate);
+  }
+
+  console.log('Terrain initialising...');
+  await generateBlocks(1000);
+  applyRenderMode(currentRenderMode, { announce: false });
+  console.log('Terrain ready.');
+  animate();
+
+  const resolutionSelect = document.getElementById('resolution-select');
+  const resolutionDisplay = document.getElementById('resolution-display');
+  const fullscreenBtn = document.getElementById('fullscreen-btn');
+  const controlUi = document.getElementById('control-ui');
+  const foldBtn = document.getElementById('ui-fold-btn');
+  let setControlFolded = null;
+
+  if (foldBtn && controlUi) {
+    const syncControlFold = (folded) => {
+      controlUi.classList.toggle('folded', folded);
+      foldBtn.setAttribute('aria-expanded', String(!folded));
+      const label = folded ? 'Expand control panel' : 'Collapse control panel';
+      foldBtn.setAttribute('aria-label', label);
+    };
+    setControlFolded = syncControlFold;
+    foldBtn.addEventListener('click', () => {
+      const next = !controlUi.classList.contains('folded');
+      syncControlFold(next);
+      console.log(`Control interface ${next ? 'folded' : 'expanded'}.`);
+    });
+    syncControlFold(controlUi.classList.contains('folded'));
+    console.log('Control interface initialised with animated fold icon.');
+  }
+
+  const isFullscreenActive = () => Boolean(
+    document.fullscreenElement ||
+    document.webkitFullscreenElement ||
+    document.msFullscreenElement
+  );
+
+  let currentResolution = RESOLUTIONS[4];
+  let vhsTimeoutId = null;
+  const MOBILE_BREAKPOINT = 720;
+  let isMobileLayout = null;
+
+  function updateResponsiveState() {
+    const isMobile = window.innerWidth <= MOBILE_BREAKPOINT;
+    document.body.classList.toggle('is-mobile', isMobile);
+    if (isMobile !== isMobileLayout) {
+      if (isMobile) {
+        setControlFolded?.(true);
+        setConsoleFolded?.(true);
+      }
+      isMobileLayout = isMobile;
+    }
+  }
+
+  const spawnVhsLines = () => {
+    if (!canvasWrap) return;
+    const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
+    const createLine = (topPercent) => {
+      const line = document.createElement('div');
+      line.classList.add('vhs-line');
+
+      const isCluster = Math.random() < 0.45;
+      if (isCluster) {
+        line.classList.add('vhs-line--cluster');
+        const clusterThickness = 2 + Math.random() * 3;
+        line.style.setProperty('--cluster-thickness', `${clusterThickness}px`);
+        const clusterHeight = 14 + Math.random() * 26;
+        line.style.height = `${clusterHeight}px`;
+      } else {
+        const baseHeight = 4 + Math.random() * 10;
+        line.style.height = `${baseHeight}px`;
+      }
+
+      const top = clamp(topPercent, 0, 100);
+      line.style.top = `${top}%`;
+
+      const shiftStart = (Math.random() - 0.5) * 140;
+      const shiftMid = shiftStart + (Math.random() - 0.5) * 180;
+      const shiftEnd = (Math.random() - 0.5) * 120;
+      const shiftClear = (Math.random() - 0.5) * 20;
+      line.style.setProperty('--shift-start', `${shiftStart}px`);
+      line.style.setProperty('--shift-mid', `${shiftMid}px`);
+      line.style.setProperty('--shift-end', `${shiftEnd}px`);
+      line.style.setProperty('--shift-clear', `${shiftClear}px`);
+
+      const skewStart = (Math.random() - 0.5) * 4;
+      const skewMid = (Math.random() - 0.5) * 12;
+      const skewEnd = (Math.random() - 0.5) * 4;
+      line.style.setProperty('--skew-start', `${skewStart}deg`);
+      line.style.setProperty('--skew-mid', `${skewMid}deg`);
+      line.style.setProperty('--skew-end', `${skewEnd}deg`);
+
+      line.style.setProperty('--line-opacity', `${0.5 + Math.random() * 0.4}`);
+      line.style.setProperty('--line-brightness', `${0.85 + Math.random() * 0.6}`);
+      line.style.setProperty('--line-hue', `${(Math.random() - 0.5) * 100}deg`);
+
+      canvasWrap.appendChild(line);
+      line.addEventListener('animationend', () => {
+        line.remove();
+      }, { once: true });
+    };
+
+    const groupCount = 3 + Math.floor(Math.random() * 4);
+    for (let group = 0; group < groupCount; group++) {
+      const baseTop = Math.random() * 100;
+      const linesInGroup = 1 + Math.floor(Math.random() * 3);
+      for (let i = 0; i < linesInGroup; i++) {
+        createLine(baseTop + (Math.random() - 0.5) * 10);
+      }
+    }
+  };
+
+  const triggerVhsEffect = () => {
+    if (!canvasWrap) return;
+    canvasWrap.classList.remove('vhs-glitch');
+    void canvasWrap.offsetWidth;
+    canvasWrap.classList.add('vhs-glitch');
+    spawnVhsLines();
+    if (vhsTimeoutId) {
+      clearTimeout(vhsTimeoutId);
+    }
+    vhsTimeoutId = setTimeout(() => {
+      canvasWrap.classList.remove('vhs-glitch');
+    }, 650);
+  };
+
+  function applyResolution(res) {
+    currentResolution = res;
+    renderer.setSize(res.width, res.height, false);
+    renderer.domElement.width = res.width;
+    renderer.domElement.height = res.height;
+    camera.aspect = res.width / res.height;
+    camera.updateProjectionMatrix();
+    resolutionDisplay.textContent = `${res.label} — ${res.width} × ${res.height}`;
+    updateCanvasLayout();
+    console.log(`Resolution set to ${res.width}×${res.height} (${res.label}).`);
+  }
+
+  function parseResolution(value) {
+    const [w, h] = value.split('x').map(Number);
+    return RESOLUTIONS.find(r => r.width === w && r.height === h) || RESOLUTIONS[0];
+  }
+
+  function updateCanvasLayout() {
+    const aspect = currentResolution.width / currentResolution.height;
+    const availableWidth = Math.max(100, window.innerWidth);
+    const availableHeight = Math.max(100, window.innerHeight);
+
+    let displayWidth = availableWidth;
+    let displayHeight = displayWidth / aspect;
+
+    if (displayHeight > availableHeight) {
+      const scale = availableHeight / displayHeight;
+      displayWidth = Math.floor(displayWidth * scale);
+      displayHeight = availableHeight;
+    }
+
+    renderer.domElement.style.width = `${displayWidth}px`;
+    renderer.domElement.style.height = `${displayHeight}px`;
+    canvasWrap.style.width = `${displayWidth}px`;
+    canvasWrap.style.height = `${displayHeight}px`;
+  }
+
+  resolutionSelect.addEventListener('change', () => {
+    applyResolution(parseResolution(resolutionSelect.value));
+    triggerVhsEffect();
+  });
+
+  function updateFullscreenButton() {
+    const isFullscreen = isFullscreenActive();
+    const isMobile = document.body.classList.contains('is-mobile');
+    const label = isFullscreen ? 'Exit Fullscreen' : (isMobile ? 'Fullscreen' : 'Enter Fullscreen');
+    fullscreenBtn.textContent = label;
+    const shouldShow = isFullscreen || window.innerWidth >= MOBILE_BREAKPOINT || isMobile;
+    fullscreenBtn.style.display = shouldShow ? 'inline-flex' : 'none';
+    document.body.classList.toggle('is-fullscreen', isFullscreen);
+  }
+
+  fullscreenBtn.addEventListener('click', () => {
+    if (isFullscreenActive()) {
+      if (document.exitFullscreen) {
+        document.exitFullscreen();
+      } else if (document.webkitExitFullscreen) {
+        document.webkitExitFullscreen();
+      }
+    } else {
+      const target = document.documentElement;
+      const request = target.requestFullscreen || target.webkitRequestFullscreen || target.msRequestFullscreen;
+      if (request) request.call(target);
+    }
+  });
+
+  document.addEventListener('fullscreenchange', () => {
+    updateCanvasLayout();
+    updateFullscreenButton();
+  });
+  document.addEventListener('webkitfullscreenchange', () => {
+    updateCanvasLayout();
+    updateFullscreenButton();
+  });
+  document.addEventListener('msfullscreenchange', () => {
+    updateCanvasLayout();
+    updateFullscreenButton();
+  });
+
+  window.addEventListener('resize', () => {
+    updateResponsiveState();
+    updateCanvasLayout();
+    updateFullscreenButton();
+  });
+
+  window.addEventListener('orientationchange', () => {
+    updateResponsiveState();
+    updateCanvasLayout();
+    updateFullscreenButton();
+  });
+
+  updateResponsiveState();
+  applyResolution(currentResolution);
+  updateFullscreenButton();
+  updateCanvasLayout();
   </script>
-
 </body>
 </html>
