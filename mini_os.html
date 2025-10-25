@@ -1164,7 +1164,7 @@
                 link.href = `${ORBIT_BASE_PATH}app-js/${safe}.js`;
                 document.head.appendChild(link);
             });
-            ['html-studio.html', 'cloud-storage.html', 'documonster.html', 'retro-list.html'].forEach(p => {
+            ['html-studio.html', 'cloud-storage.html', 'documonster.html', 'comic-issue-forge.html', 'retro-list.html'].forEach(p => {
                 const l = document.createElement('link');
                 l.rel = 'prefetch';
                 l.href = `${ORBIT_BASE_PATH}${p}`;
@@ -1344,7 +1344,7 @@
                 .replace(/\{TIME\}/g, now.toLocaleTimeString())
                 .replace(/\{MONTH_YEAR\}/g, now.toLocaleString('default', { month: 'long', year: 'numeric' }))
                 .replace(/\{CALENDAR_DAYS\}/g, calDays)
-                .replace(/src="(html-studio|documonster|cloud-storage|retro-list)\.html"/g, (match, name) => `src="${ORBIT_BASE_PATH}${name}.html"`);
+                .replace(/src="(html-studio|documonster|comic-issue-forge|cloud-storage|retro-list)\.html"/g, (match, name) => `src="${ORBIT_BASE_PATH}${name}.html"`);
             return { title: cfg.title, content, width: cfg.width, height: cfg.height };
         }
         

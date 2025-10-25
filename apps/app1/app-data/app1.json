@@ -64,6 +64,10 @@
           "type": "document-editor"
         },
         {
+          "label": "Comic Issue Forge",
+          "type": "comic-forge"
+        },
+        {
           "label": "ScanX Analyzer",
           "type": "scanx"
         }
@@ -114,6 +118,7 @@
       "ls apps": [
         "cloud-storage.html",
         "documonster.html",
+        "comic-issue-forge.html",
         "scanx.html"
       ]
     },
@@ -146,6 +151,11 @@
       "type": "document-editor",
       "emoji": "📄",
       "label": "Docu Monster Studio Pro"
+    },
+    {
+      "type": "comic-forge",
+      "emoji": "🦸",
+      "label": "Comic Issue Forge"
     },
     {
       "type": "scanx",
@@ -232,6 +242,12 @@
       "content": "<iframe src=\"documonster.html\" style=\"width:100%;height:100%;border:none;background:#c0c0c0;\"></iframe>",
       "width": 1280,
       "height": 900
+    },
+    "comic-forge": {
+      "title": "Orbit Comic Issue Forge",
+      "content": "<iframe src=\"comic-issue-forge.html\" style=\"width:100%;height:100%;border:none;background:#eef1ff;\"></iframe>",
+      "width": 1280,
+      "height": 860
     },
     "scanx": {
       "title": "ScanX Publishing Studio",

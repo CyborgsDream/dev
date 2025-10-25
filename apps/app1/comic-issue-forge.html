@@ -1,0 +1,943 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Orbit Comic Issue Forge — Orbit OS v 0.1.3</title>
+<style>
+  :root {
+    color-scheme: light;
+    --bg: #eef1f8;
+    --panel: #ffffff;
+    --panel-strong: #f7f9ff;
+    --border: #c5cbe0;
+    --border-strong: #92a0d0;
+    --text: #1b2240;
+    --text-soft: #5a6388;
+    --accent: #4769ff;
+    --accent-soft: rgba(71, 105, 255, 0.12);
+    --accent-strong: #2040b8;
+    --danger: #b83232;
+    --success: #1c8c4d;
+    --shadow: 0 12px 32px rgba(23, 33, 74, 0.12);
+    --card-radius: 16px;
+    --page-aspect: calc(6.625 / 10.25);
+    font-family: 'Segoe UI', 'Tahoma', 'Helvetica Neue', sans-serif;
+  }
+
+  * {
+    box-sizing: border-box;
+  }
+
+  body {
+    margin: 0;
+    padding: 32px;
+    background: radial-gradient(circle at top, rgba(255,255,255,0.9), rgba(224,230,255,0.85)), var(--bg);
+    min-height: 100vh;
+    color: var(--text);
+  }
+
+  .app-shell {
+    max-width: 1280px;
+    margin: 0 auto 48px;
+    background: var(--panel);
+    border-radius: 20px;
+    box-shadow: var(--shadow);
+    border: 1px solid rgba(146, 160, 208, 0.35);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+
+  header.app-header {
+    padding: 28px 32px 20px;
+    background: linear-gradient(140deg, rgba(71, 105, 255, 0.12), rgba(116, 152, 255, 0.08));
+    border-bottom: 1px solid rgba(146, 160, 208, 0.35);
+  }
+
+  header.app-header h1 {
+    margin: 0 0 6px;
+    font-size: clamp(28px, 3vw, 38px);
+    font-weight: 700;
+    letter-spacing: -0.02em;
+  }
+
+  header.app-header p {
+    margin: 0;
+    color: var(--text-soft);
+    font-size: 15px;
+    max-width: 720px;
+  }
+
+  .toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px;
+    align-items: center;
+    padding: 24px 32px 16px;
+    border-bottom: 1px solid rgba(146, 160, 208, 0.25);
+    background: linear-gradient(180deg, var(--panel), var(--panel-strong));
+  }
+
+  .toolbar .project-meta {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    min-width: 260px;
+  }
+
+  .toolbar label {
+    font-size: 13px;
+    color: var(--text-soft);
+    font-weight: 600;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .toolbar input[type="text"] {
+    padding: 10px 14px;
+    border-radius: 12px;
+    border: 1px solid var(--border);
+    background: rgba(255,255,255,0.85);
+    font-size: 16px;
+    color: var(--text);
+    transition: border 0.2s ease, box-shadow 0.2s ease;
+  }
+
+  .toolbar input[type="text"]:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(71, 105, 255, 0.18);
+  }
+
+  .progress-row {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .progress-row strong {
+    font-size: 15px;
+  }
+
+  .progress-bar {
+    position: relative;
+    height: 10px;
+    border-radius: 999px;
+    background: rgba(71, 105, 255, 0.12);
+    overflow: hidden;
+  }
+
+  .progress-bar span {
+    position: absolute;
+    inset: 0;
+    width: 0;
+    background: linear-gradient(90deg, var(--accent), rgba(71, 105, 255, 0.55));
+    transition: width 0.25s ease;
+  }
+
+  .toolbar .actions {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+
+  button {
+    appearance: none;
+    border: none;
+    border-radius: 12px;
+    padding: 10px 18px;
+    font-size: 15px;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+    cursor: pointer;
+    transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.2s ease;
+    background: #eef1ff;
+    color: var(--accent-strong);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.6);
+  }
+
+  button:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 8px 18px rgba(71, 105, 255, 0.18);
+  }
+
+  button.primary {
+    background: linear-gradient(135deg, #4769ff, #3f5be0);
+    color: #fff;
+    box-shadow: 0 12px 24px rgba(56, 86, 224, 0.35);
+  }
+
+  button.primary:hover {
+    box-shadow: 0 14px 26px rgba(56, 86, 224, 0.45);
+  }
+
+  button.ghost {
+    background: rgba(91, 104, 144, 0.1);
+    color: var(--text-soft);
+  }
+
+  .info-panel {
+    padding: 0 32px 8px;
+    display: grid;
+    grid-template-columns: minmax(240px, 1fr) minmax(200px, auto);
+    gap: 20px;
+    align-items: start;
+  }
+
+  .info-panel ul {
+    margin: 0;
+    padding-left: 20px;
+    color: var(--text-soft);
+    font-size: 14px;
+    line-height: 1.6;
+  }
+
+  .sequence-indicator {
+    padding: 14px 18px;
+    background: rgba(71, 105, 255, 0.08);
+    border-radius: 14px;
+    border: 1px dashed rgba(71, 105, 255, 0.3);
+    font-size: 14px;
+    color: var(--accent-strong);
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .sequence-indicator strong {
+    font-size: 15px;
+  }
+
+  .page-grid {
+    padding: 16px 32px 32px;
+    display: grid;
+    gap: 18px;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    background: var(--panel-strong);
+  }
+
+  .page-card {
+    background: #fff;
+    border-radius: var(--card-radius);
+    border: 1px solid rgba(146, 160, 208, 0.4);
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    position: relative;
+    transition: border 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+    min-height: 320px;
+  }
+
+  .page-card:focus-within,
+  .page-card:hover {
+    border-color: var(--accent);
+    box-shadow: 0 10px 22px rgba(65, 88, 190, 0.22);
+  }
+
+  .page-card.is-ready {
+    border-color: rgba(28, 140, 77, 0.45);
+    box-shadow: 0 10px 24px rgba(28, 140, 77, 0.22);
+  }
+
+  .page-card.is-sequence-start::after {
+    content: "Sequence start";
+    position: absolute;
+    top: 14px;
+    right: 16px;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    background: var(--accent);
+    color: #fff;
+    padding: 3px 8px;
+    border-radius: 999px;
+    box-shadow: 0 4px 12px rgba(71, 105, 255, 0.35);
+  }
+
+  .page-card.is-dragover {
+    border-style: dashed;
+    border-color: var(--accent);
+  }
+
+  .page-head {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .page-title {
+    font-size: 18px;
+    font-weight: 700;
+    margin: 0;
+  }
+
+  .page-kind {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-soft);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+
+  .page-drop {
+    position: relative;
+    border-radius: 14px;
+    border: 1px dashed rgba(146, 160, 208, 0.55);
+    background: rgba(71, 105, 255, 0.04);
+    flex: 1 1 auto;
+    min-height: 180px;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    padding: 12px;
+    transition: border 0.2s ease, background 0.2s ease;
+  }
+
+  .page-drop:hover {
+    border-color: var(--accent);
+    background: rgba(71, 105, 255, 0.08);
+  }
+
+  .page-drop img {
+    max-width: 100%;
+    max-height: 100%;
+    width: 100%;
+    height: auto;
+    object-fit: contain;
+    display: none;
+    border-radius: 10px;
+    background: #fff;
+  }
+
+  .page-drop .placeholder {
+    text-align: center;
+    color: var(--text-soft);
+    font-size: 14px;
+    line-height: 1.6;
+  }
+
+  .page-actions {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+
+  .page-meta {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px 12px;
+    font-size: 12px;
+    color: var(--text-soft);
+  }
+
+  .page-meta dt {
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+
+  .page-meta dd {
+    margin: 0;
+    color: var(--text);
+    font-size: 12px;
+    word-break: break-word;
+  }
+
+  footer.app-footer {
+    padding: 18px 28px 24px;
+    border-top: 1px solid rgba(146, 160, 208, 0.25);
+    background: linear-gradient(180deg, rgba(255,255,255,0.95), rgba(240,244,255,0.9));
+  }
+
+  .status {
+    padding: 12px 16px;
+    border-radius: 12px;
+    font-size: 14px;
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    border: 1px solid rgba(146, 160, 208, 0.4);
+    background: rgba(255, 255, 255, 0.9);
+  }
+
+  .status::before {
+    content: '●';
+    font-size: 10px;
+    color: var(--accent);
+  }
+
+  .status[data-tone="success"] {
+    border-color: rgba(28, 140, 77, 0.4);
+    background: rgba(28, 140, 77, 0.08);
+    color: var(--success);
+  }
+
+  .status[data-tone="success"]::before {
+    color: var(--success);
+  }
+
+  .status[data-tone="error"] {
+    border-color: rgba(184, 50, 50, 0.35);
+    background: rgba(184, 50, 50, 0.08);
+    color: var(--danger);
+  }
+
+  .status[data-tone="error"]::before {
+    color: var(--danger);
+  }
+
+  .status[data-tone="info"] {
+    color: var(--text-soft);
+  }
+
+  @media (max-width: 960px) {
+    body {
+      padding: 16px;
+    }
+
+    .app-shell {
+      border-radius: 14px;
+    }
+
+    .toolbar {
+      padding: 20px;
+    }
+
+    .info-panel {
+      grid-template-columns: 1fr;
+      padding: 0 20px 12px;
+    }
+
+    .page-grid {
+      padding: 12px 20px 20px;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    }
+
+    header.app-header {
+      padding: 24px 24px 18px;
+    }
+  }
+
+  @media (max-width: 640px) {
+    .toolbar {
+      flex-direction: column;
+      align-items: stretch;
+    }
+
+    .toolbar .actions {
+      width: 100%;
+      justify-content: stretch;
+    }
+
+    .toolbar .actions button {
+      flex: 1 1 auto;
+      text-align: center;
+    }
+
+    .page-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>
+</head>
+<body>
+<div class="app-shell" role="application" aria-label="Orbit Comic Issue Forge">
+  <header class="app-header">
+    <h1>Orbit Comic Issue Forge</h1>
+    <p>Build a professional 36-page US comic issue by pairing each page slot with finished artwork. Drop ready-made images, review the lineup, and export a trim-ready PDF at 6.625 × 10.25 in.</p>
+  </header>
+  <section class="toolbar">
+    <div class="project-meta">
+      <label for="issue-title">Issue title
+        <input id="issue-title" type="text" spellcheck="false" autocomplete="off" placeholder="Untitled comic">
+      </label>
+      <div class="progress-row">
+        <strong><span id="ready-count">0</span> / <span id="total-count">36</span> pages ready</strong>
+        <div class="progress-bar" aria-hidden="true"><span id="ready-progress"></span></div>
+      </div>
+    </div>
+    <div class="actions">
+      <button id="import-sequence" type="button">Import sequence…</button>
+      <button id="clear-all" type="button" class="ghost">Clear all</button>
+      <button id="export-pdf" type="button" class="primary">Export trimmed PDF</button>
+    </div>
+  </section>
+  <section class="info-panel">
+    <ul>
+      <li>Each slot accepts high-resolution PNG, JPG, or WebP artwork. Drag &amp; drop files or use the “Load image” button.</li>
+      <li>Sequence import follows the highlighted card. Click a card to set the starting point before loading a folder full of pages.</li>
+      <li>Artwork is centred on the US comic trim (6.625 × 10.25 in). Add bleed inside your images if a printer requires it.</li>
+    </ul>
+    <div class="sequence-indicator">
+      <strong>Sequence start</strong>
+      <div>Import sequence begins at <span id="sequence-label">Front Cover</span>.</div>
+      <div>Tip: Use multiple selection in your file dialog to feed covers, interiors, and back matter in one action.</div>
+    </div>
+  </section>
+  <main id="page-grid" class="page-grid" aria-live="polite"></main>
+  <footer class="app-footer">
+    <div id="status" class="status" role="status" aria-live="polite" data-tone="info">Ready to build your issue.</div>
+  </footer>
+</div>
+
+<input type="file" id="sequence-input" accept="image/*" multiple hidden>
+
+<template id="page-card-template">
+  <article class="page-card" tabindex="0">
+    <div class="page-head">
+      <h2 class="page-title">Page label</h2>
+      <span class="page-kind">Interior</span>
+    </div>
+    <div class="page-drop" data-drop>
+      <img class="page-preview" alt="Page preview" loading="lazy">
+      <div class="placeholder">Drop image here or use “Load image”</div>
+    </div>
+    <div class="page-actions">
+      <button type="button" data-action="load">Load image…</button>
+      <button type="button" data-action="clear" class="ghost">Clear</button>
+    </div>
+    <dl class="page-meta">
+      <div>
+        <dt>File</dt>
+        <dd data-meta="file">—</dd>
+      </div>
+      <div>
+        <dt>Resolution</dt>
+        <dd data-meta="resolution">—</dd>
+      </div>
+      <div>
+        <dt>Size</dt>
+        <dd data-meta="size">—</dd>
+      </div>
+      <div>
+        <dt>Updated</dt>
+        <dd data-meta="updated">—</dd>
+      </div>
+    </dl>
+    <input type="file" accept="image/*" hidden data-file-input>
+  </article>
+</template>
+
+<script>
+(function() {
+  const PAGE_BLUEPRINT = [
+    { id: 'cover-front', label: 'Front Cover', kind: 'Cover' },
+    { id: 'cover-inner-front', label: 'Inside Front Cover', kind: 'Cover' },
+    ...Array.from({ length: 32 }, (_, i) => ({
+      id: `page-${i + 1}`,
+      label: `Page ${i + 1}`,
+      kind: 'Interior'
+    })),
+    { id: 'cover-inner-back', label: 'Inside Back Cover', kind: 'Cover' },
+    { id: 'cover-back', label: 'Back Cover', kind: 'Cover' }
+  ];
+
+  const state = PAGE_BLUEPRINT.map(page => ({
+    ...page,
+    dataUrl: null,
+    pdfDataUrl: null,
+    imageWidth: 0,
+    imageHeight: 0,
+    fileName: '',
+    fileSize: 0,
+    updatedAt: null,
+    sourceType: ''
+  }));
+
+  const cards = [];
+  const totalCount = state.length;
+  const grid = document.getElementById('page-grid');
+  const template = document.getElementById('page-card-template');
+  const readyCountEl = document.getElementById('ready-count');
+  const totalCountEl = document.getElementById('total-count');
+  const progressFill = document.getElementById('ready-progress');
+  const statusEl = document.getElementById('status');
+  const importBtn = document.getElementById('import-sequence');
+  const clearBtn = document.getElementById('clear-all');
+  const exportBtn = document.getElementById('export-pdf');
+  const sequenceInput = document.getElementById('sequence-input');
+  const sequenceLabel = document.getElementById('sequence-label');
+  const issueTitleInput = document.getElementById('issue-title');
+  const TITLE_STORAGE_KEY = 'orbit-comic-forge-title';
+  let sequenceStartIndex = 0;
+  let jsPdfLoader = null;
+
+  totalCountEl.textContent = String(totalCount);
+
+  function setStatus(message, tone = 'info') {
+    statusEl.textContent = message;
+    statusEl.setAttribute('data-tone', tone);
+  }
+
+  function formatBytes(bytes) {
+    if (!bytes) return '—';
+    const units = ['B', 'KB', 'MB', 'GB'];
+    const idx = Math.min(Math.floor(Math.log(bytes) / Math.log(1024)), units.length - 1);
+    const value = bytes / Math.pow(1024, idx);
+    return `${value.toFixed(value >= 10 || idx === 0 ? 0 : 1)} ${units[idx]}`;
+  }
+
+  function formatDate(date) {
+    if (!date) return '—';
+    return new Intl.DateTimeFormat(undefined, {
+      dateStyle: 'medium',
+      timeStyle: 'short'
+    }).format(date);
+  }
+
+  function sanitizeFilename(name) {
+    return name
+      .replace(/[^a-z0-9_\-]+/gi, '-')
+      .replace(/-+/g, '-')
+      .replace(/^-+|-+$/g, '')
+      .slice(0, 80);
+  }
+
+  function updateProgress() {
+    const ready = state.filter(p => !!p.dataUrl).length;
+    readyCountEl.textContent = String(ready);
+    const ratio = ready / totalCount;
+    progressFill.style.width = `${Math.round(ratio * 100)}%`;
+  }
+
+  function renderPage(index) {
+    const card = cards[index];
+    const page = state[index];
+    if (!card) return;
+    const preview = card.querySelector('.page-preview');
+    const placeholder = card.querySelector('.placeholder');
+    const fileEl = card.querySelector('[data-meta="file"]');
+    const resEl = card.querySelector('[data-meta="resolution"]');
+    const sizeEl = card.querySelector('[data-meta="size"]');
+    const updatedEl = card.querySelector('[data-meta="updated"]');
+
+    if (page.dataUrl) {
+      preview.src = page.dataUrl;
+      preview.style.display = 'block';
+      placeholder.style.display = 'none';
+      card.classList.add('is-ready');
+      fileEl.textContent = page.fileName || 'Image';
+      resEl.textContent = page.imageWidth && page.imageHeight
+        ? `${page.imageWidth} × ${page.imageHeight}`
+        : '—';
+      sizeEl.textContent = formatBytes(page.fileSize);
+      updatedEl.textContent = formatDate(page.updatedAt);
+    } else {
+      preview.removeAttribute('src');
+      preview.style.display = 'none';
+      placeholder.style.display = 'block';
+      card.classList.remove('is-ready');
+      fileEl.textContent = '—';
+      resEl.textContent = '—';
+      sizeEl.textContent = '—';
+      updatedEl.textContent = '—';
+    }
+  }
+
+  function resetPage(index) {
+    const page = state[index];
+    page.dataUrl = null;
+    page.pdfDataUrl = null;
+    page.imageWidth = 0;
+    page.imageHeight = 0;
+    page.fileName = '';
+    page.fileSize = 0;
+    page.updatedAt = null;
+    page.sourceType = '';
+    renderPage(index);
+  }
+
+  function ensureJsPDF() {
+    if (window.jspdf && window.jspdf.jsPDF) {
+      return Promise.resolve(window.jspdf);
+    }
+    if (jsPdfLoader) return jsPdfLoader;
+    jsPdfLoader = new Promise((resolve, reject) => {
+      const script = document.createElement('script');
+      script.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
+      script.onload = () => resolve(window.jspdf);
+      script.onerror = () => reject(new Error('Failed to load jsPDF library.'));
+      document.head.appendChild(script);
+    });
+    return jsPdfLoader;
+  }
+
+  function assignSequenceStart(index) {
+    sequenceStartIndex = index;
+    sequenceLabel.textContent = state[index].label;
+    cards.forEach((card, idx) => {
+      card.classList.toggle('is-sequence-start', idx === sequenceStartIndex);
+    });
+  }
+
+  async function applyFileToPage(index, file) {
+    if (!file) return false;
+    if (!file.type.startsWith('image/')) {
+      setStatus(`“${file.name}” is not an image.`, 'error');
+      return false;
+    }
+    try {
+      const dataUrl = await readFileAsDataUrl(file);
+      const img = await loadImage(dataUrl);
+      const canvas = document.createElement('canvas');
+      canvas.width = img.naturalWidth || img.width;
+      canvas.height = img.naturalHeight || img.height;
+      const ctx = canvas.getContext('2d');
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.drawImage(img, 0, 0);
+      const jpegData = canvas.toDataURL('image/jpeg', 0.92);
+      const page = state[index];
+      page.dataUrl = jpegData;
+      page.pdfDataUrl = jpegData;
+      page.imageWidth = canvas.width;
+      page.imageHeight = canvas.height;
+      page.fileName = file.name;
+      page.fileSize = file.size;
+      page.updatedAt = new Date();
+      page.sourceType = file.type;
+      renderPage(index);
+      updateProgress();
+      setStatus(`${page.label} ready.`, 'success');
+      return true;
+    } catch (error) {
+      console.error(error);
+      setStatus(`Could not process “${file.name}”.`, 'error');
+      return false;
+    }
+  }
+
+  function readFileAsDataUrl(file) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result);
+      reader.onerror = () => reject(reader.error || new Error('File read failed.'));
+      reader.readAsDataURL(file);
+    });
+  }
+
+  function loadImage(src) {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => resolve(img);
+      img.onerror = () => reject(new Error('Image decode failed.'));
+      img.src = src;
+    });
+  }
+
+  async function handleSequence(files) {
+    if (!files || !files.length) {
+      setStatus('No images selected for sequence import.', 'error');
+      return;
+    }
+    const images = Array.from(files).filter(file => file.type.startsWith('image/'));
+    if (!images.length) {
+      setStatus('No compatible images found in selection.', 'error');
+      return;
+    }
+    images.sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: 'base' }));
+    let assigned = 0;
+    for (let i = 0; i < images.length; i += 1) {
+      const targetIndex = sequenceStartIndex + i;
+      if (targetIndex >= state.length) break;
+      const success = await applyFileToPage(targetIndex, images[i]);
+      if (success) assigned += 1;
+    }
+    if (assigned) {
+      setStatus(`Imported ${assigned} page${assigned === 1 ? '' : 's'} starting at ${state[sequenceStartIndex].label}.`, 'success');
+    } else {
+      setStatus('No pages were updated.', 'error');
+    }
+  }
+
+  async function exportPdf() {
+    const ready = state.filter(p => !!p.dataUrl).length;
+    if (!ready) {
+      setStatus('Load at least one page before exporting.', 'error');
+      return;
+    }
+    setStatus('Preparing PDF export…', 'info');
+    try {
+      const { jsPDF } = await ensureJsPDF();
+      const doc = new jsPDF({
+        orientation: 'portrait',
+        unit: 'in',
+        format: [6.625, 10.25]
+      });
+      const pageWidth = doc.internal.pageSize.getWidth();
+      const pageHeight = doc.internal.pageSize.getHeight();
+
+      state.forEach((page, index) => {
+        if (index !== 0) doc.addPage();
+        doc.setFillColor(255, 255, 255);
+        doc.rect(0, 0, pageWidth, pageHeight, 'F');
+        if (page.pdfDataUrl) {
+          const ratio = page.imageWidth && page.imageHeight ? page.imageWidth / page.imageHeight : pageWidth / pageHeight;
+          const pageRatio = pageWidth / pageHeight;
+          let drawWidth = pageWidth;
+          let drawHeight = pageHeight;
+          if (ratio > pageRatio) {
+            drawWidth = pageWidth;
+            drawHeight = pageWidth / ratio;
+          } else {
+            drawHeight = pageHeight;
+            drawWidth = pageHeight * ratio;
+          }
+          const offsetX = (pageWidth - drawWidth) / 2;
+          const offsetY = (pageHeight - drawHeight) / 2;
+          doc.addImage(page.pdfDataUrl, 'JPEG', offsetX, offsetY, drawWidth, drawHeight, undefined, 'FAST');
+        } else {
+          doc.setTextColor(120, 130, 160);
+          doc.setFontSize(12);
+          doc.text(page.label, pageWidth / 2, pageHeight / 2, { align: 'center', baseline: 'middle' });
+        }
+      });
+
+      const rawName = (issueTitleInput.value || '').trim() || 'comic-issue';
+      const safeName = sanitizeFilename(rawName) || 'comic-issue';
+      doc.save(`${safeName}.pdf`);
+      setStatus('Export complete. PDF downloaded.', 'success');
+    } catch (error) {
+      console.error(error);
+      setStatus('Export failed. Please retry.', 'error');
+    }
+  }
+
+  function buildCards() {
+    PAGE_BLUEPRINT.forEach((page, index) => {
+      const fragment = template.content.cloneNode(true);
+      const card = fragment.querySelector('.page-card');
+      const title = card.querySelector('.page-title');
+      const kind = card.querySelector('.page-kind');
+      const drop = card.querySelector('[data-drop]');
+      const loadBtn = card.querySelector('[data-action="load"]');
+      const clearBtn = card.querySelector('[data-action="clear"]');
+      const fileInput = card.querySelector('[data-file-input]');
+
+      title.textContent = page.label;
+      kind.textContent = page.kind;
+      if (page.kind === 'Interior') {
+        kind.style.color = 'var(--text-soft)';
+      }
+
+      drop.addEventListener('click', () => fileInput.click());
+      loadBtn.addEventListener('click', (event) => {
+        event.stopPropagation();
+        fileInput.click();
+      });
+      clearBtn.addEventListener('click', (event) => {
+        event.stopPropagation();
+        resetPage(index);
+        updateProgress();
+        setStatus(`${state[index].label} cleared.`, 'info');
+      });
+
+      fileInput.addEventListener('change', (event) => {
+        const file = event.target.files && event.target.files[0];
+        if (file) {
+          applyFileToPage(index, file);
+          assignSequenceStart(index);
+        }
+        fileInput.value = '';
+      });
+
+      drop.addEventListener('dragover', (event) => {
+        event.preventDefault();
+        card.classList.add('is-dragover');
+      });
+
+      drop.addEventListener('dragleave', () => {
+        card.classList.remove('is-dragover');
+      });
+
+      drop.addEventListener('drop', (event) => {
+        event.preventDefault();
+        card.classList.remove('is-dragover');
+        const file = event.dataTransfer.files && event.dataTransfer.files[0];
+        if (file) {
+          applyFileToPage(index, file);
+          assignSequenceStart(index);
+        }
+      });
+
+      card.addEventListener('click', (event) => {
+        if (event.target.closest('button') || event.target.closest('input')) return;
+        assignSequenceStart(index);
+      });
+
+      card.addEventListener('keydown', (event) => {
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault();
+          assignSequenceStart(index);
+        }
+      });
+
+      cards.push(card);
+      grid.appendChild(fragment);
+      renderPage(index);
+    });
+    assignSequenceStart(0);
+  }
+
+  function restoreTitle() {
+    try {
+      const saved = localStorage.getItem(TITLE_STORAGE_KEY);
+      if (saved && saved.trim()) {
+        issueTitleInput.value = saved;
+      } else {
+        issueTitleInput.value = 'Untitled Comic';
+      }
+    } catch (error) {
+      console.warn('Unable to restore project title', error);
+      issueTitleInput.value = 'Untitled Comic';
+    }
+  }
+
+  function persistTitle() {
+    try {
+      localStorage.setItem(TITLE_STORAGE_KEY, issueTitleInput.value || '');
+    } catch (error) {
+      console.warn('Unable to persist project title', error);
+    }
+  }
+
+  issueTitleInput.addEventListener('input', () => {
+    persistTitle();
+  });
+
+  importBtn.addEventListener('click', () => {
+    sequenceInput.click();
+  });
+
+  sequenceInput.addEventListener('change', (event) => {
+    const files = event.target.files;
+    if (files) {
+      handleSequence(files);
+    }
+    sequenceInput.value = '';
+  });
+
+  clearBtn.addEventListener('click', () => {
+    const confirmed = window.confirm('Clear every page slot? This cannot be undone.');
+    if (!confirmed) return;
+    state.forEach((_, index) => resetPage(index));
+    updateProgress();
+    setStatus('All pages cleared.', 'info');
+  });
+
+  exportBtn.addEventListener('click', exportPdf);
+
+  buildCards();
+  updateProgress();
+  restoreTitle();
+})();
+</script>
+</body>
+</html>
