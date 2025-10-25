@@ -64,7 +64,7 @@
           "type": "document-editor"
         },
         {
-          "label": "Comic Issue Forge",
+          "label": "Orbit Comics Editor",
           "type": "comic-forge"
         },
         {
@@ -155,7 +155,7 @@
     {
       "type": "comic-forge",
       "emoji": "🦸",
-      "label": "Comic Issue Forge"
+      "label": "Orbit Comics Editor"
     },
     {
       "type": "scanx",
@@ -244,7 +244,7 @@
       "height": 900
     },
     "comic-forge": {
-      "title": "Orbit Comic Issue Forge",
+      "title": "Orbit Comics Editor v0.0.2",
       "content": "<iframe src=\"comic-issue-forge.html\" style=\"width:100%;height:100%;border:none;background:#eef1ff;\"></iframe>",
       "width": 1280,
       "height": 860
