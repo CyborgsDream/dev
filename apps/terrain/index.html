@@ -1725,7 +1725,9 @@
     const ux=smooth(fx), uz=smooth(fz); return lerp( lerp(a,b,ux), lerp(c,d,ux), uz ); }
   function fbm(x,z,oct=5){ let amp=1,freq=0.02,sum=0,norm=0; for(let i=0;i<oct;i++){ sum+=amp*noise2(x*freq,z*freq); norm+=amp; amp*=0.5; freq*=2; } return sum/norm; }
 
-  const terrainSize = 600;
+  // Measurements in this scene are kept in meters where one unit equals one meter
+  const METERS_PER_UNIT = 1;
+  const terrainSize = 600 * METERS_PER_UNIT;
   const terrainSegments = 120;
   const terrain = new THREE.PlaneGeometry(terrainSize, terrainSize, terrainSegments, terrainSegments);
   terrain.rotateX(-Math.PI/2);
@@ -1878,6 +1880,91 @@
   }
 
   buildCityOnPlateau();
+
+  function buildHighway() {
+    const highwayGroup = new THREE.Group();
+    highwayGroup.name = 'ElevatedHighway';
+
+    const laneCount = 3;
+    const laneWidth = 3.5 * METERS_PER_UNIT;
+    const shoulderWidth = 0.5 * METERS_PER_UNIT;
+    const roadWidth = laneCount * laneWidth + shoulderWidth * 2;
+    const roadThickness = 0.6 * METERS_PER_UNIT;
+    const highwayElevation = plateauLevel + 12 * METERS_PER_UNIT;
+    const diagonalLength = Math.sqrt(2) * terrainSize + 40 * METERS_PER_UNIT;
+
+    const deckGeometry = new THREE.BoxGeometry(diagonalLength, roadThickness, roadWidth);
+    const deckMaterial = new THREE.MeshStandardMaterial({
+      color: new THREE.Color(0x2f3238),
+      roughness: 0.7,
+      metalness: 0.15
+    });
+    const deck = new THREE.Mesh(deckGeometry, deckMaterial);
+    deck.position.y = highwayElevation;
+    deck.rotation.y = Math.PI / 4;
+    deck.castShadow = true;
+    deck.receiveShadow = true;
+    highwayGroup.add(deck);
+
+    const laneMarkings = new THREE.Group();
+    const dashLength = 6 * METERS_PER_UNIT;
+    const dashGap = 6 * METERS_PER_UNIT;
+    const laneLineWidth = 0.18 * METERS_PER_UNIT;
+    const halfLength = diagonalLength / 2;
+    const laneOffsets = [
+      -roadWidth / 2 + shoulderWidth + laneWidth,
+      roadWidth / 2 - shoulderWidth - laneWidth
+    ];
+    const dashGeometry = new THREE.BoxGeometry(dashLength, 0.05 * METERS_PER_UNIT, laneLineWidth);
+    const dashMaterial = new THREE.MeshStandardMaterial({ color: new THREE.Color(0xf4f0b4), emissive: 0x0, roughness: 0.5 });
+    for (let along = -halfLength; along < halfLength; along += dashLength + dashGap) {
+      laneOffsets.forEach(offset => {
+        const dash = new THREE.Mesh(dashGeometry, dashMaterial);
+        dash.position.set(along + dashLength / 2, highwayElevation + roadThickness / 2 + 0.03 * METERS_PER_UNIT, offset);
+        dash.castShadow = false;
+        dash.receiveShadow = false;
+        laneMarkings.add(dash);
+      });
+    }
+    laneMarkings.rotation.y = Math.PI / 4;
+    highwayGroup.add(laneMarkings);
+
+    const barrierHeight = 1.2 * METERS_PER_UNIT;
+    const barrierThickness = 0.4 * METERS_PER_UNIT;
+    const barrierGeometry = new THREE.BoxGeometry(diagonalLength, barrierHeight, barrierThickness);
+    const barrierMaterial = new THREE.MeshStandardMaterial({ color: new THREE.Color(0x3a404c), roughness: 0.6, metalness: 0.2 });
+    const leftBarrier = new THREE.Mesh(barrierGeometry, barrierMaterial);
+    leftBarrier.position.set(0, highwayElevation + barrierHeight / 2, -roadWidth / 2 + barrierThickness / 2);
+    leftBarrier.rotation.y = Math.PI / 4;
+    leftBarrier.castShadow = true;
+    leftBarrier.receiveShadow = true;
+    highwayGroup.add(leftBarrier);
+    const rightBarrier = leftBarrier.clone();
+    rightBarrier.position.z = roadWidth / 2 - barrierThickness / 2;
+    highwayGroup.add(rightBarrier);
+
+    const supportGroup = new THREE.Group();
+    const columnHeight = highwayElevation - plateauLevel - roadThickness / 2;
+    const columnGeometry = new THREE.CylinderGeometry(1.8 * METERS_PER_UNIT, 1.8 * METERS_PER_UNIT, columnHeight, 14);
+    const columnMaterial = new THREE.MeshStandardMaterial({ color: new THREE.Color(0x2a2f3a), roughness: 0.8, metalness: 0.12 });
+    const columnHalfWidth = roadWidth / 2 - 1.4 * METERS_PER_UNIT;
+    const columnSpacing = 80 * METERS_PER_UNIT;
+    for (let along = -halfLength + columnSpacing; along <= halfLength - columnSpacing; along += columnSpacing) {
+      [-columnHalfWidth, columnHalfWidth].forEach(offset => {
+        const column = new THREE.Mesh(columnGeometry, columnMaterial);
+        column.position.set(along, plateauLevel + columnHeight / 2, offset);
+        column.castShadow = true;
+        column.receiveShadow = true;
+        supportGroup.add(column);
+      });
+    }
+    supportGroup.rotation.y = Math.PI / 4;
+    highwayGroup.add(supportGroup);
+
+    scene.add(highwayGroup);
+  }
+
+  buildHighway();
 
   const groundRay = new THREE.Raycaster();
   const floatingBlocks = [];
