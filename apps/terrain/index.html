@@ -1885,10 +1885,16 @@
     const highwayGroup = new THREE.Group();
     highwayGroup.name = 'ElevatedHighway';
 
-    const laneCount = 3;
-    const laneWidth = 3.5 * METERS_PER_UNIT;
-    const shoulderWidth = 0.5 * METERS_PER_UNIT;
-    const roadWidth = laneCount * laneWidth + shoulderWidth * 2;
+    const lanesPerDirection = 3;
+    const laneWidth = 3.7 * METERS_PER_UNIT;
+    const outerShoulderWidth = 3 * METERS_PER_UNIT;
+    const innerShoulderWidth = 1.5 * METERS_PER_UNIT;
+    const medianWidth = 4 * METERS_PER_UNIT;
+    const roadWidth =
+      lanesPerDirection * laneWidth * 2 +
+      outerShoulderWidth * 2 +
+      innerShoulderWidth * 2 +
+      medianWidth;
     const roadThickness = 0.6 * METERS_PER_UNIT;
     const highwayElevation = plateauLevel + 12 * METERS_PER_UNIT;
     const diagonalLength = Math.sqrt(2) * terrainSize + 40 * METERS_PER_UNIT;
@@ -1911,10 +1917,17 @@
     const dashGap = 6 * METERS_PER_UNIT;
     const laneLineWidth = 0.18 * METERS_PER_UNIT;
     const halfLength = diagonalLength / 2;
-    const laneOffsets = [
-      -roadWidth / 2 + shoulderWidth + laneWidth,
-      roadWidth / 2 - shoulderWidth - laneWidth
-    ];
+    const laneOffsets = [];
+    for (const direction of [-1, 1]) {
+      for (let laneIndex = 1; laneIndex < lanesPerDirection; laneIndex++) {
+        const offset = direction * (
+          medianWidth / 2 +
+          innerShoulderWidth +
+          laneWidth * laneIndex
+        );
+        laneOffsets.push(offset);
+      }
+    }
     const dashGeometry = new THREE.BoxGeometry(dashLength, 0.05 * METERS_PER_UNIT, laneLineWidth);
     const dashMaterial = new THREE.MeshStandardMaterial({ color: new THREE.Color(0xf4f0b4), emissive: 0x0, roughness: 0.5 });
     for (let along = -halfLength; along < halfLength; along += dashLength + dashGap) {
@@ -1928,6 +1941,19 @@
     }
     laneMarkings.rotation.y = Math.PI / 4;
     highwayGroup.add(laneMarkings);
+
+    const medianBarrierHeight = (1.2 + 0.4) * METERS_PER_UNIT;
+    const medianBarrierThickness = medianWidth * 0.3;
+    const medianBarrierMaterial = new THREE.MeshStandardMaterial({ color: new THREE.Color(0x3f4553), roughness: 0.6, metalness: 0.18 });
+    const medianBarrier = new THREE.Mesh(
+      new THREE.BoxGeometry(diagonalLength, medianBarrierHeight, medianBarrierThickness),
+      medianBarrierMaterial
+    );
+    medianBarrier.position.set(0, highwayElevation + medianBarrierHeight / 2, 0);
+    medianBarrier.rotation.y = Math.PI / 4;
+    medianBarrier.castShadow = true;
+    medianBarrier.receiveShadow = true;
+    highwayGroup.add(medianBarrier);
 
     const barrierHeight = 1.2 * METERS_PER_UNIT;
     const barrierThickness = 0.4 * METERS_PER_UNIT;
@@ -1947,7 +1973,7 @@
     const columnHeight = highwayElevation - plateauLevel - roadThickness / 2;
     const columnGeometry = new THREE.CylinderGeometry(1.8 * METERS_PER_UNIT, 1.8 * METERS_PER_UNIT, columnHeight, 14);
     const columnMaterial = new THREE.MeshStandardMaterial({ color: new THREE.Color(0x2a2f3a), roughness: 0.8, metalness: 0.12 });
-    const columnHalfWidth = roadWidth / 2 - 1.4 * METERS_PER_UNIT;
+    const columnHalfWidth = medianWidth / 2 + innerShoulderWidth + laneWidth * (lanesPerDirection - 0.5);
     const columnSpacing = 80 * METERS_PER_UNIT;
     for (let along = -halfLength + columnSpacing; along <= halfLength - columnSpacing; along += columnSpacing) {
       [-columnHalfWidth, columnHalfWidth].forEach(offset => {
@@ -2047,23 +2073,12 @@
   const blockSpread = terrainSize * 0.48;
   const cityExclusion = plateauHalfSize + chunkSize * 0.4;
   async function generateBlocks(count) {
-    let created = 0;
-    while (created < count) {
-      const x = Math.random() * blockSpread * 2 - blockSpread;
-      const z = Math.random() * blockSpread * 2 - blockSpread;
-      if (Math.abs(x) < cityExclusion && Math.abs(z) < cityExclusion) {
-        continue;
-      }
-      createBlock(x, z);
-      created++;
-      if (created % 50 === 0) {
-        setProgress((created / count) * 100);
-        await new Promise(requestAnimationFrame);
-      }
+    if (count > 0) {
+      console.warn('Floating block generation has been disabled; requested count ignored.');
     }
     setProgress(100);
     if (loaderEl) loaderEl.remove();
-    console.log(`Terrain populated with ${count} blocks.`);
+    console.log('Floating block adornments removed for improved stability.');
   }
 
   function updateControls(dt){
@@ -2230,7 +2245,7 @@
   }
 
   console.log('Terrain initialising...');
-  await generateBlocks(1000);
+  await generateBlocks(0);
   applyRenderMode(currentRenderMode, { announce: false });
   console.log('Terrain ready.');
   animate();
