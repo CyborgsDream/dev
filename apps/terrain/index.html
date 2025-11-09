@@ -1855,47 +1855,6 @@
     crossPath.rotation.y = Math.PI / 2;
     cityGroup.add(crossPath);
 
-    const buildingGeometry = new THREE.BoxGeometry(1, 1, 1);
-    const towerMaterial = new THREE.MeshStandardMaterial({ color: new THREE.Color(0x8fb4ff), metalness: 0.55, roughness: 0.35, emissive: new THREE.Color(0x0b1b3c), emissiveIntensity: 0.12 });
-    const buildingMaterials = [
-      new THREE.MeshStandardMaterial({ color: new THREE.Color(0x3f5c7a), metalness: 0.4, roughness: 0.5 }),
-      new THREE.MeshStandardMaterial({ color: new THREE.Color(0x516b8c), metalness: 0.35, roughness: 0.55 }),
-      new THREE.MeshStandardMaterial({ color: new THREE.Color(0x6884a8), metalness: 0.3, roughness: 0.6 })
-    ];
-
-    const gridCount = 4;
-    const spacing = chunkSize * 0.9;
-    const startOffset = -spacing * (gridCount - 1) / 2;
-    for (let gx = 0; gx < gridCount; gx++) {
-      for (let gz = 0; gz < gridCount; gz++) {
-        const x = startOffset + gx * spacing;
-        const z = startOffset + gz * spacing;
-        const isCenter = Math.abs(x) < chunkSize * 0.2 && Math.abs(z) < chunkSize * 0.2;
-        const width = chunkSize * (0.32 + Math.random() * 0.24);
-        const depth = chunkSize * (0.32 + Math.random() * 0.24);
-        const height = isCenter ? chunkSize * 2.6 : chunkSize * (1.4 + Math.random() * 1.8);
-        const material = isCenter ? towerMaterial : buildingMaterials[(gx + gz) % buildingMaterials.length];
-        const building = new THREE.Mesh(buildingGeometry.clone(), material);
-        building.scale.set(width, height, depth);
-        building.position.set(x, plateauLevel + height / 2, z);
-        building.castShadow = true;
-        building.receiveShadow = true;
-        cityGroup.add(building);
-
-        if (!isCenter && Math.random() > 0.5) {
-          const roofHeight = height * (0.6 + Math.random() * 0.25);
-          const roof = new THREE.Mesh(
-            new THREE.ConeGeometry(width * 0.35, height * 0.25, 4),
-            new THREE.MeshStandardMaterial({ color: new THREE.Color(0xffb347), metalness: 0.3, roughness: 0.5 })
-          );
-          roof.position.set(x, plateauLevel + roofHeight, z);
-          roof.rotation.y = Math.PI / 4;
-          roof.castShadow = true;
-          cityGroup.add(roof);
-        }
-      }
-    }
-
     const borderHeight = 2.2;
     const borderThickness = chunkSize * 0.22;
     const borderLength = plateauHalfSize * 2;
