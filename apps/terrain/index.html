@@ -1789,9 +1789,9 @@
     sin: Math.sin(-highwayConfig.angle)
   };
   const highwayEarthworks = {
-    corridorHalfWidth: highwayConfig.roadWidth / 2 + 16 * METERS_PER_UNIT,
-    slopeWidth: 52 * METERS_PER_UNIT,
-    serviceLevel: plateauLevel - 6 * METERS_PER_UNIT,
+    corridorHalfWidth: highwayConfig.roadWidth / 2 + 22 * METERS_PER_UNIT,
+    slopeWidth: 68 * METERS_PER_UNIT,
+    serviceLevel: plateauLevel - 8 * METERS_PER_UNIT,
     drainageWidth: highwayConfig.roadWidth / 2 + 6 * METERS_PER_UNIT,
     drainageDepth: 2.4 * METERS_PER_UNIT
   };
@@ -2233,89 +2233,6 @@
 
     signageGroup.rotation.y = angle;
     highwayGroup.add(signageGroup);
-
-    const tunnelGroup = new THREE.Group();
-    const tunnelRadius = roadWidth / 2 + 1.2 * METERS_PER_UNIT;
-    const tunnelThickness = 1.2 * METERS_PER_UNIT;
-    const tunnelMaterial = new THREE.MeshStandardMaterial({
-      color: new THREE.Color(0x505660),
-      roughness: 0.75,
-      metalness: 0.15,
-      side: THREE.DoubleSide
-    });
-    const samplingStep = 12 * METERS_PER_UNIT;
-    const hillsideThreshold = elevation - 2 * METERS_PER_UNIT;
-    const samplePoints = [];
-    for (let along = -halfLength; along <= halfLength; along += samplingStep) {
-      const worldX = along * Math.cos(angle);
-      const worldZ = along * Math.sin(angle);
-      const sampleHeight = fbm(worldX, worldZ) * 60 - 18;
-      if (sampleHeight > hillsideThreshold) {
-        samplePoints.push(along);
-      }
-    }
-    if (samplePoints.length) {
-      const spans = [];
-      let start = samplePoints[0];
-      let previous = samplePoints[0];
-      for (let i = 1; i < samplePoints.length; i++) {
-        const value = samplePoints[i];
-        if (value - previous > samplingStep * 1.5) {
-          spans.push({ start, end: previous });
-          start = value;
-        }
-        previous = value;
-      }
-      spans.push({ start, end: previous });
-
-      spans.forEach(span => {
-        const spanLength = Math.max(40 * METERS_PER_UNIT, (span.end - span.start) + samplingStep);
-        const spanCenter = (span.start + span.end) / 2;
-        const tunnelGeometry = new THREE.CylinderGeometry(
-          tunnelRadius,
-          tunnelRadius,
-          spanLength,
-          32,
-          1,
-          true,
-          Math.PI / 2,
-          Math.PI
-        );
-        tunnelGeometry.rotateZ(Math.PI / 2);
-        const tunnel = new THREE.Mesh(tunnelGeometry, tunnelMaterial);
-        const deckTop = elevation + deckThickness / 2;
-        const tunnelCenterY = deckTop + tunnelRadius - tunnelThickness;
-        tunnel.position.set(spanCenter, tunnelCenterY, 0);
-        tunnel.castShadow = true;
-        tunnel.receiveShadow = true;
-        tunnelGroup.add(tunnel);
-
-        const portalGeometry = new THREE.RingGeometry(
-          tunnelRadius - tunnelThickness,
-          tunnelRadius,
-          32,
-          1,
-          Math.PI / 2,
-          Math.PI
-        );
-        portalGeometry.rotateY(Math.PI / 2);
-        portalGeometry.rotateX(Math.PI / 2);
-        const portalMaterial = new THREE.MeshStandardMaterial({
-          color: new THREE.Color(0x6f747e),
-          roughness: 0.65,
-          metalness: 0.12,
-          side: THREE.DoubleSide
-        });
-
-        const portalFront = new THREE.Mesh(portalGeometry, portalMaterial);
-        portalFront.position.set(spanCenter - spanLength / 2, tunnelCenterY, 0);
-        const portalBack = portalFront.clone();
-        portalBack.position.x = spanCenter + spanLength / 2;
-        tunnelGroup.add(portalFront, portalBack);
-      });
-    }
-    tunnelGroup.rotation.y = angle;
-    highwayGroup.add(tunnelGroup);
 
     scene.add(highwayGroup);
   }
