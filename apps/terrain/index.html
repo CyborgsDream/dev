@@ -27,9 +27,9 @@
     body {
       position: relative;
       background:
-        radial-gradient(circle at 20% 20%, rgba(255, 255, 255, 0.06), transparent 45%),
-        radial-gradient(circle at 80% 30%, rgba(255, 139, 47, 0.08), transparent 55%),
-        var(--navy-900);
+        radial-gradient(circle at 18% 22%, rgba(255, 255, 255, 0.18), transparent 48%),
+        radial-gradient(circle at 78% 26%, rgba(123, 187, 255, 0.22), transparent 58%),
+        linear-gradient(180deg, #8ec4ff 0%, #c4e1ff 38%, #6a8ccb 100%);
       background-size: cover;
     }
     #scene-shell {
@@ -1244,8 +1244,8 @@
   renderer.domElement.setAttribute('aria-label', 'Interactive terrain viewport');
 
   const scene = new THREE.Scene();
-  const fogColor = new THREE.Color(0x020817);
-  scene.fog = new THREE.Fog(fogColor, 380, 760);
+  const fogColor = new THREE.Color(0x7db6ff);
+  scene.fog = new THREE.Fog(fogColor, 520, 1500);
   renderer.setClearColor(fogColor);
   scene.add(new THREE.AmbientLight(0x666666));
   const sunLight = new THREE.DirectionalLight(0xffffff, 1.2);
@@ -1258,11 +1258,11 @@
 
   function createSkyDomeMaterial() {
     const uniforms = {
-      horizonColor: { value: new THREE.Color('#0f1d30') },
-      midColor: { value: new THREE.Color('#2e4f7d') },
-      zenithColor: { value: new THREE.Color('#79b5ff') },
-      glowColor: { value: new THREE.Color('#ffe6c2') },
-      glowStrength: { value: 0.12 },
+      horizonColor: { value: new THREE.Color('#4f7fbf') },
+      midColor: { value: new THREE.Color('#76a8e8') },
+      zenithColor: { value: new THREE.Color('#d4e8ff') },
+      glowColor: { value: new THREE.Color('#ffd8a4') },
+      glowStrength: { value: 0.18 },
       time: { value: 0 }
     };
 
@@ -1756,6 +1756,47 @@
   const plateauBlend = chunkSize * 0.8;
   const plateauLevel = 0;
 
+  const highwayConfig = (() => {
+    const lanesPerDirection = 3;
+    const laneWidth = 3.7 * METERS_PER_UNIT;
+    const outerShoulderWidth = 3 * METERS_PER_UNIT;
+    const innerShoulderWidth = 1.5 * METERS_PER_UNIT;
+    const medianWidth = 4 * METERS_PER_UNIT;
+    const roadWidth =
+      lanesPerDirection * laneWidth * 2 +
+      outerShoulderWidth * 2 +
+      innerShoulderWidth * 2 +
+      medianWidth;
+    const deckThickness = 0.6 * METERS_PER_UNIT;
+    const angle = Math.PI / 4;
+    const elevation = plateauLevel + 12 * METERS_PER_UNIT;
+    return {
+      lanesPerDirection,
+      laneWidth,
+      outerShoulderWidth,
+      innerShoulderWidth,
+      medianWidth,
+      roadWidth,
+      deckThickness,
+      angle,
+      elevation,
+      columnSpacing: 80 * METERS_PER_UNIT,
+      medianBarrierThickness: medianWidth * 0.3
+    };
+  })();
+  const highwayOrientation = {
+    cos: Math.cos(-highwayConfig.angle),
+    sin: Math.sin(-highwayConfig.angle)
+  };
+  const highwayEarthworks = {
+    corridorHalfWidth: highwayConfig.roadWidth / 2 + 16 * METERS_PER_UNIT,
+    slopeWidth: 52 * METERS_PER_UNIT,
+    serviceLevel: plateauLevel - 6 * METERS_PER_UNIT,
+    drainageWidth: highwayConfig.roadWidth / 2 + 6 * METERS_PER_UNIT,
+    drainageDepth: 2.4 * METERS_PER_UNIT
+  };
+  const corridorColor = new THREE.Color(0x5f7156);
+
   const chunkColorCache = new Map();
   function chunkRandom(ix, iz, salt = 0) {
     return hash(ix + salt * 19.19, iz + salt * 7.7);
@@ -1789,13 +1830,50 @@
         const eased = smooth(t);
         finalY = THREE.MathUtils.lerp(y, plateauLevel, eased);
       }
+      const naturalY = finalY;
+
+      const localZ = worldX * highwayOrientation.sin + worldZ * highwayOrientation.cos;
+      const lateralDistance = Math.abs(localZ);
+      let tintStrength = 0;
+      if (lateralDistance <= highwayEarthworks.corridorHalfWidth + highwayEarthworks.slopeWidth) {
+        const corridorFloor = Math.min(highwayEarthworks.serviceLevel, naturalY);
+        let targetHeight = corridorFloor;
+        if (lateralDistance <= highwayEarthworks.drainageWidth) {
+          const ditchT = THREE.MathUtils.clamp(lateralDistance / Math.max(1e-5, highwayEarthworks.drainageWidth), 0, 1);
+          const ditchEase = ditchT * ditchT;
+          const drainageLevel = highwayEarthworks.serviceLevel - highwayEarthworks.drainageDepth;
+          targetHeight = THREE.MathUtils.lerp(drainageLevel, corridorFloor, ditchEase);
+        }
+        targetHeight = Math.min(targetHeight, naturalY);
+
+        if (lateralDistance <= highwayEarthworks.corridorHalfWidth) {
+          finalY = Math.min(naturalY, targetHeight);
+          tintStrength = 1;
+        } else {
+          const slopeT = THREE.MathUtils.clamp((lateralDistance - highwayEarthworks.corridorHalfWidth) / highwayEarthworks.slopeWidth, 0, 1);
+          const easedSlope = smooth(slopeT);
+          const slopeHeight = THREE.MathUtils.lerp(targetHeight, naturalY, easedSlope);
+          finalY = Math.min(naturalY, slopeHeight);
+          tintStrength = 1 - easedSlope;
+        }
+      }
+
       pos.setY(i, finalY);
       const chunkX = Math.round(worldX / chunkSize);
       const chunkZ = Math.round(worldZ / chunkSize);
       const chunkColor = getChunkColor(chunkX, chunkZ);
-      colors[ix] = chunkColor.r;
-      colors[ix + 1] = chunkColor.g;
-      colors[ix + 2] = chunkColor.b;
+      let r = chunkColor.r;
+      let g = chunkColor.g;
+      let b = chunkColor.b;
+      if (tintStrength > 0) {
+        const tint = Math.pow(THREE.MathUtils.clamp(tintStrength, 0, 1), 0.85) * 0.65;
+        r = THREE.MathUtils.lerp(r, corridorColor.r, tint);
+        g = THREE.MathUtils.lerp(g, corridorColor.g, tint);
+        b = THREE.MathUtils.lerp(b, corridorColor.b, tint);
+      }
+      colors[ix] = r;
+      colors[ix + 1] = g;
+      colors[ix + 2] = b;
     }
     pos.needsUpdate = true;
     colorAttribute.needsUpdate = true;
@@ -1885,29 +1963,31 @@
     const highwayGroup = new THREE.Group();
     highwayGroup.name = 'ElevatedHighway';
 
-    const lanesPerDirection = 3;
-    const laneWidth = 3.7 * METERS_PER_UNIT;
-    const outerShoulderWidth = 3 * METERS_PER_UNIT;
-    const innerShoulderWidth = 1.5 * METERS_PER_UNIT;
-    const medianWidth = 4 * METERS_PER_UNIT;
-    const roadWidth =
-      lanesPerDirection * laneWidth * 2 +
-      outerShoulderWidth * 2 +
-      innerShoulderWidth * 2 +
-      medianWidth;
-    const roadThickness = 0.6 * METERS_PER_UNIT;
-    const highwayElevation = plateauLevel + 12 * METERS_PER_UNIT;
-    const diagonalLength = Math.sqrt(2) * terrainSize + 40 * METERS_PER_UNIT;
+    const {
+      lanesPerDirection,
+      laneWidth,
+      outerShoulderWidth,
+      innerShoulderWidth,
+      medianWidth,
+      roadWidth,
+      deckThickness,
+      angle,
+      elevation,
+      columnSpacing,
+      medianBarrierThickness
+    } = highwayConfig;
+    const designSpan = terrainSize * 10;
+    const diagonalLength = Math.sqrt(2) * designSpan;
 
-    const deckGeometry = new THREE.BoxGeometry(diagonalLength, roadThickness, roadWidth);
+    const deckGeometry = new THREE.BoxGeometry(diagonalLength, deckThickness, roadWidth);
     const deckMaterial = new THREE.MeshStandardMaterial({
       color: new THREE.Color(0x2f3238),
       roughness: 0.7,
       metalness: 0.15
     });
     const deck = new THREE.Mesh(deckGeometry, deckMaterial);
-    deck.position.y = highwayElevation;
-    deck.rotation.y = Math.PI / 4;
+    deck.position.y = elevation;
+    deck.rotation.y = angle;
     deck.castShadow = true;
     deck.receiveShadow = true;
     highwayGroup.add(deck);
@@ -1933,24 +2013,23 @@
     for (let along = -halfLength; along < halfLength; along += dashLength + dashGap) {
       laneOffsets.forEach(offset => {
         const dash = new THREE.Mesh(dashGeometry, dashMaterial);
-        dash.position.set(along + dashLength / 2, highwayElevation + roadThickness / 2 + 0.03 * METERS_PER_UNIT, offset);
+        dash.position.set(along + dashLength / 2, elevation + deckThickness / 2 + 0.03 * METERS_PER_UNIT, offset);
         dash.castShadow = false;
         dash.receiveShadow = false;
         laneMarkings.add(dash);
       });
     }
-    laneMarkings.rotation.y = Math.PI / 4;
+    laneMarkings.rotation.y = angle;
     highwayGroup.add(laneMarkings);
 
     const medianBarrierHeight = (1.2 + 0.4) * METERS_PER_UNIT;
-    const medianBarrierThickness = medianWidth * 0.3;
     const medianBarrierMaterial = new THREE.MeshStandardMaterial({ color: new THREE.Color(0x3f4553), roughness: 0.6, metalness: 0.18 });
     const medianBarrier = new THREE.Mesh(
       new THREE.BoxGeometry(diagonalLength, medianBarrierHeight, medianBarrierThickness),
       medianBarrierMaterial
     );
-    medianBarrier.position.set(0, highwayElevation + medianBarrierHeight / 2, 0);
-    medianBarrier.rotation.y = Math.PI / 4;
+    medianBarrier.position.set(0, elevation + medianBarrierHeight / 2, 0);
+    medianBarrier.rotation.y = angle;
     medianBarrier.castShadow = true;
     medianBarrier.receiveShadow = true;
     highwayGroup.add(medianBarrier);
@@ -1960,8 +2039,8 @@
     const barrierGeometry = new THREE.BoxGeometry(diagonalLength, barrierHeight, barrierThickness);
     const barrierMaterial = new THREE.MeshStandardMaterial({ color: new THREE.Color(0x3a404c), roughness: 0.6, metalness: 0.2 });
     const leftBarrier = new THREE.Mesh(barrierGeometry, barrierMaterial);
-    leftBarrier.position.set(0, highwayElevation + barrierHeight / 2, -roadWidth / 2 + barrierThickness / 2);
-    leftBarrier.rotation.y = Math.PI / 4;
+    leftBarrier.position.set(0, elevation + barrierHeight / 2, -roadWidth / 2 + barrierThickness / 2);
+    leftBarrier.rotation.y = angle;
     leftBarrier.castShadow = true;
     leftBarrier.receiveShadow = true;
     highwayGroup.add(leftBarrier);
@@ -1970,11 +2049,10 @@
     highwayGroup.add(rightBarrier);
 
     const supportGroup = new THREE.Group();
-    const columnHeight = highwayElevation - plateauLevel - roadThickness / 2;
+    const columnHeight = elevation - plateauLevel - deckThickness / 2;
     const columnGeometry = new THREE.CylinderGeometry(1.8 * METERS_PER_UNIT, 1.8 * METERS_PER_UNIT, columnHeight, 14);
     const columnMaterial = new THREE.MeshStandardMaterial({ color: new THREE.Color(0x2a2f3a), roughness: 0.8, metalness: 0.12 });
     const columnHalfWidth = medianWidth / 2 + innerShoulderWidth + laneWidth * (lanesPerDirection - 0.5);
-    const columnSpacing = 80 * METERS_PER_UNIT;
     for (let along = -halfLength + columnSpacing; along <= halfLength - columnSpacing; along += columnSpacing) {
       [-columnHalfWidth, columnHalfWidth].forEach(offset => {
         const column = new THREE.Mesh(columnGeometry, columnMaterial);
@@ -1984,7 +2062,7 @@
         supportGroup.add(column);
       });
     }
-    supportGroup.rotation.y = Math.PI / 4;
+    supportGroup.rotation.y = angle;
     highwayGroup.add(supportGroup);
 
     scene.add(highwayGroup);
