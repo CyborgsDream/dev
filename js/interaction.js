@@ -13,6 +13,50 @@ export function initInteraction({ container, renderer, camera, meshes, apps }) {
   let ignoreNextContainerClick = false;
   const raycaster = new THREE.Raycaster();
   const mouse = new THREE.Vector2();
+  let activeIndex = -1;
+  let hoveredIndex = -1;
+
+  function getMeshFromIntersect(intersect) {
+    let obj = intersect.object;
+    while (obj && !meshes.includes(obj)) {
+      obj = obj.parent;
+    }
+    return obj;
+  }
+
+  function applyHighlight() {
+    const targetIndex = hoveredIndex !== -1 ? hoveredIndex : activeIndex;
+    meshes.forEach((mesh, i) => {
+      const highlight = mesh.userData && mesh.userData.highlight;
+      if (highlight) highlight.visible = i === targetIndex;
+    });
+  }
+
+  function ensureInfoBoxVisible() {
+    if (infoBox.style.display !== 'block') {
+      infoBox.style.display = 'block';
+    }
+    if (!infoBox.classList.contains('visible')) {
+      requestAnimationFrame(() => infoBox.classList.add('visible'));
+    }
+  }
+
+  function updateInfoBox(index) {
+    const data = apps[index];
+    infoTitle.textContent = data.name;
+    infoText.textContent = data.long;
+    runBtn.onclick = e => {
+      e.stopPropagation();
+      window.location.href = data.file;
+    };
+    ensureInfoBoxVisible();
+  }
+
+  function previewApp(index) {
+    hoveredIndex = index;
+    updateInfoBox(index);
+    applyHighlight();
+  }
 
   selectApp = function (index) {
     const data = apps[index];
@@ -27,32 +71,31 @@ export function initInteraction({ container, renderer, camera, meshes, apps }) {
         m.material.opacity = 0.35;
       }
     });
-    infoTitle.textContent = data.name;
-    infoText.textContent = data.long;
-    runBtn.onclick = e => {
-      e.stopPropagation();
-      window.location.href = data.file;
-    };
+    updateInfoBox(index);
     runBtn.style.pointerEvents = 'none';
-    infoBox.style.display = 'block';
-    requestAnimationFrame(() => infoBox.classList.add('visible'));
     setTimeout(() => {
       runBtn.style.pointerEvents = 'auto';
     }, 300);
     ignoreNextContainerClick = true;
+    activeIndex = index;
+    hoveredIndex = -1;
+    applyHighlight();
   };
 
   hideAppInfo = function () {
     infoBox.classList.remove('visible');
     setTimeout(() => {
       infoBox.style.display = 'none';
-    }, 1000);
+    }, 300);
     meshes.forEach(m => {
       const baseScale = (m.userData && m.userData.baseScale) || 1;
       m.scale.setScalar(baseScale);
       m.material.opacity = 1;
       m.material.transparent = false;
     });
+    activeIndex = -1;
+    hoveredIndex = -1;
+    applyHighlight();
   };
 
   onPick = function (event) {
@@ -60,8 +103,11 @@ export function initInteraction({ container, renderer, camera, meshes, apps }) {
     mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
     mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
     raycaster.setFromCamera(mouse, camera);
-    const hit = raycaster.intersectObjects(meshes);
-    if (hit.length) selectApp(meshes.indexOf(hit[0].object));
+    const hit = raycaster.intersectObjects(meshes, true);
+    if (hit.length) {
+      const mesh = getMeshFromIntersect(hit[0]);
+      if (mesh) selectApp(meshes.indexOf(mesh));
+    }
   };
 
   closeBtn.addEventListener('pointerdown', hideAppInfo);
@@ -78,4 +124,27 @@ export function initInteraction({ container, renderer, camera, meshes, apps }) {
     if (e.key === 'Escape' && infoBox.style.display === 'block') hideAppInfo();
   });
   renderer.domElement.addEventListener('pointerdown', onPick);
+
+  renderer.domElement.addEventListener('pointermove', event => {
+    const rect = renderer.domElement.getBoundingClientRect();
+    mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+    mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+    raycaster.setFromCamera(mouse, camera);
+    const hit = raycaster.intersectObjects(meshes, true);
+    if (hit.length) {
+      const mesh = getMeshFromIntersect(hit[0]);
+      if (mesh) {
+        const index = meshes.indexOf(mesh);
+        if (index !== hoveredIndex) previewApp(index);
+        return;
+      }
+    }
+    if (hoveredIndex !== -1) {
+      hoveredIndex = -1;
+      applyHighlight();
+      if (activeIndex === -1) {
+        hideAppInfo();
+      }
+    }
+  });
 }

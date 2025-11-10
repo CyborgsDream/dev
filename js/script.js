@@ -68,27 +68,6 @@ const fpsCounter = document.getElementById('fps-counter');
 initLabels(container);
 initScene(container, fpsCounter);
 
-// Simple character placed in front of the camera
-const character = new THREE.Group();
-const body = new THREE.Mesh(
-  new THREE.BoxGeometry(0.5, 1.5, 0.3),
-  new THREE.MeshStandardMaterial({ color: 0x00ff00 })
-);
-body.position.y = 0.75;
-body.castShadow = true;
-const head = new THREE.Mesh(
-  new THREE.SphereGeometry(0.35, 16, 16),
-  new THREE.MeshStandardMaterial({ color: 0xffcc99 })
-);
-head.position.y = 1.6;
-head.castShadow = true;
-character.add(body);
-character.add(head);
-character.scale.setScalar(0.7);
-character.position.set(-4, 1.2, 3.2);
-character.rotation.y = 0.35;
-scene.add(character);
-
 const arcSpacing = 2.4;
 const depthOffset = 0.6;
 const depthCurve = 0.45;
@@ -109,6 +88,24 @@ apps.forEach((app, i) => {
   mesh.userData.baseScale = 1.1;
   mesh.scale.setScalar(mesh.userData.baseScale);
   mesh.userData.focusPoint = focusPoint.clone();
+
+  const highlight = new THREE.LineSegments(
+    new THREE.EdgesGeometry(geometry),
+    new THREE.LineBasicMaterial({
+      color: 0x00fff2,
+      transparent: true,
+      opacity: 0.95,
+      depthTest: false,
+      depthWrite: false,
+      blending: THREE.AdditiveBlending
+    })
+  );
+  highlight.visible = false;
+  highlight.scale.setScalar(1.08);
+  highlight.raycast = () => {};
+  mesh.add(highlight);
+  mesh.userData.highlight = highlight;
+
   scene.add(mesh);
   meshes.push(mesh);
   const offsetX = offsetIndex < 0 ? -26 : 26;
