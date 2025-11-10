@@ -48,74 +48,14 @@ export function initScene(container, fpsCounter) {
   renderer.shadowMap.enabled = true;
   container.appendChild(renderer.domElement);
 
-  // Ground with custom height pattern
-  console.info('Generating ground geometry');
+  // Flat ground plane to keep demo objects level
+  console.info('Creating flat ground');
   const groundSize = 32;
-  const baseGeometry = new THREE.PlaneGeometry(groundSize, groundSize, groundSize, groundSize);
-  const groundGeo = baseGeometry.toNonIndexed();
-  baseGeometry.dispose();
-  const pos = groundGeo.attributes.position;
-  const vertexCount = pos.count;
-
-  const heights = new Float32Array(vertexCount);
-  let minHeight = Infinity;
-  let maxHeight = -Infinity;
-
-  const primaryFrequency = 0.35;
-  const secondaryFrequency = 0.18;
-  const tertiaryFrequency = 0.6;
-  const amplitude = 1.2;
-
-  for (let i = 0; i < vertexCount; i++) {
-    const x = pos.getX(i);
-    const y = pos.getY(i);
-    const distance = Math.sqrt(x * x + y * y);
-
-    const ridges = Math.sin(x * primaryFrequency) * Math.cos(y * primaryFrequency);
-    const waves = Math.sin((x + y) * secondaryFrequency) * 0.7;
-    const swirl = Math.cos(distance * tertiaryFrequency) * 0.5;
-    const falloff = Math.exp(-(distance * distance) / (groundSize * 2.2));
-
-    const height = (ridges * 0.9 + waves + swirl * 0.6) * amplitude * falloff;
-    heights[i] = height;
-    minHeight = Math.min(minHeight, height);
-    maxHeight = Math.max(maxHeight, height);
-  }
-
-  const lift = -minHeight + 0.25;
-  const scale = 2.1;
-  minHeight = Infinity;
-  maxHeight = -Infinity;
-
-  for (let i = 0; i < vertexCount; i++) {
-    const finalHeight = (heights[i] + lift) * scale;
-    heights[i] = finalHeight;
-    pos.setZ(i, finalHeight);
-    minHeight = Math.min(minHeight, finalHeight);
-    maxHeight = Math.max(maxHeight, finalHeight);
-  }
-
-  const range = maxHeight - minHeight || 1;
-  const colors = new Float32Array(vertexCount * 3);
-  const color = new THREE.Color();
-  for (let i = 0; i < vertexCount; i++) {
-    const height = heights[i];
-    const t = THREE.MathUtils.clamp((height - minHeight) / range, 0, 1);
-    const hue = THREE.MathUtils.lerp(0.35, 0.08, t);
-    const lightness = THREE.MathUtils.lerp(0.32, 0.72, t);
-    color.setHSL(hue, 0.55, lightness);
-    colors[i * 3] = color.r;
-    colors[i * 3 + 1] = color.g;
-    colors[i * 3 + 2] = color.b;
-  }
-  groundGeo.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
-  groundGeo.computeVertexNormals();
-
+  const groundGeo = new THREE.PlaneGeometry(groundSize, groundSize);
   const groundMat = new THREE.MeshStandardMaterial({
-    vertexColors: true,
-    flatShading: true,
-    roughness: 0.85,
-    metalness: 0.15
+    color: 0x1b2735,
+    roughness: 0.9,
+    metalness: 0.1
   });
   const ground = new THREE.Mesh(groundGeo, groundMat);
   ground.rotation.x = -Math.PI / 2;
