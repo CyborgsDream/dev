@@ -48,21 +48,17 @@ export function initScene(container, fpsCounter) {
   renderer.shadowMap.enabled = true;
   container.appendChild(renderer.domElement);
 
-  // Flat ground plane to keep demo objects level
-  console.info('Creating flat ground');
-  const groundSize = 32;
-  const groundGeo = new THREE.PlaneGeometry(groundSize, groundSize);
-  const groundMat = new THREE.MeshStandardMaterial({
-    color: 0x1b2735,
-    roughness: 0.9,
-    metalness: 0.1
-  });
-  const ground = new THREE.Mesh(groundGeo, groundMat);
-  ground.rotation.x = -Math.PI / 2;
-  ground.position.y = 0;
-  ground.receiveShadow = true;
-  scene.add(ground);
-  console.info('Ground added', ground.position);
+  // Subtle grid floor so nothing blocks the hero objects
+  console.info('Creating background grid floor');
+  const grid = new THREE.GridHelper(40, 20, 0x114b9a, 0x093569);
+  grid.position.y = 0;
+  if (grid.material && 'opacity' in grid.material) {
+    grid.material.opacity = 0.35;
+    grid.material.transparent = true;
+    grid.material.depthWrite = false;
+  }
+  scene.add(grid);
+  console.info('Grid floor added');
 
   // Lighting
   const ambientLight = new THREE.AmbientLight(0xffffff, 0.3);
@@ -166,7 +162,7 @@ export function initScene(container, fpsCounter) {
   scene.add(textMesh);
   console.info('Voxel text added', textMesh.position);
 
-  camera.position.set(0, 7.5, 5);
+  camera.position.set(0, 4.5, 8.5);
   camera.lookAt(0, 2, 0);
 
   let lastTime;
