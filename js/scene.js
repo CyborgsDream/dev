@@ -58,8 +58,10 @@ export function initScene(container, fpsCounter) {
   if (positions) {
     const posArray = positions.array;
     const flatRadius = 6;
+    const ringStart = flatRadius + 1.5;
+    const ringEnd = gridSize * 0.5 - 3;
     const maxRadius = gridSize * 0.5;
-    const hillScale = 1.6;
+    const hillScale = 1.85;
 
     for (let i = 0; i < posArray.length; i += 3) {
       const x = posArray[i];
@@ -71,11 +73,20 @@ export function initScene(container, fpsCounter) {
         continue;
       }
 
-      const t = Math.min((distance - flatRadius) / (maxRadius - flatRadius), 1);
-      const ridge = Math.pow(t, 1.7);
-      const spikeNoise = Math.abs(Math.sin(x * 0.65) * Math.cos(z * 0.65));
-      const radialSpike = Math.pow(Math.abs(Math.sin(distance * 0.9)), 1.4);
-      const height = (ridge * 1.2 + spikeNoise * 0.8 + radialSpike * 0.6) * hillScale * t;
+      const ringBlend = Math.max(Math.min((distance - ringStart) / Math.max(ringEnd - ringStart, 0.0001), 1), 0);
+      const edgeFade = distance > ringEnd
+        ? 1 - Math.min((distance - ringEnd) / Math.max(maxRadius - ringEnd, 0.0001), 1)
+        : 1;
+      const ringStrength = Math.pow(Math.max(distance - flatRadius, 0) / Math.max(ringEnd - flatRadius, 0.0001), 1.35);
+
+      const angle = Math.atan2(z, x);
+      const angularWave = Math.pow(Math.abs(Math.sin(angle * 6.5) * Math.cos(angle * 3.1)), 1.4);
+      const radialSpike = Math.pow(Math.abs(Math.sin((distance - flatRadius) * 1.8)), 1.8);
+      const latticeNoise = Math.abs(Math.sin(x * 0.7) * Math.sin(z * 0.7));
+      const diagonalNoise = Math.abs(Math.sin((x + z) * 0.55));
+
+      const height = (0.5 + angularWave * 0.7 + radialSpike * 0.8 + latticeNoise * 0.6 + diagonalNoise * 0.35)
+        * ringBlend * ringStrength * edgeFade * hillScale;
 
       posArray[i + 1] = height;
     }
