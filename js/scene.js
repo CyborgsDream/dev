@@ -48,7 +48,7 @@ export function initScene(container, fpsCounter) {
   renderer.shadowMap.enabled = true;
   container.appendChild(renderer.domElement);
 
-  // Subtle grid floor so nothing blocks the hero objects
+  // Sculpted grid floor to give the hero objects a dramatic hilly / spiky landscape
   console.info('Creating background grid floor');
   const gridSize = 40;
   const grid = new THREE.GridHelper(gridSize, 60, 0x114b9a, 0x093569);
@@ -57,38 +57,49 @@ export function initScene(container, fpsCounter) {
   const positions = grid.geometry?.attributes?.position;
   if (positions) {
     const posArray = positions.array;
-    const flatRadius = 6;
-    const ringStart = flatRadius + 1.5;
+    const centralCalderaRadius = 2.3;
+    const innerRampRadius = 5.5;
     const ringEnd = gridSize * 0.5 - 3;
     const maxRadius = gridSize * 0.5;
-    const hillScale = 1.85;
+    const hillScale = 2.85;
+    const spikeDensity = 3.75;
+    const spikeHeight = 4.5;
     const cornerSpikeRadius = 5.5;
-    const cornerSpikeHeight = 8.5;
+    const cornerSpikeHeight = 11.5;
 
     for (let i = 0; i < posArray.length; i += 3) {
       const x = posArray[i];
       const z = posArray[i + 2];
       const distance = Math.sqrt(x * x + z * z);
 
-      if (distance <= flatRadius) {
-        posArray[i + 1] = 0;
-        continue;
-      }
+      const radialBlend = Math.min(distance / Math.max(innerRampRadius, 0.0001), 1);
+      const angle = Math.atan2(z, x);
+      const centralWave = Math.pow(Math.abs(Math.sin(distance * 1.2) * Math.cos(distance * 0.8)), 1.45);
+      const centralSpikes = Math.pow(Math.abs(Math.sin(angle * 6.5)), 1.6);
+      const centralHeight = (1 - radialBlend) * (centralWave * 1.8 + centralSpikes * 1.2);
 
-      const ringBlend = Math.max(Math.min((distance - ringStart) / Math.max(ringEnd - ringStart, 0.0001), 1), 0);
+      const rampBlend = Math.max(Math.min((distance - innerRampRadius) / Math.max(ringEnd - innerRampRadius, 0.0001), 1), 0);
       const edgeFade = distance > ringEnd
         ? 1 - Math.min((distance - ringEnd) / Math.max(maxRadius - ringEnd, 0.0001), 1)
         : 1;
-      const ringStrength = Math.pow(Math.max(distance - flatRadius, 0) / Math.max(ringEnd - flatRadius, 0.0001), 1.35);
 
-      const angle = Math.atan2(z, x);
-      const angularWave = Math.pow(Math.abs(Math.sin(angle * 6.5) * Math.cos(angle * 3.1)), 1.4);
-      const radialSpike = Math.pow(Math.abs(Math.sin((distance - flatRadius) * 1.8)), 1.8);
-      const latticeNoise = Math.abs(Math.sin(x * 0.7) * Math.sin(z * 0.7));
-      const diagonalNoise = Math.abs(Math.sin((x + z) * 0.55));
+      const angularWave = Math.pow(Math.abs(Math.sin(angle * 7.5) * Math.cos(angle * 3.5)), 1.5);
+      const radialSpike = Math.pow(Math.abs(Math.sin((distance - innerRampRadius) * spikeDensity)), 2.1) * spikeHeight;
+      const latticeNoise = Math.abs(Math.sin(x * 0.85) * Math.sin(z * 0.85));
+      const diagonalNoise = Math.abs(Math.sin((x + z) * 0.65));
 
-      const baseHeight = (0.5 + angularWave * 0.7 + radialSpike * 0.8 + latticeNoise * 0.6 + diagonalNoise * 0.35)
-        * ringBlend * ringStrength * edgeFade * hillScale;
+      const ringStrength = Math.pow(Math.max(distance - innerRampRadius, 0) / Math.max(ringEnd - innerRampRadius, 0.0001), 1.45);
+
+      const baseHeight = (0.35 + angularWave * 0.9 + radialSpike + latticeNoise * 0.8 + diagonalNoise * 0.55)
+        * rampBlend * ringStrength * edgeFade * hillScale;
+
+      let height = baseHeight + centralHeight;
+
+      if (distance <= centralCalderaRadius) {
+        const calderaBlend = Math.pow(Math.max(centralCalderaRadius - distance, 0) / centralCalderaRadius, 1.6);
+        const calderaWave = calderaBlend * (2.2 + Math.sin((centralCalderaRadius - distance) * 4.1) * 1.6);
+        height += calderaWave;
+      }
 
       const edgeX = Math.max(Math.abs(x) - (maxRadius - cornerSpikeRadius), 0);
       const edgeZ = Math.max(Math.abs(z) - (maxRadius - cornerSpikeRadius), 0);
@@ -97,7 +108,7 @@ export function initScene(container, fpsCounter) {
       const cornerWave = Math.pow(Math.abs(Math.sin((x + z) * 0.45)), 1.2);
       const cornerSpike = Math.pow(cornerBlend, 2.4) * (0.6 + cornerWave * 0.4) * cornerSpikeHeight;
 
-      posArray[i + 1] = baseHeight + cornerSpike;
+      posArray[i + 1] = height + cornerSpike;
     }
 
     positions.needsUpdate = true;
