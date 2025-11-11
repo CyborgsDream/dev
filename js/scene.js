@@ -50,10 +50,43 @@ export function initScene(container, fpsCounter) {
 
   // Subtle grid floor so nothing blocks the hero objects
   console.info('Creating background grid floor');
-  const grid = new THREE.GridHelper(40, 20, 0x114b9a, 0x093569);
+  const gridSize = 40;
+  const grid = new THREE.GridHelper(gridSize, 60, 0x114b9a, 0x093569);
   grid.position.y = 0;
+
+  const positions = grid.geometry?.attributes?.position;
+  if (positions) {
+    const posArray = positions.array;
+    const flatRadius = 6;
+    const maxRadius = gridSize * 0.5;
+    const hillScale = 1.6;
+
+    for (let i = 0; i < posArray.length; i += 3) {
+      const x = posArray[i];
+      const z = posArray[i + 2];
+      const distance = Math.sqrt(x * x + z * z);
+
+      if (distance <= flatRadius) {
+        posArray[i + 1] = 0;
+        continue;
+      }
+
+      const t = Math.min((distance - flatRadius) / (maxRadius - flatRadius), 1);
+      const ridge = Math.pow(t, 1.7);
+      const spikeNoise = Math.abs(Math.sin(x * 0.65) * Math.cos(z * 0.65));
+      const radialSpike = Math.pow(Math.abs(Math.sin(distance * 0.9)), 1.4);
+      const height = (ridge * 1.2 + spikeNoise * 0.8 + radialSpike * 0.6) * hillScale * t;
+
+      posArray[i + 1] = height;
+    }
+
+    positions.needsUpdate = true;
+    grid.geometry.computeBoundingBox();
+    grid.geometry.computeBoundingSphere();
+  }
+
   if (grid.material && 'opacity' in grid.material) {
-    grid.material.opacity = 0.35;
+    grid.material.opacity = 0.45;
     grid.material.transparent = true;
     grid.material.depthWrite = false;
   }
