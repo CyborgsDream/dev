@@ -62,6 +62,8 @@ export function initScene(container, fpsCounter) {
     const ringEnd = gridSize * 0.5 - 3;
     const maxRadius = gridSize * 0.5;
     const hillScale = 1.85;
+    const cornerSpikeRadius = 5.5;
+    const cornerSpikeHeight = 8.5;
 
     for (let i = 0; i < posArray.length; i += 3) {
       const x = posArray[i];
@@ -85,10 +87,17 @@ export function initScene(container, fpsCounter) {
       const latticeNoise = Math.abs(Math.sin(x * 0.7) * Math.sin(z * 0.7));
       const diagonalNoise = Math.abs(Math.sin((x + z) * 0.55));
 
-      const height = (0.5 + angularWave * 0.7 + radialSpike * 0.8 + latticeNoise * 0.6 + diagonalNoise * 0.35)
+      const baseHeight = (0.5 + angularWave * 0.7 + radialSpike * 0.8 + latticeNoise * 0.6 + diagonalNoise * 0.35)
         * ringBlend * ringStrength * edgeFade * hillScale;
 
-      posArray[i + 1] = height;
+      const edgeX = Math.max(Math.abs(x) - (maxRadius - cornerSpikeRadius), 0);
+      const edgeZ = Math.max(Math.abs(z) - (maxRadius - cornerSpikeRadius), 0);
+      const cornerDistance = Math.hypot(edgeX, edgeZ);
+      const cornerBlend = Math.max(1 - cornerDistance / cornerSpikeRadius, 0);
+      const cornerWave = Math.pow(Math.abs(Math.sin((x + z) * 0.45)), 1.2);
+      const cornerSpike = Math.pow(cornerBlend, 2.4) * (0.6 + cornerWave * 0.4) * cornerSpikeHeight;
+
+      posArray[i + 1] = baseHeight + cornerSpike;
     }
 
     positions.needsUpdate = true;
