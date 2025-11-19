@@ -2947,7 +2947,7 @@
     chkReg.checked = false;
     applyToggles();
     prePrintCommon();
-    injectPrintStyle('@page{size:210mm 297mm;margin:0} html,body{width:210mm;height:297mm;margin:0;padding:0} #menubar,#ui,#sidebar,#rulerTop,#rulerLeft,#viewportZoomControls{display:none!important;} #pageViewport{margin:0!important;padding:0!important;transform:none!important;position:static!important;} #pages{margin:0!important;padding:0!important;transform:none!important;} .sheet{left:0;top:0;width:210mm!important;height:297mm!important;margin:0!important;position:relative!important;box-shadow:none!important;border:none!important;} .trim{left:0!important;top:0!important;width:210mm!important;height:297mm!important} :root{--m-top:12mm;--m-bot:12mm;--m-in:12mm;--m-out:12mm}');
+    injectPrintStyle('@page{size:210mm 297mm;margin:0} html,body{width:210mm;height:297mm;margin:0;padding:0} #menubar,#ui,#sidebar,#rulerTop,#rulerLeft,#viewportZoomControls{display:none!important;} #pageViewport{margin:0!important;padding:0!important;transform:none!important;position:static!important;} #pages{margin:0!important;padding:0!important;transform:none!important;} .sheet{left:0;top:0;width:210mm!important;height:297mm!important;margin:0!important;position:relative!important;box-shadow:none!important;border:none!important;} .trim{left:0!important;top:0!important;width:210mm!important;height:297mm!important} .marks,.crop,.trim::before{display:none!important;} :root{--m-top:12mm;--m-bot:12mm;--m-in:12mm;--m-out:12mm;--bleed:0mm;--sheet-w:210mm;--sheet-h:297mm}');
     setTimeout(()=>window.print(), 120);
     window.addEventListener('afterprint', function restore(){
       chkCrops.checked = prev.crops;
