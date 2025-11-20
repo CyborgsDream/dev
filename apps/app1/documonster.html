@@ -2929,14 +2929,32 @@
     const t = document.getElementById('print-style');
     if(t) t.remove();
     document.body.classList.remove('print-export');
+    document.body.classList.remove('pdf-mirror');
+    applyToggles();
     buildThumbnails();
+  }
+
+  function runPrintRestore(callback){
+    let finished = false;
+    const finalize = ()=>{
+      if(finished) return;
+      finished = true;
+      window.removeEventListener('afterprint', handleAfterPrint);
+      callback();
+    };
+    const handleAfterPrint = ()=>{
+      clearTimeout(fallbackTimer);
+      finalize();
+    };
+    const fallbackTimer = setTimeout(finalize, 1500);
+    window.addEventListener('afterprint', handleAfterPrint);
+    return finalize;
   }
 
   function exportPdfBleed(){
     prePrintCommon();
     injectPrintStyle('@page{size:216mm 303mm;margin:0} html,body{width:216mm;height:303mm;margin:0;padding:0} #menubar,#ui,#sidebar,#rulerTop,#rulerLeft,#viewportZoomControls{display:none!important;} #pageViewport{margin:0!important;padding:0!important;transform:none!important;position:static!important;} #pages{margin:0!important;padding:0!important;transform:none!important;} .sheet{left:0;top:0;width:216mm!important;height:303mm!important;margin:0!important;position:relative!important;box-shadow:none!important;border:none!important;} .trim{left:3mm!important;top:3mm!important;width:210mm!important;height:297mm!important} :root{--m-top:12mm;--m-bot:12mm;--m-in:12mm;--m-out:12mm}');
-    const restore = ()=>{ postPrint(); window.removeEventListener('afterprint', restore); };
-    window.addEventListener('afterprint', restore);
+    const restore = runPrintRestore(postPrint);
     setTimeout(()=>window.print(), 120);
   }
 
@@ -2949,13 +2967,11 @@
     prePrintCommon();
     injectPrintStyle('@page{size:210mm 297mm;margin:0} html,body{width:210mm;height:297mm;margin:0;padding:0} #menubar,#ui,#sidebar,#rulerTop,#rulerLeft,#viewportZoomControls{display:none!important;} #pageViewport{margin:0!important;padding:0!important;transform:none!important;position:static!important;} #pages{margin:0!important;padding:0!important;transform:none!important;} .sheet{left:0;top:0;width:210mm!important;height:297mm!important;margin:0!important;position:relative!important;box-shadow:none!important;border:none!important;} .trim{left:0!important;top:0!important;width:210mm!important;height:297mm!important} .marks,.crop,.trim::before{display:none!important;} :root{--m-top:12mm;--m-bot:12mm;--m-in:12mm;--m-out:12mm;--bleed:0mm;--sheet-w:210mm;--sheet-h:297mm}');
     setTimeout(()=>window.print(), 120);
-    window.addEventListener('afterprint', function restore(){
+    runPrintRestore(()=>{
       chkCrops.checked = prev.crops;
       chkColor.checked = prev.color;
       chkReg.checked = prev.reg;
-      applyToggles();
       postPrint();
-      window.removeEventListener('afterprint', restore);
     });
   }
 
