@@ -8,7 +8,7 @@ const hintsEl = win?.querySelector('.terminal-hints');
 
 const ORBIT_VERSION = typeof window !== 'undefined' && window.ORBIT_VERSION
     ? window.ORBIT_VERSION
-    : '0.1.3';
+    : '0.2.0';
 
 const terminalConfig = typeof window !== 'undefined' && window.ORBIT_TERMINAL_CONFIG
     ? window.ORBIT_TERMINAL_CONFIG
