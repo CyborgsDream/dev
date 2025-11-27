@@ -12,7 +12,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Orbit OS v 0.1.3</title>
+    <title>Orbit OS v 0.2.0</title>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=VT323&display=swap">
     <style>
         * {
@@ -1079,12 +1079,13 @@
         let appData = null;
         let persistWindows = true;
         let windowStates = JSON.parse(localStorage.getItem('windowStates') || '{}');
+        let windowStateSaveHandle = null;
         const DOCUMONSTER_STORAGE_KEY = 'documonster-studiopro-autosave-v0-1';
         const docuBridge = { frameWindow: null, ready: false, queue: [], lastWindowId: null };
         const scanxFrames = new Set();
 
         const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
-        const ORBIT_VERSION = '0.1.3';
+        const ORBIT_VERSION = '0.2.0';
         window.ORBIT_VERSION = ORBIT_VERSION;
         window.ORBIT_TERMINAL_CONFIG = {};
 
@@ -1239,6 +1240,19 @@
             });
         }
 
+        function scheduleWindowStateFlush() {
+            if (windowStateSaveHandle) return;
+            const flush = () => {
+                windowStateSaveHandle = null;
+                localStorage.setItem('windowStates', JSON.stringify(windowStates));
+            };
+            if (typeof requestIdleCallback === 'function') {
+                windowStateSaveHandle = requestIdleCallback(flush, { timeout: 120 });
+            } else {
+                windowStateSaveHandle = setTimeout(flush, 60);
+            }
+        }
+
         function saveWindowState(type, el) {
             if (!persistWindows || !type) return;
             windowStates[type] = {
@@ -1247,7 +1261,7 @@
                 width: el.offsetWidth,
                 height: el.offsetHeight
             };
-            localStorage.setItem('windowStates', JSON.stringify(windowStates));
+            scheduleWindowStateFlush();
         }
 
         function preloadAppScripts() {
