@@ -1611,14 +1611,21 @@
   camera.lookAt(0, 0, 0);
 
   const keyState = {};
+  const isKeyActive = (...codes) => codes.some(code => keyState[code]);
   const horizontalForward = new THREE.Vector3();
   const moveVector = new THREE.Vector3();
   const lookVector = new THREE.Vector3();
+  const tempVec = new THREE.Vector3();
+  const lookTargetScratch = new THREE.Vector3();
+  const desiredBlock = new THREE.Vector3();
+  const windScratch = new THREE.Vector3();
+  const controlKeys = ['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','KeyW','KeyA','KeyS','KeyD'];
   window.addEventListener('keydown', e => {
-    if (['ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.key)) { keyState[e.key] = true; e.preventDefault(); }
+    if (controlKeys.includes(e.code)) { keyState[e.code] = true; e.preventDefault(); }
+    if (e.code === 'KeyC') { toggleCarMode(); e.preventDefault(); }
   });
   window.addEventListener('keyup', e => {
-    if (['ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.key)) { keyState[e.key] = false; e.preventDefault(); }
+    if (controlKeys.includes(e.code)) { keyState[e.code] = false; e.preventDefault(); }
   });
 
   const onscreenButtons = document.querySelectorAll('#control-pad button[data-key]');
@@ -1788,12 +1795,14 @@
     cos: Math.cos(-highwayConfig.angle),
     sin: Math.sin(-highwayConfig.angle)
   };
+  const highwayDirection = new THREE.Vector3(Math.cos(highwayConfig.angle), 0, Math.sin(highwayConfig.angle));
+  const highwayRight = new THREE.Vector3(Math.sin(highwayConfig.angle), 0, -Math.cos(highwayConfig.angle));
   const highwayEarthworks = {
-    corridorHalfWidth: highwayConfig.roadWidth / 2 + 22 * METERS_PER_UNIT,
-    slopeWidth: 68 * METERS_PER_UNIT,
-    serviceLevel: plateauLevel - 8 * METERS_PER_UNIT,
-    drainageWidth: highwayConfig.roadWidth / 2 + 6 * METERS_PER_UNIT,
-    drainageDepth: 2.4 * METERS_PER_UNIT
+    corridorHalfWidth: highwayConfig.roadWidth / 2 + 28 * METERS_PER_UNIT,
+    slopeWidth: 120 * METERS_PER_UNIT,
+    serviceLevel: plateauLevel - 14 * METERS_PER_UNIT,
+    drainageWidth: highwayConfig.roadWidth / 2 + 10 * METERS_PER_UNIT,
+    drainageDepth: 3 * METERS_PER_UNIT
   };
   const corridorColor = new THREE.Color(0x5f7156);
 
@@ -1857,6 +1866,9 @@
           tintStrength = 1 - easedSlope;
         }
       }
+
+      const clearanceHeight = highwayConfig.elevation - highwayConfig.deckThickness - 6 * METERS_PER_UNIT;
+      finalY = Math.min(finalY, clearanceHeight);
 
       pos.setY(i, finalY);
       const chunkX = Math.round(worldX / chunkSize);
@@ -2239,6 +2251,157 @@
 
   buildHighway();
 
+  function createSportsCar() {
+    const car = new THREE.Group();
+
+    const bodyMaterial = new THREE.MeshStandardMaterial({ color: new THREE.Color(0xff4b5c), roughness: 0.45, metalness: 0.35 });
+    const body = new THREE.Mesh(new THREE.BoxGeometry(4.4 * METERS_PER_UNIT, 1.1 * METERS_PER_UNIT, 2.4 * METERS_PER_UNIT), bodyMaterial);
+    body.position.y = 1.05 * METERS_PER_UNIT;
+    body.castShadow = true;
+    body.receiveShadow = true;
+    car.add(body);
+
+    const cabinMaterial = new THREE.MeshStandardMaterial({ color: new THREE.Color(0x1f2633), roughness: 0.18, metalness: 0.65, emissive: 0x05070c, emissiveIntensity: 0.55 });
+    const cabin = new THREE.Mesh(new THREE.BoxGeometry(2.2 * METERS_PER_UNIT, 0.9 * METERS_PER_UNIT, 2 * METERS_PER_UNIT), cabinMaterial);
+    cabin.position.set(0.1 * METERS_PER_UNIT, 1.55 * METERS_PER_UNIT, 0);
+    cabin.castShadow = true;
+    cabin.receiveShadow = true;
+    car.add(cabin);
+
+    const detailMaterial = new THREE.MeshStandardMaterial({ color: new THREE.Color(0xf7f7f1), emissive: 0x303030, emissiveIntensity: 0.4, roughness: 0.3, metalness: 0.4 });
+    const lightGeometry = new THREE.BoxGeometry(0.4 * METERS_PER_UNIT, 0.16 * METERS_PER_UNIT, 0.3 * METERS_PER_UNIT);
+    const leftLight = new THREE.Mesh(lightGeometry, detailMaterial);
+    const rightLight = leftLight.clone();
+    leftLight.position.set(2.4 * METERS_PER_UNIT, 0.75 * METERS_PER_UNIT, -0.5 * METERS_PER_UNIT);
+    rightLight.position.set(2.4 * METERS_PER_UNIT, 0.75 * METERS_PER_UNIT, 0.5 * METERS_PER_UNIT);
+    [leftLight, rightLight].forEach(light => { light.castShadow = false; light.receiveShadow = true; });
+    car.add(leftLight, rightLight);
+
+    const wheelMaterial = new THREE.MeshStandardMaterial({ color: new THREE.Color(0x111111), roughness: 0.9, metalness: 0.1 });
+    const wheelGeometry = new THREE.CylinderGeometry(0.45 * METERS_PER_UNIT, 0.45 * METERS_PER_UNIT, 0.42 * METERS_PER_UNIT, 16);
+    wheelGeometry.rotateZ(Math.PI / 2);
+    const wheelPositions = [
+      [1.5, 0.45, 1],
+      [1.5, 0.45, -1],
+      [-1.5, 0.45, 1],
+      [-1.5, 0.45, -1]
+    ];
+    wheelPositions.forEach(([x, y, z]) => {
+      const wheel = new THREE.Mesh(wheelGeometry, wheelMaterial);
+      wheel.position.set(x * METERS_PER_UNIT, y * METERS_PER_UNIT, z * METERS_PER_UNIT);
+      wheel.castShadow = true;
+      wheel.receiveShadow = true;
+      car.add(wheel);
+    });
+
+    const spoilerMaterial = new THREE.MeshStandardMaterial({ color: new THREE.Color(0x2a2f3a), roughness: 0.4, metalness: 0.35 });
+    const spoiler = new THREE.Mesh(new THREE.BoxGeometry(1.6 * METERS_PER_UNIT, 0.12 * METERS_PER_UNIT, 0.4 * METERS_PER_UNIT), spoilerMaterial);
+    spoiler.position.set(-2 * METERS_PER_UNIT, 1.45 * METERS_PER_UNIT, 0);
+    spoiler.castShadow = true;
+    spoiler.receiveShadow = true;
+    car.add(spoiler);
+
+    return car;
+  }
+
+  const carState = {
+    enabled: false,
+    speed: 0,
+    distance: 0,
+    laneOffset: 0,
+    model: null,
+    maxSpeed: 70,
+    accel: 26,
+    brake: 34,
+    drag: 1.8,
+    steerRate: 10,
+    heightAboveDeck: 0.62
+  };
+
+  function ensureCarModel() {
+    if (!carState.model) {
+      carState.model = createSportsCar();
+      scene.add(carState.model);
+    }
+  }
+
+  function resetCarPose() {
+    carState.speed = 0;
+    carState.distance = 0;
+    carState.laneOffset = 0;
+    ensureCarModel();
+    updateCarTransform();
+  }
+
+  function updateCarTransform(steerLean = 0) {
+    if (!carState.model) return;
+    tempVec.copy(highwayDirection).multiplyScalar(carState.distance);
+    tempVec.addScaledVector(highwayRight, carState.laneOffset);
+    tempVec.y = highwayConfig.elevation + highwayConfig.deckThickness / 2 + carState.heightAboveDeck;
+    carState.model.position.copy(tempVec);
+    carState.model.rotation.y = highwayConfig.angle;
+    carState.model.rotation.z = steerLean;
+  }
+
+  function toggleCarMode(forceState = null) {
+    ensureCarModel();
+    const nextState = forceState === null ? !carState.enabled : forceState;
+    carState.enabled = nextState;
+    if (carState.enabled) {
+      console.log('Sports car ride engaged. Use arrows or WASD to drive; press C to exit.');
+    } else {
+      console.log('Exited sports car. Free flight controls restored.');
+    }
+  }
+
+  function updateCar(dt) {
+    ensureCarModel();
+    const accelInput = (isKeyActive('ArrowUp', 'KeyW') ? 1 : 0) - (isKeyActive('ArrowDown', 'KeyS') ? 1 : 0);
+    const steeringInput = (isKeyActive('ArrowRight', 'KeyD') ? 1 : 0) - (isKeyActive('ArrowLeft', 'KeyA') ? 1 : 0);
+
+    if (accelInput !== 0) {
+      const accelForce = accelInput > 0 ? carState.accel : carState.brake;
+      carState.speed += accelInput * accelForce * dt;
+    }
+
+    const drag = carState.drag * dt;
+    if (Math.abs(carState.speed) > drag) {
+      carState.speed -= Math.sign(carState.speed) * drag;
+    } else {
+      carState.speed = 0;
+    }
+    carState.speed = THREE.MathUtils.clamp(carState.speed, -4, carState.maxSpeed);
+
+    carState.distance += carState.speed * dt;
+    const laneLimit = highwayConfig.roadWidth / 2 - highwayConfig.outerShoulderWidth * 0.5;
+    carState.laneOffset = THREE.MathUtils.clamp(
+      carState.laneOffset + steeringInput * carState.steerRate * dt,
+      -laneLimit,
+      laneLimit
+    );
+
+    const steerLean = -steeringInput * Math.min(Math.abs(carState.speed) / carState.maxSpeed, 1) * 0.1;
+    updateCarTransform(steerLean);
+
+    lookVector.copy(highwayDirection);
+    lookVector.y = 0;
+    lookVector.normalize();
+
+    const chaseOffset = new THREE.Vector3(0, 4.5 * METERS_PER_UNIT, -12 * METERS_PER_UNIT);
+    tempVec.copy(carState.model.position)
+      .addScaledVector(highwayDirection, chaseOffset.z)
+      .addScaledVector(highwayRight, steeringInput * 0.6)
+      .add(new THREE.Vector3(0, chaseOffset.y, 0));
+    camera.position.lerp(tempVec, THREE.MathUtils.clamp(dt * 3, 0, 1));
+    lookTargetScratch.copy(carState.model.position);
+    lookTargetScratch.y += 1.6 * METERS_PER_UNIT;
+    camera.lookAt(lookTargetScratch);
+
+    currentSpeed = Math.abs(carState.speed);
+  }
+
+  resetCarPose();
+
   const groundRay = new THREE.Raycaster();
   const floatingBlocks = [];
 
@@ -2329,7 +2492,12 @@
   }
 
   function updateControls(dt){
-    const yawInput = (keyState['ArrowRight'] ? 1 : 0) - (keyState['ArrowLeft'] ? 1 : 0);
+    if (carState.enabled) {
+      updateCar(dt);
+      return;
+    }
+
+    const yawInput = (isKeyActive('ArrowRight') ? 1 : 0) - (isKeyActive('ArrowLeft') ? 1 : 0);
     const targetYawVelocity = yawInput * controls.turnSpeed;
     controls.yawVelocity = THREE.MathUtils.damp(controls.yawVelocity, targetYawVelocity, controls.turnSmooth, dt);
     controls.yaw += controls.yawVelocity * dt;
@@ -2337,8 +2505,8 @@
 
     horizontalForward.set(Math.sin(controls.yaw), 0, -Math.cos(controls.yaw));
     moveVector.set(0, 0, 0);
-    if (keyState['ArrowUp']) moveVector.add(horizontalForward);
-    if (keyState['ArrowDown']) moveVector.addScaledVector(horizontalForward, -1);
+    if (isKeyActive('ArrowUp', 'KeyW')) moveVector.add(horizontalForward);
+    if (isKeyActive('ArrowDown', 'KeyS')) moveVector.addScaledVector(horizontalForward, -1);
 
     let speedTarget = 0;
     if (moveVector.lengthSq() > 0) {
@@ -2429,10 +2597,6 @@
     }
   }
 
-  const tempVec = new THREE.Vector3();
-  const lookTargetScratch = new THREE.Vector3();
-  const desiredBlock = new THREE.Vector3();
-  const windScratch = new THREE.Vector3();
   function updateHud() {
     if (!hudElements.position) return;
     const pos = camera.position;
