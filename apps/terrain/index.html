@@ -1973,8 +1973,9 @@
     cos: Math.cos(-highwayConfig.angle),
     sin: Math.sin(-highwayConfig.angle)
   };
-  const highwayDirection = new THREE.Vector3(Math.cos(highwayConfig.angle), 0, Math.sin(highwayConfig.angle));
-  const highwayRight = new THREE.Vector3(Math.sin(highwayConfig.angle), 0, -Math.cos(highwayConfig.angle));
+  // Align the car's forward/right vectors with the rotated highway deck so driving follows the roadway surface
+  const highwayDirection = new THREE.Vector3(Math.cos(highwayConfig.angle), 0, -Math.sin(highwayConfig.angle));
+  const highwayRight = new THREE.Vector3(Math.sin(highwayConfig.angle), 0, Math.cos(highwayConfig.angle));
   const highwayEarthworks = {
     corridorHalfWidth: highwayConfig.roadWidth / 2 + 28 * METERS_PER_UNIT,
     slopeWidth: 120 * METERS_PER_UNIT,
