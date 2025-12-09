@@ -2254,53 +2254,81 @@
   function createSportsCar() {
     const car = new THREE.Group();
 
-    const bodyMaterial = new THREE.MeshStandardMaterial({ color: new THREE.Color(0xff4b5c), roughness: 0.45, metalness: 0.35 });
-    const body = new THREE.Mesh(new THREE.BoxGeometry(4.4 * METERS_PER_UNIT, 1.1 * METERS_PER_UNIT, 2.4 * METERS_PER_UNIT), bodyMaterial);
-    body.position.y = 1.05 * METERS_PER_UNIT;
-    body.castShadow = true;
-    body.receiveShadow = true;
-    car.add(body);
+    const carLength = 4.6 * METERS_PER_UNIT;
+    const carWidth = 1.92 * METERS_PER_UNIT;
+    const bodyHeight = 0.5 * METERS_PER_UNIT;
+    const cabinHeight = 0.6 * METERS_PER_UNIT;
+    const wheelRadius = 0.36 * METERS_PER_UNIT;
+    const wheelWidth = 0.32 * METERS_PER_UNIT;
+
+    const bodyMaterial = new THREE.MeshStandardMaterial({ color: new THREE.Color(0xff4b5c), roughness: 0.35, metalness: 0.42 });
+    const chassis = new THREE.Mesh(new THREE.BoxGeometry(carLength, bodyHeight, carWidth), bodyMaterial);
+    chassis.position.y = wheelRadius + bodyHeight / 2;
+    chassis.castShadow = true;
+    chassis.receiveShadow = true;
+    car.add(chassis);
+
+    const hood = new THREE.Mesh(new THREE.BoxGeometry(carLength * 0.36, bodyHeight * 0.8, carWidth * 0.92), bodyMaterial);
+    hood.position.set(carLength * 0.2, wheelRadius + bodyHeight * 0.9, 0);
+    hood.castShadow = true;
+    hood.receiveShadow = true;
+    car.add(hood);
 
     const cabinMaterial = new THREE.MeshStandardMaterial({ color: new THREE.Color(0x1f2633), roughness: 0.18, metalness: 0.65, emissive: 0x05070c, emissiveIntensity: 0.55 });
-    const cabin = new THREE.Mesh(new THREE.BoxGeometry(2.2 * METERS_PER_UNIT, 0.9 * METERS_PER_UNIT, 2 * METERS_PER_UNIT), cabinMaterial);
-    cabin.position.set(0.1 * METERS_PER_UNIT, 1.55 * METERS_PER_UNIT, 0);
+    const cabin = new THREE.Mesh(new THREE.BoxGeometry(carLength * 0.52, cabinHeight, carWidth * 0.76), cabinMaterial);
+    cabin.position.set(-carLength * 0.05, wheelRadius + bodyHeight + cabinHeight / 2, 0);
     cabin.castShadow = true;
     cabin.receiveShadow = true;
     car.add(cabin);
 
+    const tail = new THREE.Mesh(new THREE.BoxGeometry(carLength * 0.18, bodyHeight * 0.7, carWidth * 0.78), bodyMaterial);
+    tail.position.set(-carLength * 0.32, wheelRadius + bodyHeight * 0.85, 0);
+    tail.castShadow = true;
+    tail.receiveShadow = true;
+    car.add(tail);
+
     const detailMaterial = new THREE.MeshStandardMaterial({ color: new THREE.Color(0xf7f7f1), emissive: 0x303030, emissiveIntensity: 0.4, roughness: 0.3, metalness: 0.4 });
-    const lightGeometry = new THREE.BoxGeometry(0.4 * METERS_PER_UNIT, 0.16 * METERS_PER_UNIT, 0.3 * METERS_PER_UNIT);
-    const leftLight = new THREE.Mesh(lightGeometry, detailMaterial);
+    const headlightGeometry = new THREE.BoxGeometry(0.32 * METERS_PER_UNIT, 0.12 * METERS_PER_UNIT, 0.22 * METERS_PER_UNIT);
+    const leftLight = new THREE.Mesh(headlightGeometry, detailMaterial);
     const rightLight = leftLight.clone();
-    leftLight.position.set(2.4 * METERS_PER_UNIT, 0.75 * METERS_PER_UNIT, -0.5 * METERS_PER_UNIT);
-    rightLight.position.set(2.4 * METERS_PER_UNIT, 0.75 * METERS_PER_UNIT, 0.5 * METERS_PER_UNIT);
+    leftLight.position.set(carLength * 0.46, wheelRadius + 0.2 * METERS_PER_UNIT, -carWidth * 0.32);
+    rightLight.position.set(carLength * 0.46, wheelRadius + 0.2 * METERS_PER_UNIT, carWidth * 0.32);
     [leftLight, rightLight].forEach(light => { light.castShadow = false; light.receiveShadow = true; });
     car.add(leftLight, rightLight);
 
+    const tailLightMaterial = new THREE.MeshStandardMaterial({ color: new THREE.Color(0xff3344), emissive: 0x770011, emissiveIntensity: 0.8, roughness: 0.25, metalness: 0.15 });
+    const tailLightGeometry = new THREE.BoxGeometry(0.28 * METERS_PER_UNIT, 0.12 * METERS_PER_UNIT, 0.46 * METERS_PER_UNIT);
+    const tailLights = new THREE.Mesh(tailLightGeometry, tailLightMaterial);
+    tailLights.position.set(-carLength * 0.48, wheelRadius + 0.18 * METERS_PER_UNIT, 0);
+    tailLights.castShadow = false;
+    tailLights.receiveShadow = true;
+    car.add(tailLights);
+
     const wheelMaterial = new THREE.MeshStandardMaterial({ color: new THREE.Color(0x111111), roughness: 0.9, metalness: 0.1 });
-    const wheelGeometry = new THREE.CylinderGeometry(0.45 * METERS_PER_UNIT, 0.45 * METERS_PER_UNIT, 0.42 * METERS_PER_UNIT, 16);
+    const wheelGeometry = new THREE.CylinderGeometry(wheelRadius, wheelRadius, wheelWidth, 20);
     wheelGeometry.rotateZ(Math.PI / 2);
     const wheelPositions = [
-      [1.5, 0.45, 1],
-      [1.5, 0.45, -1],
-      [-1.5, 0.45, 1],
-      [-1.5, 0.45, -1]
+      [carLength * 0.28, wheelRadius, carWidth * 0.45],
+      [carLength * 0.28, wheelRadius, -carWidth * 0.45],
+      [-carLength * 0.28, wheelRadius, carWidth * 0.45],
+      [-carLength * 0.28, wheelRadius, -carWidth * 0.45]
     ];
     wheelPositions.forEach(([x, y, z]) => {
       const wheel = new THREE.Mesh(wheelGeometry, wheelMaterial);
-      wheel.position.set(x * METERS_PER_UNIT, y * METERS_PER_UNIT, z * METERS_PER_UNIT);
+      wheel.position.set(x, y, z);
       wheel.castShadow = true;
       wheel.receiveShadow = true;
       car.add(wheel);
     });
 
     const spoilerMaterial = new THREE.MeshStandardMaterial({ color: new THREE.Color(0x2a2f3a), roughness: 0.4, metalness: 0.35 });
-    const spoiler = new THREE.Mesh(new THREE.BoxGeometry(1.6 * METERS_PER_UNIT, 0.12 * METERS_PER_UNIT, 0.4 * METERS_PER_UNIT), spoilerMaterial);
-    spoiler.position.set(-2 * METERS_PER_UNIT, 1.45 * METERS_PER_UNIT, 0);
+    const spoiler = new THREE.Mesh(new THREE.BoxGeometry(carWidth * 0.7, 0.08 * METERS_PER_UNIT, 0.34 * METERS_PER_UNIT), spoilerMaterial);
+    spoiler.position.set(-carLength * 0.44, wheelRadius + bodyHeight + 0.08 * METERS_PER_UNIT, 0);
     spoiler.castShadow = true;
     spoiler.receiveShadow = true;
     car.add(spoiler);
 
+    car.userData.dimensions = { carLength, carWidth, wheelRadius };
     return car;
   }
 
@@ -2315,13 +2343,17 @@
     brake: 34,
     drag: 1.8,
     steerRate: 10,
-    heightAboveDeck: 0.62
+    heightAboveDeck: 0.38
   };
 
   function ensureCarModel() {
     if (!carState.model) {
       carState.model = createSportsCar();
       scene.add(carState.model);
+      const dims = carState.model.userData.dimensions;
+      if (dims && typeof dims.wheelRadius === 'number') {
+        carState.heightAboveDeck = dims.wheelRadius;
+      }
     }
   }
 
@@ -2401,6 +2433,7 @@
   }
 
   resetCarPose();
+  toggleCarMode(true);
 
   const groundRay = new THREE.Raycaster();
   const floatingBlocks = [];
