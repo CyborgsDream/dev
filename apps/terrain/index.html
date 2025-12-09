@@ -1615,6 +1615,7 @@
   const horizontalForward = new THREE.Vector3();
   const moveVector = new THREE.Vector3();
   const lookVector = new THREE.Vector3();
+  const carForward = new THREE.Vector3();
   const tempVec = new THREE.Vector3();
   const lookTargetScratch = new THREE.Vector3();
   const desiredBlock = new THREE.Vector3();
@@ -2338,11 +2339,13 @@
     return car;
   }
 
+  const defaultLaneOffset = highwayConfig.medianWidth / 2 + highwayConfig.innerShoulderWidth + highwayConfig.laneWidth * 1.5;
+
   const carState = {
     enabled: false,
     speed: 0,
     distance: 0,
-    laneOffset: 0,
+    laneOffset: defaultLaneOffset,
     model: null,
     maxSpeed: 70,
     accel: 26,
@@ -2368,7 +2371,7 @@
   function resetCarPose() {
     carState.speed = 0;
     carState.distance = 0;
-    carState.laneOffset = 0;
+    carState.laneOffset = defaultLaneOffset;
     ensureCarModel();
     updateCarTransform();
   }
@@ -2423,18 +2426,16 @@
     const steerLean = -steeringInput * Math.min(Math.abs(carState.speed) / carState.maxSpeed, 1) * 0.1;
     updateCarTransform(steerLean);
 
-    lookVector.copy(highwayDirection);
-    lookVector.y = 0;
-    lookVector.normalize();
-
     const chaseHeight = 4.6 * METERS_PER_UNIT;
     const chaseDistance = 14 * METERS_PER_UNIT;
+    carForward.set(1, 0, 0).applyQuaternion(carState.model.quaternion);
+    lookVector.copy(carForward).setY(0).normalize();
+
     tempVec.copy(carState.model.position)
-      .addScaledVector(highwayDirection, -chaseDistance)
-      .addScaledVector(highwayRight, steeringInput * 0.5)
+      .addScaledVector(lookVector, -chaseDistance)
       .add(new THREE.Vector3(0, chaseHeight, 0));
     camera.position.lerp(tempVec, THREE.MathUtils.clamp(dt * 1.8, 0, 1));
-    lookTargetScratch.copy(carState.model.position).addScaledVector(highwayDirection, 2 * METERS_PER_UNIT);
+    lookTargetScratch.copy(carState.model.position).addScaledVector(lookVector, 2 * METERS_PER_UNIT);
     lookTargetScratch.y += 1.6 * METERS_PER_UNIT;
     camera.lookAt(lookTargetScratch);
 
