@@ -2261,7 +2261,13 @@
     const wheelRadius = 0.36 * METERS_PER_UNIT;
     const wheelWidth = 0.32 * METERS_PER_UNIT;
 
-    const bodyMaterial = new THREE.MeshStandardMaterial({ color: new THREE.Color(0xff4b5c), roughness: 0.35, metalness: 0.42 });
+    const bodyMaterial = new THREE.MeshStandardMaterial({
+      color: new THREE.Color(0xff8c1a),
+      emissive: new THREE.Color(0x331400),
+      emissiveIntensity: 0.12,
+      roughness: 0.24,
+      metalness: 0.58
+    });
     const chassis = new THREE.Mesh(new THREE.BoxGeometry(carLength, bodyHeight, carWidth), bodyMaterial);
     chassis.position.y = wheelRadius + bodyHeight / 2;
     chassis.castShadow = true;
@@ -2343,7 +2349,8 @@
     brake: 34,
     drag: 1.8,
     steerRate: 10,
-    heightAboveDeck: 0.38
+    heightAboveDeck: 0.38,
+    halfWidth: 1
   };
 
   function ensureCarModel() {
@@ -2353,6 +2360,7 @@
       const dims = carState.model.userData.dimensions;
       if (dims && typeof dims.wheelRadius === 'number') {
         carState.heightAboveDeck = dims.wheelRadius;
+        carState.halfWidth = (dims.carWidth || 2) / 2;
       }
     }
   }
@@ -2405,7 +2413,7 @@
     carState.speed = THREE.MathUtils.clamp(carState.speed, -4, carState.maxSpeed);
 
     carState.distance += carState.speed * dt;
-    const laneLimit = highwayConfig.roadWidth / 2 - highwayConfig.outerShoulderWidth * 0.5;
+    const laneLimit = highwayConfig.roadWidth / 2 - highwayConfig.outerShoulderWidth - carState.halfWidth * 0.6;
     carState.laneOffset = THREE.MathUtils.clamp(
       carState.laneOffset + steeringInput * carState.steerRate * dt,
       -laneLimit,
@@ -2419,13 +2427,14 @@
     lookVector.y = 0;
     lookVector.normalize();
 
-    const chaseOffset = new THREE.Vector3(0, 4.5 * METERS_PER_UNIT, -12 * METERS_PER_UNIT);
+    const chaseHeight = 4.6 * METERS_PER_UNIT;
+    const chaseDistance = 14 * METERS_PER_UNIT;
     tempVec.copy(carState.model.position)
-      .addScaledVector(highwayDirection, chaseOffset.z)
-      .addScaledVector(highwayRight, steeringInput * 0.6)
-      .add(new THREE.Vector3(0, chaseOffset.y, 0));
-    camera.position.lerp(tempVec, THREE.MathUtils.clamp(dt * 3, 0, 1));
-    lookTargetScratch.copy(carState.model.position);
+      .addScaledVector(highwayDirection, -chaseDistance)
+      .addScaledVector(highwayRight, steeringInput * 0.5)
+      .add(new THREE.Vector3(0, chaseHeight, 0));
+    camera.position.lerp(tempVec, THREE.MathUtils.clamp(dt * 1.8, 0, 1));
+    lookTargetScratch.copy(carState.model.position).addScaledVector(highwayDirection, 2 * METERS_PER_UNIT);
     lookTargetScratch.y += 1.6 * METERS_PER_UNIT;
     camera.lookAt(lookTargetScratch);
 
