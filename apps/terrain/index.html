@@ -704,6 +704,133 @@
     #hud-overlay .hud-value {
       color: rgba(255, 255, 255, 0.86);
     }
+    #drive-hud {
+      position: fixed;
+      bottom: 26px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 8px;
+      color: var(--text-white);
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 160ms ease-out, transform 160ms ease-out;
+      transform-origin: bottom center;
+      filter: drop-shadow(0 10px 28px rgba(0, 0, 0, 0.45));
+    }
+    #drive-hud.is-active {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+    .drive-panel {
+      min-width: clamp(320px, 52vw, 620px);
+      background: linear-gradient(135deg, rgba(6, 12, 24, 0.92), rgba(10, 20, 38, 0.92));
+      border: 1px solid var(--frame-border);
+      box-shadow: inset 0 0 0 1px var(--frame-border-light);
+      padding: 16px 18px;
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 14px;
+      align-items: center;
+      letter-spacing: 0.04em;
+    }
+    .speedometer {
+      display: grid;
+      gap: 6px;
+    }
+    .speed-label {
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      color: rgba(255, 255, 255, 0.7);
+      letter-spacing: 0.12em;
+    }
+    .speed-value {
+      font-size: clamp(2.6rem, 4vw, 3.4rem);
+      font-weight: 700;
+      display: flex;
+      align-items: baseline;
+      gap: 10px;
+    }
+    .speed-value .unit {
+      font-size: 0.9rem;
+      color: rgba(255, 255, 255, 0.6);
+      text-transform: uppercase;
+      letter-spacing: 0.14em;
+    }
+    .speed-progress {
+      position: relative;
+      width: 100%;
+      height: 12px;
+      background: rgba(255, 255, 255, 0.08);
+      border-radius: 999px;
+      overflow: hidden;
+    }
+    .speed-progress span {
+      position: absolute;
+      inset: 0;
+      width: calc(var(--speed-fill, 0) * 100%);
+      background: linear-gradient(90deg, #ffb347 0%, #ff6a00 45%, #ff0060 100%);
+      box-shadow: 0 0 20px rgba(255, 106, 0, 0.4);
+      border-radius: 999px;
+      transition: width 90ms ease-out;
+    }
+    .lane-meter {
+      display: grid;
+      gap: 6px;
+      text-align: right;
+    }
+    .lane-meter .label {
+      font-size: 0.8rem;
+      color: rgba(255, 255, 255, 0.64);
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+    }
+    .lane-track {
+      position: relative;
+      width: 220px;
+      height: 12px;
+      background: linear-gradient(90deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.16), rgba(255, 255, 255, 0.08));
+      border-radius: 999px;
+      overflow: hidden;
+    }
+    .lane-track::before,
+    .lane-track::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      border-radius: 999px;
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      pointer-events: none;
+    }
+    .lane-marker {
+      position: absolute;
+      top: 0;
+      left: 0;
+      height: 100%;
+      width: 18px;
+      background: linear-gradient(180deg, #ffea9e 0%, #ff8b2f 60%, #ff3b3b 100%);
+      box-shadow: 0 0 14px rgba(255, 139, 47, 0.45);
+      border-radius: 6px;
+      transform: translateX(calc((var(--lane-normalized, 0.5) * 100%) - 50%));
+      transition: transform 90ms ease-out;
+    }
+    .drive-meta {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      font-size: 0.9rem;
+      color: rgba(255, 255, 255, 0.72);
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+    .drive-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 999px;
+      background: #ff6a00;
+      box-shadow: 0 0 14px rgba(255, 106, 0, 0.8);
+    }
     #console-dock {
       position: fixed;
       bottom: 0;
@@ -992,6 +1119,20 @@
     <div class="hud-line"><span>Chunk</span><span class="hud-value" data-hud="chunk">0, 0</span></div>
     <div class="hud-line"><span>Speed</span><span class="hud-value" data-hud="speed">0 m/s</span></div>
   </div>
+  <div id="drive-hud">
+    <div class="drive-panel">
+      <div class="speedometer">
+        <div class="speed-label">Velocity</div>
+        <div class="speed-value"><span data-speedometer-value>0</span><span class="unit">km/h</span></div>
+        <div class="speed-progress"><span data-speedometer-bar></span></div>
+      </div>
+      <div class="lane-meter">
+        <div class="lane-track"><span class="lane-marker" data-lane-marker></span></div>
+        <div class="label">Lane position</div>
+        <div class="drive-meta"><span class="drive-dot"></span><span>Highway grip online</span></div>
+      </div>
+    </div>
+  </div>
   <div id="fps"></div>
   <div id="console-dock" class="folded">
     <div class="console-headline">
@@ -1085,6 +1226,12 @@
     heading: document.querySelector('[data-hud="heading"]'),
     chunk: document.querySelector('[data-hud="chunk"]'),
     speed: document.querySelector('[data-hud="speed"]')
+  };
+  const driveHud = {
+    root: document.getElementById('drive-hud'),
+    speedValue: document.querySelector('[data-speedometer-value]'),
+    speedBar: document.querySelector('[data-speedometer-bar]'),
+    laneMarker: document.querySelector('[data-lane-marker]')
   };
   console.log('HUD telemetry overlay online.');
   console.log('Compact terrain interface scaling engaged.');
@@ -2293,11 +2440,11 @@
     const wheelWidth = 0.32 * METERS_PER_UNIT;
 
     const bodyMaterial = new THREE.MeshStandardMaterial({
-      color: new THREE.Color(0xff8c1a),
-      emissive: new THREE.Color(0x331400),
-      emissiveIntensity: 0.12,
-      roughness: 0.24,
-      metalness: 0.58
+      color: new THREE.Color(0xff6a00),
+      emissive: new THREE.Color(0x5a1a00),
+      emissiveIntensity: 0.2,
+      roughness: 0.22,
+      metalness: 0.6
     });
     const chassis = new THREE.Mesh(new THREE.BoxGeometry(carLength, bodyHeight, carWidth), bodyMaterial);
     chassis.position.y = wheelRadius + bodyHeight / 2;
@@ -2369,13 +2516,17 @@
     return car;
   }
 
-  const defaultLaneOffset = highwayConfig.medianWidth / 2 + highwayConfig.innerShoulderWidth + highwayConfig.laneWidth * 1.5;
+  const defaultLaneOffset =
+    highwayConfig.medianWidth / 2 +
+    highwayConfig.innerShoulderWidth +
+    highwayConfig.laneWidth * (highwayConfig.lanesPerDirection - 0.5);
 
   const carState = {
     enabled: false,
     speed: 0,
     distance: 0,
     laneOffset: defaultLaneOffset,
+    laneLimit: 0,
     model: null,
     maxSpeed: 70,
     accel: 26,
@@ -2404,6 +2555,7 @@
     carState.laneOffset = defaultLaneOffset;
     ensureCarModel();
     updateCarTransform();
+    syncDriveHud();
   }
 
   function updateCarTransform(steerLean = 0) {
@@ -2422,8 +2574,25 @@
     carState.enabled = nextState;
     if (carState.enabled) {
       console.log('Sports car ride engaged. Use arrows or WASD to drive; press C to exit.');
+      syncDriveHud();
     } else {
       console.log('Exited sports car. Free flight controls restored.');
+      carState.speed = 0;
+      syncDriveHud();
+    }
+  }
+
+  function syncDriveHud() {
+    if (!driveHud.root) return;
+    driveHud.root.classList.toggle('is-active', carState.enabled);
+    const speedKmh = Math.max(0, carState.speed) * 3.6;
+    const speedFill = THREE.MathUtils.clamp(speedKmh / (carState.maxSpeed * 3.6), 0, 1);
+    if (driveHud.speedValue) driveHud.speedValue.textContent = speedKmh.toFixed(0);
+    if (driveHud.speedBar) driveHud.speedBar.style.setProperty('--speed-fill', speedFill);
+    if (driveHud.laneMarker) {
+      const limit = carState.laneLimit || 1;
+      const normalizedLane = THREE.MathUtils.clamp((carState.laneOffset / limit + 1) / 2, 0, 1);
+      driveHud.laneMarker.style.setProperty('--lane-normalized', normalizedLane);
     }
     if (carModeButton) {
       carModeButton.textContent = carState.enabled ? 'Exit sports car' : 'Drive sports car';
@@ -2452,6 +2621,7 @@
 
     carState.distance += carState.speed * dt;
     const laneLimit = highwayConfig.roadWidth / 2 - highwayConfig.outerShoulderWidth - carState.halfWidth * 0.6;
+    carState.laneLimit = laneLimit;
     carState.laneOffset = THREE.MathUtils.clamp(
       carState.laneOffset + steeringInput * carState.steerRate * dt,
       -laneLimit,
@@ -2475,6 +2645,7 @@
     camera.lookAt(lookTargetScratch);
 
     currentSpeed = Math.abs(carState.speed);
+    syncDriveHud();
   }
 
   resetCarPose();
