@@ -1191,6 +1191,7 @@
   </div>
   <script type="module">
   import * as THREE from 'https://unpkg.com/three@0.160.0/build/three.module.js';
+  import { WebGPURenderer } from 'https://unpkg.com/three@0.160.0/examples/jsm/renderers/WebGPURenderer.js';
   import { initConsoleLogs } from '../../shared/consolelogs.js';
 
   const consoleLogEl = document.getElementById('console-log');
@@ -1411,7 +1412,16 @@
 
   const fpsMonitor = new FpsMonitor(fpsHolder);
 
-  const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
+  if (!navigator.gpu) {
+    const loaderText = document.querySelector('#loader .loader-text');
+    if (loaderText) {
+      loaderText.textContent = 'WebGPU unavailable in this browser';
+    }
+    throw new Error('WebGPU is not supported in this environment.');
+  }
+
+  const renderer = new WebGPURenderer({ antialias: true, alpha: false });
+  await renderer.init();
   renderer.setPixelRatio(1);
   const canvasWrap = document.getElementById('canvas-wrap');
   canvasWrap.appendChild(renderer.domElement);
@@ -2207,8 +2217,9 @@
     if (THREE && THREE.SRGBColorSpace) {
       texture.colorSpace = THREE.SRGBColorSpace;
     }
-    if (renderer.capabilities.getMaxAnisotropy) {
-      texture.anisotropy = renderer.capabilities.getMaxAnisotropy();
+    const maxAnisotropy = renderer.capabilities?.maxAnisotropy;
+    if (typeof maxAnisotropy === 'number' && maxAnisotropy > 0) {
+      texture.anisotropy = maxAnisotropy;
     }
     texture.needsUpdate = true;
     return texture;
