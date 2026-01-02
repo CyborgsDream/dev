@@ -1,524 +1,58 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SYNAPSE: 01 | Realtime Demoscene</title>
-    <style>
-        body { margin: 0; overflow: hidden; background-color: #000; font-family: 'Courier New', Courier, monospace; }
-        canvas { display: block; width: 100vw; height: 100vh; }
-        
-        #overlay {
-            position: absolute;
-            top: 0; left: 0; width: 100%; height: 100%;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            background: rgba(0,0,0,0.85);
-            color: #0ff;
-            z-index: 10;
-            transition: opacity 1s ease-out;
-            backdrop-filter: blur(10px);
-        }
-
-        #start-btn {
-            border: 2px solid #0ff;
-            background: transparent;
-            color: #0ff;
-            padding: 20px 40px;
-            font-size: 24px;
-            font-family: inherit;
-            cursor: pointer;
-            text-transform: uppercase;
-            letter-spacing: 4px;
-            transition: all 0.3s;
-            box-shadow: 0 0 20px rgba(0, 255, 255, 0.2);
-        }
-
-        #start-btn:hover {
-            background: #0ff;
-            color: #000;
-            box-shadow: 0 0 50px rgba(0, 255, 255, 0.8);
-        }
-
-        #ui-layer {
-            position: absolute;
-            top: 20px;
-            left: 20px;
-            color: rgba(255, 255, 255, 0.7);
-            font-size: 12px;
-            pointer-events: none;
-            mix-blend-mode: difference;
-            display: none;
-        }
-        
-        .hud-text { margin-bottom: 5px; text-shadow: 0 0 5px #0ff; }
-        
-        #timer {
-            position: absolute;
-            bottom: 20px;
-            right: 20px;
-            font-size: 14px;
-            color: #0ff;
-            font-family: monospace;
-        }
-
-        /* Scanline effect */
-        .scanlines {
-            position: fixed;
-            left: 0; top: 0; width: 100vw; height: 100vh;
-            background: linear-gradient(to bottom, rgba(255,255,255,0), rgba(255,255,255,0) 50%, rgba(0,0,0,0.2) 50%, rgba(0,0,0,0.2));
-            background-size: 100% 4px;
-            pointer-events: none;
-            z-index: 5;
-            opacity: 0.3;
-        }
-    </style>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DEMOS</title>
+  <link id="theme-link" rel="stylesheet" href="css/style.css">
 </head>
 <body>
+  <main>
+    <div id="scene-container" aria-live="polite">
+      <div id="fps-counter" aria-label="frames per second">Loading…</div>
+      <div id="version-number">v1.9.1</div>
 
-    <div id="overlay">
-        <h1 style="font-weight: 100; letter-spacing: 10px; margin-bottom: 40px;">SYNAPSE : 01</h1>
-        <button id="start-btn">INITIALIZE SYSTEM</button>
-        <p style="margin-top: 20px; opacity: 0.6; font-size: 12px;">HEADPHONES RECOMMENDED // HIGH GPU USAGE</p>
+      <div id="demo-files" aria-labelledby="demo-heading">
+        <h2 id="demo-heading">Demo files</h2>
+        <ul id="demo-list"></ul>
+      </div>
+
+      <div id="console-log" role="log" aria-live="polite"></div>
+
+      <div id="cinematic-heading">DEMOS</div>
+      <div id="bottom-text">Select a demo object to launch</div>
+
+      <div id="app-info" role="dialog" aria-modal="true" aria-labelledby="app-info-title">
+        <span class="close-icon" id="close-info" aria-label="Close dialog">×</span>
+        <h2 id="app-info-title">Demo</h2>
+        <p>Loading…</p>
+        <button id="run-app" type="button">Run</button>
+      </div>
     </div>
+  </main>
 
-    <div class="scanlines"></div>
-
-    <div id="ui-layer">
-        <div class="hud-text">:: SYSTEM ONLINE ::</div>
-        <div class="hud-text" id="fps-counter">FPS: 60</div>
-        <div class="hud-text" id="render-data">VERTICES: 1.2M</div>
-        <div class="hud-text" id="ai-status">AI STATE: DORMANT</div>
+  <div id="theme-selection" aria-label="Select a theme">
+    <h2>Choose a theme</h2>
+    <div>
+      <button type="button" data-theme="dark">Dark</button>
+      <button type="button" data-theme="light">Light</button>
+      <button type="button" data-theme="futuristic">Futuristic</button>
     </div>
-    
-    <div id="timer">T-MINUS 00:00</div>
+  </div>
 
-    <script type="module">
-        import * as THREE from 'https://esm.sh/three@0.157.0';
-        import { EffectComposer } from 'https://esm.sh/three@0.157.0/examples/jsm/postprocessing/EffectComposer.js';
-        import { RenderPass } from 'https://esm.sh/three@0.157.0/examples/jsm/postprocessing/RenderPass.js';
-        import { UnrealBloomPass } from 'https://esm.sh/three@0.157.0/examples/jsm/postprocessing/UnrealBloomPass.js';
-        import { ShaderPass } from 'https://esm.sh/three@0.157.0/examples/jsm/postprocessing/ShaderPass.js';
+  <div id="touch-controls" aria-hidden="true" style="display: none;">
+    <button id="move-forward" type="button">▲</button>
+    <div>
+      <button id="move-left" type="button">◀</button>
+      <button id="move-right" type="button">▶</button>
+    </div>
+    <button id="move-back" type="button">▼</button>
+    <div>
+      <button id="zoom-in" type="button">＋</button>
+      <button id="zoom-out" type="button">－</button>
+    </div>
+  </div>
 
-        // --- CONFIGURATION ---
-        const DURATION = 64; // seconds (approx 1 min)
-        const BPM = 120;
-        
-        // --- AUDIO ENGINE (Procedural) ---
-        class AudioEngine {
-            constructor() {
-                this.ctx = new (window.AudioContext || window.webkitAudioContext)();
-                this.masterGain = this.ctx.createGain();
-                this.masterGain.connect(this.ctx.destination);
-                this.masterGain.gain.value = 0.4;
-                
-                this.analyser = this.ctx.createAnalyser();
-                this.analyser.fftSize = 256;
-                this.masterGain.connect(this.analyser);
-                this.dataArray = new Uint8Array(this.analyser.frequencyBinCount);
-
-                this.isPlaying = false;
-                this.startTime = 0;
-            }
-
-            start() {
-                if(this.ctx.state === 'suspended') this.ctx.resume();
-                this.isPlaying = true;
-                this.startTime = this.ctx.currentTime;
-                this.scheduleSequence();
-            }
-
-            // Simple synthesizer
-            playTone(freq, time, duration, type='sawtooth', vol=0.5) {
-                const osc = this.ctx.createOscillator();
-                const gain = this.ctx.createGain();
-                const filter = this.ctx.createBiquadFilter();
-                
-                osc.type = type;
-                osc.frequency.setValueAtTime(freq, time);
-                
-                // Filter Envelope
-                filter.type = 'lowpass';
-                filter.frequency.setValueAtTime(100, time);
-                filter.frequency.exponentialRampToValueAtTime(8000, time + 0.05);
-                filter.frequency.exponentialRampToValueAtTime(100, time + duration);
-
-                // Amp Envelope
-                gain.gain.setValueAtTime(0, time);
-                gain.gain.linearRampToValueAtTime(vol, time + 0.01);
-                gain.gain.exponentialRampToValueAtTime(0.001, time + duration);
-
-                osc.connect(filter);
-                filter.connect(gain);
-                gain.connect(this.masterGain);
-                
-                osc.start(time);
-                osc.stop(time + duration + 0.1);
-            }
-
-            playKick(time) {
-                const osc = this.ctx.createOscillator();
-                const gain = this.ctx.createGain();
-                osc.frequency.setValueAtTime(150, time);
-                osc.frequency.exponentialRampToValueAtTime(0.01, time + 0.5);
-                gain.gain.setValueAtTime(1, time);
-                gain.gain.exponentialRampToValueAtTime(0.001, time + 0.5);
-                osc.connect(gain);
-                gain.connect(this.masterGain);
-                osc.start(time);
-                osc.stop(time + 0.5);
-            }
-
-            playHihat(time) {
-                // Noise buffer for hihat
-                const bufferSize = this.ctx.sampleRate * 0.1;
-                const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
-                const data = buffer.getChannelData(0);
-                for(let i=0; i<bufferSize; i++) data[i] = Math.random() * 2 - 1;
-                
-                const noise = this.ctx.createBufferSource();
-                noise.buffer = buffer;
-                const filter = this.ctx.createBiquadFilter();
-                filter.type = 'highpass';
-                filter.frequency.value = 5000;
-                const gain = this.ctx.createGain();
-                gain.gain.setValueAtTime(0.3, time);
-                gain.gain.exponentialRampToValueAtTime(0.01, time + 0.05);
-                
-                noise.connect(filter);
-                filter.connect(gain);
-                gain.connect(this.masterGain);
-                noise.start(time);
-            }
-
-            scheduleSequence() {
-                const step = 60 / BPM; // 0.5s
-                const now = this.ctx.currentTime;
-                
-                // Bassline
-                const notes = [55, 55, 65.41, 55, 49, 49, 55, 65.41]; // A1, C2, etc
-                
-                for (let i = 0; i < DURATION * 2; i++) { // 2 beats per second approx
-                    const t = now + (i * step);
-                    
-                    // Kick every beat
-                    if (i % 2 === 0) this.playKick(t);
-                    
-                    // Hihat every offbeat
-                    if (i % 1 === 0) this.playHihat(t + step/2);
-
-                    // Bass Synth
-                    if (i > 8) { // Intro delay
-                        const note = notes[i % notes.length];
-                        this.playTone(note, t, step/2, 'sawtooth', 0.2);
-                        // Harmony
-                        if (i > 32) {
-                            this.playTone(note * 1.5, t, step/4, 'square', 0.1);
-                        }
-                    }
-                }
-            }
-
-            getAverageVolume() {
-                this.analyser.getByteFrequencyData(this.dataArray);
-                let sum = 0;
-                for(let i=0; i<this.dataArray.length; i++) sum += this.dataArray[i];
-                return sum / this.dataArray.length;
-            }
-            
-            getLowEnd() {
-                this.analyser.getByteFrequencyData(this.dataArray);
-                return this.dataArray[2] / 255.0; // Bass freq
-            }
-        }
-
-        // --- VISUAL ENGINE ---
-        
-        const audio = new AudioEngine();
-        
-        // Setup Three.js
-        const scene = new THREE.Scene();
-        scene.fog = new THREE.FogExp2(0x000000, 0.015);
-        
-        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-        const renderer = new THREE.WebGLRenderer({ antialias: false, powerPreference: "high-performance" });
-        renderer.setSize(window.innerWidth, window.innerHeight);
-        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-        document.body.appendChild(renderer.domElement);
-
-        // --- POST PROCESSING ---
-        const renderScene = new RenderPass(scene, camera);
-        
-        const bloomPass = new UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 1.5, 0.4, 0.85);
-        bloomPass.threshold = 0.1;
-        bloomPass.strength = 1.2; // High bloom for neon look
-        bloomPass.radius = 0.5;
-
-        // Custom "Digital Glitch/Aberration" shader
-        const RGBShiftShader = {
-            uniforms: {
-                "tDiffuse": { value: null },
-                "amount": { value: 0.005 },
-                "angle": { value: 0.0 },
-                "time": { value: 0 }
-            },
-            vertexShader: `
-                varying vec2 vUv;
-                void main() {
-                    vUv = uv;
-                    gl_Position = projectionMatrix * modelViewMatrix * vec4( position, 1.0 );
-                }`,
-            fragmentShader: `
-                uniform sampler2D tDiffuse;
-                uniform float amount;
-                uniform float angle;
-                uniform float time;
-                varying vec2 vUv;
-
-                float rand(vec2 co){
-                    return fract(sin(dot(co.xy ,vec2(12.9898,78.233))) * 43758.5453);
-                }
-
-                void main() {
-                    vec2 offset = amount * vec2( cos(angle), sin(angle));
-                    
-                    // Scanline glitch
-                    float scanline = sin(vUv.y * 800.0 + time * 10.0) * 0.04;
-                    
-                    vec4 cr = texture2D(tDiffuse, vUv + offset + vec2(0.0, scanline * rand(vec2(time))));
-                    vec4 cga = texture2D(tDiffuse, vUv);
-                    vec4 cb = texture2D(tDiffuse, vUv - offset);
-                    
-                    // Noise
-                    float noise = rand(vUv * time) * 0.05;
-                    
-                    gl_FragColor = vec4(cr.r, cga.g, cb.b, cga.a) + vec4(noise);
-                }`
-        };
-
-        const shaderPass = new ShaderPass(RGBShiftShader);
-        const composer = new EffectComposer(renderer);
-        composer.addPass(renderScene);
-        composer.addPass(bloomPass);
-        composer.addPass(shaderPass);
-
-        // --- OBJECTS ---
-
-        // 1. The Tunnel (Grid)
-        const gridHelper = new THREE.GridHelper(200, 100, 0x00ffff, 0x222222);
-        gridHelper.position.y = -10;
-        scene.add(gridHelper);
-        const ceilingGrid = new THREE.GridHelper(200, 100, 0xff00ff, 0x222222);
-        ceilingGrid.position.y = 20;
-        scene.add(ceilingGrid);
-
-        // 2. The Core (Central AI)
-        const coreGeo = new THREE.IcosahedronGeometry(4, 2);
-        const coreMat = new THREE.MeshBasicMaterial({ 
-            color: 0x00ffff, 
-            wireframe: true,
-            transparent: true,
-            opacity: 0.8
-        });
-        const core = new THREE.Mesh(coreGeo, coreMat);
-        scene.add(core);
-
-        const innerCore = new THREE.Mesh(
-            new THREE.IcosahedronGeometry(2, 1),
-            new THREE.MeshBasicMaterial({ color: 0xffffff })
-        );
-        core.add(innerCore);
-
-        // 3. Data Particles
-        const particlesGeo = new THREE.BufferGeometry();
-        const particlesCount = 3000;
-        const posArray = new Float32Array(particlesCount * 3);
-        const velArray = []; // Custom velocity array
-
-        for(let i=0; i<particlesCount * 3; i++) {
-            posArray[i] = (Math.random() - 0.5) * 100;
-        }
-        for(let i=0; i<particlesCount; i++) {
-            velArray.push({
-                x: (Math.random() - 0.5) * 0.2,
-                y: (Math.random() - 0.5) * 0.2,
-                z: (Math.random() - 0.5) * 0.2
-            });
-        }
-        
-        particlesGeo.setAttribute('position', new THREE.BufferAttribute(posArray, 3));
-        const particlesMat = new THREE.PointsMaterial({
-            size: 0.2,
-            color: 0xff00aa,
-            blending: THREE.AdditiveBlending,
-            transparent: true
-        });
-        const particleSystem = new THREE.Points(particlesGeo, particlesMat);
-        scene.add(particleSystem);
-
-        // 4. Floating Monoliths (Procedural Geometry)
-        const monoliths = [];
-        const boxGeo = new THREE.BoxGeometry(1, 10, 1);
-        const boxMat = new THREE.MeshBasicMaterial({ color: 0x222222, wireframe: true });
-        
-        for(let i=0; i<20; i++) {
-            const m = new THREE.Mesh(boxGeo, boxMat);
-            m.position.set(
-                (Math.random() - 0.5) * 100,
-                (Math.random() - 0.5) * 50,
-                (Math.random() - 0.5) * 100
-            );
-            scene.add(m);
-            monoliths.push(m);
-        }
-
-        // --- ANIMATION LOOP ---
-        
-        let startTime = null;
-        const statusEl = document.getElementById('ai-status');
-        const timerEl = document.getElementById('timer');
-
-        function animate() {
-            requestAnimationFrame(animate);
-            
-            if (!startTime) return;
-
-            const elapsedTime = (Date.now() - startTime) / 1000;
-            const beat = audio.getLowEnd(); // 0.0 to 1.0 based on bass
-            const vol = audio.getAverageVolume();
-
-            // 1. Camera Director (Spline-like behavior manually coded)
-            if (elapsedTime < 10) {
-                // INTRO: Slow dolly in
-                statusEl.innerText = "AI STATE: INITIALIZING NEURAL PATHWAYS";
-                camera.position.set(0, 0, 80 - elapsedTime * 2);
-                camera.lookAt(0, 0, 0);
-                bloomPass.strength = 0.5;
-            } else if (elapsedTime < 30) {
-                // BUILDUP: Rotate around core
-                statusEl.innerText = "AI STATE: PATTERN RECOGNITION [" + Math.floor(vol) + "%]";
-                const angle = elapsedTime * 0.5;
-                camera.position.x = Math.sin(angle) * 30;
-                camera.position.z = Math.cos(angle) * 30;
-                camera.position.y = Math.sin(elapsedTime) * 5;
-                camera.lookAt(0, 0, 0);
-                
-                // Intense bloom pulsing
-                bloomPass.strength = 1.0 + beat * 2.0;
-                gridHelper.position.y = -10 + (beat * 2); // Floor bounces to beat
-            } else if (elapsedTime < 50) {
-                // DROP: Chaos / Fast movement
-                statusEl.innerText = "AI STATE: SINGULARITY REACHED";
-                statusEl.style.color = "#ff0000";
-                
-                // Shake effect
-                const shake = beat * 1.5;
-                camera.position.x += (Math.random() - 0.5) * shake;
-                camera.position.y += (Math.random() - 0.5) * shake;
-                camera.position.z -= 0.5; // Fly through
-                
-                // Flash background
-                scene.background = new THREE.Color(beat > 0.8 ? 0x220000 : 0x000000);
-                
-                // Glitch shader intensity up
-                shaderPass.uniforms.amount.value = 0.01 + beat * 0.05;
-            } else if (elapsedTime < 60) {
-                // OUTRO
-                statusEl.innerText = "AI STATE: SYSTEM SHUTDOWN";
-                scene.background = new THREE.Color(0x000000);
-                bloomPass.strength *= 0.95;
-                core.scale.multiplyScalar(0.9);
-            } else {
-                // END
-                document.getElementById('overlay').style.display = 'flex';
-                document.getElementById('start-btn').innerText = "REBOOT SYSTEM";
-                document.getElementById('overlay').style.opacity = 1;
-                startTime = null;
-                return;
-            }
-
-            // 2. Object Animation
-            
-            // Core pulsing
-            const scale = 1 + beat * 0.5;
-            core.scale.set(scale, scale, scale);
-            core.rotation.x += 0.01;
-            core.rotation.y += 0.02;
-            innerCore.rotation.x -= 0.05;
-            
-            // Grid movement (infinite scrolling effect)
-            gridHelper.position.z = (elapsedTime * 10) % 20;
-            ceilingGrid.position.z = (elapsedTime * 10) % 20;
-
-            // Particles Flow
-            const positions = particleSystem.geometry.attributes.position.array;
-            for(let i=0; i<particlesCount; i++) {
-                // Vortex effect
-                const idx = i*3;
-                let x = positions[idx];
-                let y = positions[idx+1];
-                let z = positions[idx+2];
-
-                // Rotate around Y axis based on distance
-                const dist = Math.sqrt(x*x + z*z);
-                const angle = 0.001 * (100 - dist) + (beat * 0.01);
-                
-                const cos = Math.cos(angle);
-                const sin = Math.sin(angle);
-                
-                positions[idx] = x * cos - z * sin;
-                positions[idx+2] = x * sin + z * cos;
-                
-                // Pulse outwards on beat
-                if (beat > 0.8) {
-                    positions[idx] *= 1.01;
-                    positions[idx+1] *= 1.01;
-                    positions[idx+2] *= 1.01;
-                }
-            }
-            particleSystem.geometry.attributes.position.needsUpdate = true;
-
-            // Monoliths
-            monoliths.forEach((m, i) => {
-                m.rotation.y += 0.01 * (i % 2 === 0 ? 1 : -1);
-                m.position.y += Math.sin(elapsedTime + i) * 0.05;
-                // React to beat color
-                if (beat > 0.6) m.material.color.setHex(0xff00ff);
-                else m.material.color.setHex(0x222222);
-            });
-
-            // 3. Shader Uniforms
-            shaderPass.uniforms.time.value = elapsedTime;
-
-            // 4. UI Updates
-            timerEl.innerText = "T+ " + elapsedTime.toFixed(2);
-            
-            composer.render();
-        }
-
-        // Handle Window Resize
-        window.addEventListener('resize', () => {
-            camera.aspect = window.innerWidth / window.innerHeight;
-            camera.updateProjectionMatrix();
-            renderer.setSize(window.innerWidth, window.innerHeight);
-            composer.setSize(window.innerWidth, window.innerHeight);
-        });
-
-        // Start Logic
-        document.getElementById('start-btn').addEventListener('click', () => {
-            const overlay = document.getElementById('overlay');
-            overlay.style.opacity = 0;
-            setTimeout(() => { overlay.style.display = 'none'; }, 1000);
-            
-            document.getElementById('ui-layer').style.display = 'block';
-            
-            audio.start();
-            startTime = Date.now();
-            animate();
-        });
-
-    </script>
+  <script type="module" src="js/script.js"></script>
 </body>
 </html>
