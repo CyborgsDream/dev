@@ -127,8 +127,7 @@ initInteraction({
 
 function setupTouchControls() {
   const touchControls = document.getElementById('touch-controls');
-  const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
-  if (touchControls && isTouchDevice) {
+  if (touchControls) {
     touchControls.style.display = 'flex';
     touchControls.setAttribute('aria-hidden', 'false');
   }
