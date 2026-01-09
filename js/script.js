@@ -5,7 +5,7 @@ import * as THREE from 'https://unpkg.com/three@0.159.0/build/three.module.js';
 import { initConsoleLogs } from '../shared/consolelogs.js';
 import { initLabels, addLabel } from './labels.js';
 import { initScene, scene, meshes, renderer, camera } from './scene.js';
-import { initInteraction } from './interaction.js';
+import { initInteraction, selectApp, hideAppInfo } from './interaction.js';
 
 function applyTheme(theme) {
   const link = document.getElementById('theme-link');
@@ -113,9 +113,26 @@ apps.forEach((app, i) => {
   addLabel(mesh, app.short, labelColor, -1.45, 'object-info', offsetX);
 });
 
-initInteraction({ container, renderer, camera, meshes, apps });
+let currentIndex = -1;
+initInteraction({
+  container,
+  renderer,
+  camera,
+  meshes,
+  apps,
+  onSelect: index => {
+    currentIndex = index;
+  }
+});
 
 function setupTouchControls() {
+  const touchControls = document.getElementById('touch-controls');
+  const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+  if (touchControls && isTouchDevice) {
+    touchControls.style.display = 'flex';
+    touchControls.setAttribute('aria-hidden', 'false');
+  }
+
   const forwardBtn = document.getElementById('move-forward');
   const backBtn = document.getElementById('move-back');
   const leftBtn = document.getElementById('move-left');
@@ -281,3 +298,31 @@ function setupTouchControls() {
 }
 
 setupTouchControls();
+
+function setupNavControls() {
+  const prevBtn = document.getElementById('nav-prev');
+  const nextBtn = document.getElementById('nav-next');
+  const closeBtn = document.getElementById('nav-close');
+  if (!prevBtn || !nextBtn || !closeBtn) {
+    return;
+  }
+
+  const stepSelection = direction => {
+    if (!selectApp) return;
+    let index = currentIndex;
+    if (typeof index !== 'number' || index < 0) {
+      index = 0;
+    }
+    index = (index + direction + apps.length) % apps.length;
+    currentIndex = index;
+    selectApp(index);
+  };
+
+  prevBtn.addEventListener('click', () => stepSelection(-1));
+  nextBtn.addEventListener('click', () => stepSelection(1));
+  closeBtn.addEventListener('click', () => {
+    if (hideAppInfo) hideAppInfo();
+  });
+}
+
+setupNavControls();

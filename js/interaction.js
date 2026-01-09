@@ -4,7 +4,7 @@ export let selectApp;
 export let hideAppInfo;
 export let onPick;
 
-export function initInteraction({ container, renderer, camera, meshes, apps }) {
+export function initInteraction({ container, renderer, camera, meshes, apps, onSelect }) {
   const infoBox = document.getElementById('app-info');
   const infoTitle = infoBox.querySelector('h2');
   const infoText = infoBox.querySelector('p');
@@ -78,6 +78,9 @@ export function initInteraction({ container, renderer, camera, meshes, apps }) {
     }, 300);
     ignoreNextContainerClick = true;
     activeIndex = index;
+    if (typeof onSelect === 'function') {
+      onSelect(index);
+    }
     hoveredIndex = -1;
     applyHighlight();
   };
