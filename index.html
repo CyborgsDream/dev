@@ -82,6 +82,44 @@
     </div>
   </noscript>
 
+  <script id="glitch-vertex-shader" type="x-shader/x-vertex">
+    attribute vec2 a_position;
+    varying vec2 v_uv;
+
+    void main() {
+      v_uv = (a_position + 1.0) * 0.5;
+      gl_Position = vec4(a_position, 0.0, 1.0);
+    }
+  </script>
+
+  <script id="glitch-fragment-shader" type="x-shader/x-fragment">
+    precision mediump float;
+
+    uniform sampler2D u_texture;
+    uniform float u_time;
+    uniform float u_intensity;
+    varying vec2 v_uv;
+
+    float rand(vec2 co) {
+      return fract(sin(dot(co.xy ,vec2(12.9898,78.233))) * 43758.5453);
+    }
+
+    void main() {
+      float shift = (rand(vec2(floor(v_uv.y * 240.0), u_time)) - 0.5) * 0.02 * u_intensity;
+      float noise = rand(v_uv * (u_time + 1.0)) * 0.025 * u_intensity;
+
+      vec2 r_uv = v_uv + vec2(shift, 0.0);
+      vec2 g_uv = v_uv + vec2(-shift * 0.5, 0.0);
+      vec2 b_uv = v_uv + vec2(shift * 0.8, 0.0);
+
+      float r = texture2D(u_texture, r_uv).r;
+      float g = texture2D(u_texture, g_uv).g;
+      float b = texture2D(u_texture, b_uv).b;
+
+      gl_FragColor = vec4(r + noise, g, b + noise, 1.0);
+    }
+  </script>
+
   <script>
     (function () {
       'use strict';
