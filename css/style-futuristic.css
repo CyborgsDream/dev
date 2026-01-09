@@ -183,6 +183,64 @@ main {
   z-index: 20;
   overflow-wrap: anywhere;
 }
+
+#nav-controls {
+  position: absolute;
+  right: 16px;
+  bottom: 16px;
+  display: flex;
+  gap: 0.4rem;
+  z-index: 25;
+  background: rgba(0, 10, 25, 0.7);
+  padding: 0.35rem 0.5rem;
+  border-radius: 10px;
+  box-shadow: 0 0 12px rgba(0, 255, 255, 0.2);
+  backdrop-filter: blur(6px);
+}
+
+#nav-controls button {
+  border: 1px solid rgba(0, 255, 255, 0.45);
+  background: rgba(0, 255, 255, 0.08);
+  color: #bffbff;
+  padding: 0.35rem 0.6rem;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.75rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+#nav-controls button:hover,
+#nav-controls button:focus-visible {
+  background: rgba(0, 255, 255, 0.16);
+}
+
+#touch-controls {
+  position: absolute;
+  left: 16px;
+  bottom: 16px;
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.35rem;
+  z-index: 25;
+}
+
+#touch-controls button {
+  width: 46px;
+  height: 36px;
+  border-radius: 8px;
+  border: 1px solid rgba(0, 255, 255, 0.45);
+  background: rgba(0, 10, 25, 0.6);
+  color: #bffbff;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
+#touch-controls div {
+  display: flex;
+  gap: 0.35rem;
+}
 #scene-container canvas {
   background: #001533;
   display: block;
