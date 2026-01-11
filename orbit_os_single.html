@@ -1,0 +1,484 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Orbit OS • Single-File Edition</title>
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%230055aa'/%3E%3Ccircle cx='32' cy='32' r='16' fill='%23ffffff' opacity='0.9'/%3E%3Ccircle cx='32' cy='32' r='10' fill='%230055aa'/%3E%3C/svg%3E" />
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #003b82;
+      --bg-deep: #002a5c;
+      --panel: rgba(12, 18, 34, 0.78);
+      --panel-border: rgba(255, 255, 255, 0.25);
+      --accent: #7fd1ff;
+      --accent-strong: #a8e3ff;
+      --text: #f7fbff;
+      --muted: rgba(247, 251, 255, 0.7);
+      --shadow: rgba(0, 10, 30, 0.55);
+      --glass: rgba(255, 255, 255, 0.08);
+      --focus: #00aaff;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: "Inter", "Segoe UI", system-ui, -apple-system, sans-serif;
+    }
+
+    body {
+      height: 100vh;
+      background: radial-gradient(circle at top, #1b64c2, var(--bg) 42%, var(--bg-deep) 100%);
+      color: var(--text);
+      overflow: hidden;
+    }
+
+    .desktop {
+      width: 100vw;
+      height: 100vh;
+      display: grid;
+      grid-template-rows: auto 1fr;
+      position: relative;
+      isolation: isolate;
+    }
+
+    .desktop::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(120deg, rgba(255, 255, 255, 0.12), transparent 40%),
+        radial-gradient(circle at 80% 20%, rgba(255, 255, 255, 0.25), transparent 45%);
+      opacity: 0.6;
+      z-index: 0;
+    }
+
+    .menu-bar {
+      height: 44px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 18px;
+      background: linear-gradient(135deg, rgba(3, 18, 37, 0.9), rgba(9, 30, 62, 0.9));
+      border-bottom: 1px solid var(--panel-border);
+      backdrop-filter: blur(12px);
+      z-index: 5;
+    }
+
+    .menu-left {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      font-size: 13px;
+    }
+
+    .orbit-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 10px;
+      border-radius: 999px;
+      background: var(--glass);
+      border: 1px solid var(--panel-border);
+      box-shadow: 0 4px 12px var(--shadow);
+    }
+
+    .orbit-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: var(--accent-strong);
+      box-shadow: 0 0 12px rgba(127, 209, 255, 0.8);
+    }
+
+    .menu-right {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      font-size: 13px;
+      color: var(--muted);
+    }
+
+    .status-badge {
+      padding: 4px 10px;
+      border-radius: 999px;
+      background: rgba(0, 170, 255, 0.18);
+      border: 1px solid rgba(0, 170, 255, 0.35);
+      color: var(--accent-strong);
+    }
+
+    .work-area {
+      display: grid;
+      grid-template-columns: 240px 1fr;
+      gap: 24px;
+      padding: 28px;
+      position: relative;
+      z-index: 1;
+      height: calc(100vh - 44px);
+    }
+
+    .dock {
+      background: var(--panel);
+      border-radius: 18px;
+      border: 1px solid var(--panel-border);
+      padding: 18px;
+      box-shadow: 0 18px 32px var(--shadow);
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      backdrop-filter: blur(14px);
+    }
+
+    .dock h2 {
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--accent-strong);
+      margin-bottom: 6px;
+    }
+
+    .dock button {
+      appearance: none;
+      border: 1px solid transparent;
+      background: rgba(255, 255, 255, 0.06);
+      color: var(--text);
+      padding: 10px 12px;
+      border-radius: 12px;
+      text-align: left;
+      font-size: 14px;
+      cursor: pointer;
+      transition: 0.2s ease;
+    }
+
+    .dock button:hover,
+    .dock button:focus-visible {
+      border-color: rgba(127, 209, 255, 0.5);
+      background: rgba(127, 209, 255, 0.15);
+      outline: none;
+    }
+
+    .dock button span {
+      display: block;
+      font-size: 12px;
+      color: var(--muted);
+      margin-top: 2px;
+    }
+
+    .canvas {
+      position: relative;
+      border-radius: 24px;
+      padding: 22px;
+      background: rgba(3, 14, 30, 0.55);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      box-shadow: inset 0 0 60px rgba(0, 0, 0, 0.45);
+      overflow: hidden;
+    }
+
+    .intro {
+      max-width: 420px;
+      background: rgba(0, 0, 0, 0.25);
+      border-radius: 18px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      padding: 20px;
+      box-shadow: 0 18px 30px var(--shadow);
+      backdrop-filter: blur(10px);
+    }
+
+    .intro h1 {
+      font-size: 26px;
+      margin-bottom: 10px;
+      color: var(--accent-strong);
+    }
+
+    .intro p {
+      line-height: 1.5;
+      font-size: 14px;
+      color: var(--muted);
+    }
+
+    .window {
+      position: absolute;
+      top: 18%;
+      left: 18%;
+      width: 420px;
+      max-width: 80%;
+      background: rgba(9, 18, 34, 0.92);
+      border-radius: 18px;
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      box-shadow: 0 20px 40px var(--shadow);
+      overflow: hidden;
+      display: none;
+      z-index: 2;
+    }
+
+    .window.active {
+      display: block;
+    }
+
+    .window-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 16px;
+      background: rgba(15, 32, 58, 0.95);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+      cursor: grab;
+    }
+
+    .window-header h3 {
+      font-size: 14px;
+      color: var(--accent-strong);
+    }
+
+    .window-actions button {
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      border: none;
+      margin-left: 6px;
+      cursor: pointer;
+      background: rgba(255, 255, 255, 0.08);
+      color: var(--text);
+    }
+
+    .window-actions button:hover {
+      background: rgba(255, 255, 255, 0.18);
+    }
+
+    .window-body {
+      padding: 18px;
+      font-size: 14px;
+      color: var(--muted);
+      line-height: 1.55;
+    }
+
+    .chip-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 12px;
+    }
+
+    .chip {
+      padding: 4px 10px;
+      border-radius: 999px;
+      border: 1px solid rgba(127, 209, 255, 0.35);
+      color: var(--accent-strong);
+      font-size: 12px;
+      background: rgba(0, 170, 255, 0.16);
+    }
+
+    .window textarea {
+      width: 100%;
+      min-height: 120px;
+      background: rgba(0, 0, 0, 0.35);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      border-radius: 12px;
+      padding: 10px;
+      color: var(--text);
+      resize: vertical;
+    }
+
+    .window textarea:focus {
+      outline: 2px solid var(--focus);
+      border-color: transparent;
+    }
+
+    .pulse {
+      position: absolute;
+      right: -80px;
+      bottom: -80px;
+      width: 240px;
+      height: 240px;
+      background: radial-gradient(circle, rgba(127, 209, 255, 0.35), transparent 70%);
+      filter: blur(5px);
+      opacity: 0.75;
+      z-index: 0;
+    }
+
+    @media (max-width: 900px) {
+      .work-area {
+        grid-template-columns: 1fr;
+      }
+
+      .dock {
+        flex-direction: row;
+        flex-wrap: wrap;
+      }
+
+      .canvas {
+        min-height: 50vh;
+      }
+
+      .window {
+        left: 8%;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="desktop">
+    <header class="menu-bar">
+      <div class="menu-left">
+        <div class="orbit-pill">
+          <span class="orbit-dot"></span>
+          Orbit OS
+        </div>
+        <span>Single-File Edition</span>
+      </div>
+      <div class="menu-right">
+        <span class="status-badge">Online</span>
+        <span id="clock">--:--</span>
+      </div>
+    </header>
+
+    <main class="work-area">
+      <aside class="dock">
+        <h2>Launch</h2>
+        <button type="button" data-window="overview">
+          Orbital Overview
+          <span>Summary capsule</span>
+        </button>
+        <button type="button" data-window="notes">
+          Mission Notes
+          <span>Editable scratchpad</span>
+        </button>
+        <button type="button" data-window="status">
+          System Status
+          <span>Quick diagnostics</span>
+        </button>
+      </aside>
+
+      <section class="canvas" id="canvas">
+        <div class="intro">
+          <h1>Orbit OS, distilled.</h1>
+          <p>
+            This is a minimal, self-contained version of Orbit OS with zero external
+            dependencies. Drop this file anywhere, open it in a browser, and build
+            your own galaxy of windows and widgets.
+          </p>
+        </div>
+        <div class="pulse"></div>
+
+        <article class="window" data-window="overview">
+          <div class="window-header">
+            <h3>Orbital Overview</h3>
+            <div class="window-actions">
+              <button type="button" data-action="close">×</button>
+            </div>
+          </div>
+          <div class="window-body">
+            Orbit OS Single-File keeps the essentials: a launch dock, floating
+            windows, and a live status bar. Customize the HTML, CSS, and JavaScript
+            within this one file to spin up new project shells instantly.
+            <div class="chip-row">
+              <span class="chip">No assets</span>
+              <span class="chip">No build</span>
+              <span class="chip">No dependencies</span>
+            </div>
+          </div>
+        </article>
+
+        <article class="window" data-window="notes">
+          <div class="window-header">
+            <h3>Mission Notes</h3>
+            <div class="window-actions">
+              <button type="button" data-action="close">×</button>
+            </div>
+          </div>
+          <div class="window-body">
+            <textarea spellcheck="false">Draft your next orbit here...</textarea>
+          </div>
+        </article>
+
+        <article class="window" data-window="status">
+          <div class="window-header">
+            <h3>System Status</h3>
+            <div class="window-actions">
+              <button type="button" data-action="close">×</button>
+            </div>
+          </div>
+          <div class="window-body">
+            <strong>Core:</strong> Stable<br />
+            <strong>Memory:</strong> Minimal footprint<br />
+            <strong>Launch Mode:</strong> Drag windows, write notes, ship fast.
+          </div>
+        </article>
+      </section>
+    </main>
+  </div>
+
+  <script>
+    const clockEl = document.getElementById("clock");
+    const buttons = document.querySelectorAll("[data-window]");
+    const windows = document.querySelectorAll(".window");
+    const canvas = document.getElementById("canvas");
+    let topZ = 2;
+
+    const updateClock = () => {
+      const now = new Date();
+      const hours = String(now.getHours()).padStart(2, "0");
+      const minutes = String(now.getMinutes()).padStart(2, "0");
+      clockEl.textContent = `${hours}:${minutes}`;
+    };
+
+    updateClock();
+    setInterval(updateClock, 1000);
+
+    const activateWindow = (windowId) => {
+      windows.forEach((win) => {
+        if (win.dataset.window === windowId) {
+          win.classList.add("active");
+          win.style.zIndex = String(++topZ);
+        }
+      });
+    };
+
+    buttons.forEach((button) => {
+      button.addEventListener("click", () => {
+        const windowId = button.dataset.window;
+        activateWindow(windowId);
+      });
+    });
+
+    windows.forEach((win) => {
+      const header = win.querySelector(".window-header");
+      const closeButton = win.querySelector("[data-action='close']");
+
+      closeButton.addEventListener("click", () => {
+        win.classList.remove("active");
+      });
+
+      header.addEventListener("mousedown", (event) => {
+        const startX = event.clientX;
+        const startY = event.clientY;
+        const rect = win.getBoundingClientRect();
+        const offsetX = startX - rect.left;
+        const offsetY = startY - rect.top;
+
+        win.style.zIndex = String(++topZ);
+
+        const move = (moveEvent) => {
+          const nextX = moveEvent.clientX - offsetX;
+          const nextY = moveEvent.clientY - offsetY;
+          const boundedX = Math.min(Math.max(nextX, 0), canvas.clientWidth - rect.width);
+          const boundedY = Math.min(Math.max(nextY, 0), canvas.clientHeight - rect.height);
+          win.style.left = `${boundedX}px`;
+          win.style.top = `${boundedY}px`;
+        };
+
+        const stop = () => {
+          document.removeEventListener("mousemove", move);
+          document.removeEventListener("mouseup", stop);
+        };
+
+        document.addEventListener("mousemove", move);
+        document.addEventListener("mouseup", stop);
+      });
+    });
+  </script>
+</body>
+</html>
