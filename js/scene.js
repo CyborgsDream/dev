@@ -7,6 +7,12 @@ export let renderer;
 export let meshes;
 
 export function initScene(container, fpsCounter) {
+  let postScene;
+  let postCamera;
+  let postMaterial;
+  let renderTarget;
+  let postEnabled = false;
+
   function setContainerSize() {
     const aspect = 16 / 9;
     const parent = container.parentElement;
@@ -47,6 +53,31 @@ export function initScene(container, fpsCounter) {
   renderer.setClearColor(0x001533);
   renderer.shadowMap.enabled = true;
   container.appendChild(renderer.domElement);
+
+  const glitchVertex = document.getElementById('glitch-vertex-shader');
+  const glitchFragment = document.getElementById('glitch-fragment-shader');
+  if (glitchVertex && glitchFragment) {
+    renderTarget = new THREE.WebGLRenderTarget(initW, initH, {
+      depthBuffer: true,
+      stencilBuffer: false
+    });
+
+    postScene = new THREE.Scene();
+    postCamera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
+    postMaterial = new THREE.ShaderMaterial({
+      uniforms: {
+        u_texture: { value: renderTarget.texture },
+        u_time: { value: 0 },
+        u_intensity: { value: 0.6 }
+      },
+      vertexShader: glitchVertex.textContent.trim(),
+      fragmentShader: glitchFragment.textContent.trim()
+    });
+
+    const quad = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), postMaterial);
+    postScene.add(quad);
+    postEnabled = true;
+  }
 
   // Sculpted grid floor to give the hero objects a dramatic hilly / spiky landscape
   console.info('Creating background grid floor');
@@ -258,7 +289,15 @@ export function initScene(container, fpsCounter) {
       letter.position.z = initialZ + Math.sin(timestamp / 600 + phase) * 0.05;
     });
     updateLabels(camera, timestamp);
-    renderer.render(scene, camera);
+    if (postEnabled && postMaterial && renderTarget && postScene && postCamera) {
+      postMaterial.uniforms.u_time.value = timestamp * 0.001;
+      renderer.setRenderTarget(renderTarget);
+      renderer.render(scene, camera);
+      renderer.setRenderTarget(null);
+      renderer.render(postScene, postCamera);
+    } else {
+      renderer.render(scene, camera);
+    }
   }
 
   function onWindowResize() {
@@ -266,6 +305,9 @@ export function initScene(container, fpsCounter) {
     camera.aspect = width / height;
     camera.updateProjectionMatrix();
     renderer.setSize(width, height);
+    if (renderTarget) {
+      renderTarget.setSize(width, height);
+    }
     checkOrientation();
     console.info('Window resized', { width, height });
   }
