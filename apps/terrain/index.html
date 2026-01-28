@@ -1411,17 +1411,50 @@
   }
 
   const fpsMonitor = new FpsMonitor(fpsHolder);
+  const loaderText = document.querySelector('#loader .loader-text');
 
-  if (!navigator.gpu) {
-    const loaderText = document.querySelector('#loader .loader-text');
-    if (loaderText) {
-      loaderText.textContent = 'WebGPU unavailable in this browser';
+  const initWithTimeout = (promise, timeoutMs) => new Promise((resolve, reject) => {
+    const timeoutId = setTimeout(() => {
+      reject(new Error('Renderer initialisation timed out.'));
+    }, timeoutMs);
+    promise
+      .then(result => {
+        clearTimeout(timeoutId);
+        resolve(result);
+      })
+      .catch(error => {
+        clearTimeout(timeoutId);
+        reject(error);
+      });
+  });
+
+  let renderer;
+  if (navigator.gpu) {
+    try {
+      if (loaderText) {
+        loaderText.textContent = 'Initializing WebGPU…';
+      }
+      setProgress(12);
+      const webGpuRenderer = new WebGPURenderer({ antialias: true, alpha: false });
+      await initWithTimeout(webGpuRenderer.init(), 5000);
+      renderer = webGpuRenderer;
+      console.log('WebGPU renderer initialised.');
+    } catch (error) {
+      console.warn('WebGPU initialisation failed, falling back to WebGL.', error);
     }
-    throw new Error('WebGPU is not supported in this environment.');
+  } else if (loaderText) {
+    loaderText.textContent = 'WebGPU unavailable, switching to WebGL…';
   }
 
-  const renderer = new WebGPURenderer({ antialias: true, alpha: false });
-  await renderer.init();
+  if (!renderer) {
+    if (loaderText) {
+      loaderText.textContent = 'Initializing WebGL…';
+    }
+    setProgress(18);
+    renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
+  }
+
+  setProgress(28);
   renderer.setPixelRatio(1);
   const canvasWrap = document.getElementById('canvas-wrap');
   canvasWrap.appendChild(renderer.domElement);
