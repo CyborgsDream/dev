@@ -135,7 +135,9 @@
         : null;
       var target = canonicalLink || document.documentElement.getAttribute('data-target') || 'index.html';
       var targetPath = new URL(target, window.location.href).pathname;
-      var isCanonical = window.location.pathname === targetPath || window.location.pathname.endsWith(targetPath);
+      var currentPath = window.location.pathname || '/';
+      var isRootAlias = currentPath === '/' && targetPath.endsWith('/index.html');
+      var isCanonical = currentPath === targetPath || currentPath.endsWith(targetPath) || isRootAlias;
 
       var fallback = document.getElementById('redirect-fallback');
       var appShell = document.getElementById('app-shell');
