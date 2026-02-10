@@ -4,7 +4,7 @@
 import * as THREE from 'https://unpkg.com/three@0.159.0/build/three.module.js';
 import { initConsoleLogs } from '../shared/consolelogs.js';
 import { initLabels, addLabel } from './labels.js';
-import { initScene, scene, meshes, renderer, camera } from './scene.js';
+import { initScene, scene, meshes, renderer, camera, createHeroMaterial } from './scene.js';
 import { initInteraction } from './interaction.js';
 
 function applyTheme(theme) {
@@ -81,7 +81,9 @@ apps.forEach((app, i) => {
     ? new THREE.IcosahedronGeometry(0.95)
     : new THREE.TorusGeometry(0.75, 0.22, 18, 32);
   const color = i % 2 === 0 ? 0xff6600 : 0x0096d6;
-  const mesh = new THREE.Mesh(geometry, new THREE.MeshStandardMaterial({ color }));
+  const accent = i % 2 === 0 ? 0xfff3b0 : 0x48fff3;
+  const material = createHeroMaterial(new THREE.Color(color), new THREE.Color(accent));
+  const mesh = new THREE.Mesh(geometry, material);
   mesh.position.set(x, 1.7, z);
   mesh.castShadow = true;
   mesh.receiveShadow = true;

@@ -5,6 +5,58 @@ export let scene;
 export let camera;
 export let renderer;
 export let meshes;
+const shaderMaterials = [];
+
+function registerShaderMaterial(material) {
+  shaderMaterials.push(material);
+  return material;
+}
+
+export function createHeroMaterial(baseColor, accentColor) {
+  return registerShaderMaterial(new THREE.ShaderMaterial({
+    uniforms: {
+      uTime: { value: 0 },
+      uColor: { value: baseColor.clone() },
+      uAccent: { value: accentColor.clone() }
+    },
+    vertexShader: `
+      varying vec3 vNormal;
+      varying vec3 vWorld;
+      varying float vRim;
+      void main() {
+        vNormal = normalize(normalMatrix * normal);
+        vec4 worldPosition = modelMatrix * vec4(position, 1.0);
+        vWorld = worldPosition.xyz;
+        vec3 viewDir = normalize(cameraPosition - vWorld);
+        vRim = 1.0 - max(dot(viewDir, vNormal), 0.0);
+        gl_Position = projectionMatrix * viewMatrix * worldPosition;
+      }
+    `,
+    fragmentShader: `
+      precision highp float;
+      uniform float uTime;
+      uniform vec3 uColor;
+      uniform vec3 uAccent;
+      varying vec3 vNormal;
+      varying vec3 vWorld;
+      varying float vRim;
+
+      float wave(vec3 p) {
+        return sin(p.x * 1.6 + uTime * 0.6) * 0.4 +
+               sin(p.y * 2.2 - uTime * 0.4) * 0.3 +
+               cos(p.z * 1.4 + uTime * 0.5) * 0.3;
+      }
+
+      void main() {
+        float shimmer = wave(vWorld) * 0.5 + 0.5;
+        vec3 base = mix(uColor, uAccent, shimmer);
+        float rim = pow(vRim, 2.2);
+        vec3 finalColor = base + rim * uAccent * 0.8;
+        gl_FragColor = vec4(finalColor, 1.0);
+      }
+    `
+  }));
+}
 
 export function initScene(container, fpsCounter) {
   function setContainerSize() {
@@ -48,81 +100,56 @@ export function initScene(container, fpsCounter) {
   renderer.shadowMap.enabled = true;
   container.appendChild(renderer.domElement);
 
-  // Sculpted grid floor to give the hero objects a dramatic hilly / spiky landscape
-  console.info('Creating background grid floor');
-  const gridSize = 40;
-  const grid = new THREE.GridHelper(gridSize, 60, 0x114b9a, 0x093569);
-  grid.position.y = 0;
+  console.info('Creating shader floor');
+  const floorGeometry = new THREE.PlaneGeometry(48, 48, 180, 180);
+  floorGeometry.rotateX(-Math.PI / 2);
+  const floorMaterial = registerShaderMaterial(new THREE.ShaderMaterial({
+    uniforms: {
+      uTime: { value: 0 },
+      uBase: { value: new THREE.Color(0x071a34) },
+      uGlow: { value: new THREE.Color(0x1e8fff) }
+    },
+    vertexShader: `
+      varying vec2 vUv;
+      varying float vWave;
+      void main() {
+        vUv = uv;
+        vec3 pos = position;
+        float waveX = sin((pos.x * 0.6) + uTime * 0.6);
+        float waveZ = cos((pos.z * 0.55) - uTime * 0.4);
+        vWave = waveX + waveZ;
+        pos.y += vWave * 0.35;
+        gl_Position = projectionMatrix * modelViewMatrix * vec4(pos, 1.0);
+      }
+    `,
+    fragmentShader: `
+      precision highp float;
+      uniform vec3 uBase;
+      uniform vec3 uGlow;
+      varying vec2 vUv;
+      varying float vWave;
 
-  const positions = grid.geometry?.attributes?.position;
-  if (positions) {
-    const posArray = positions.array;
-    const centralCalderaRadius = 2.3;
-    const innerRampRadius = 5.5;
-    const ringEnd = gridSize * 0.5 - 3;
-    const maxRadius = gridSize * 0.5;
-    const hillScale = 2.85;
-    const spikeDensity = 3.75;
-    const spikeHeight = 4.5;
-    const cornerSpikeRadius = 5.5;
-    const cornerSpikeHeight = 11.5;
-
-    for (let i = 0; i < posArray.length; i += 3) {
-      const x = posArray[i];
-      const z = posArray[i + 2];
-      const distance = Math.sqrt(x * x + z * z);
-
-      const radialBlend = Math.min(distance / Math.max(innerRampRadius, 0.0001), 1);
-      const angle = Math.atan2(z, x);
-      const centralWave = Math.pow(Math.abs(Math.sin(distance * 1.2) * Math.cos(distance * 0.8)), 1.45);
-      const centralSpikes = Math.pow(Math.abs(Math.sin(angle * 6.5)), 1.6);
-      const centralHeight = (1 - radialBlend) * (centralWave * 1.8 + centralSpikes * 1.2);
-
-      const rampBlend = Math.max(Math.min((distance - innerRampRadius) / Math.max(ringEnd - innerRampRadius, 0.0001), 1), 0);
-      const edgeFade = distance > ringEnd
-        ? 1 - Math.min((distance - ringEnd) / Math.max(maxRadius - ringEnd, 0.0001), 1)
-        : 1;
-
-      const angularWave = Math.pow(Math.abs(Math.sin(angle * 7.5) * Math.cos(angle * 3.5)), 1.5);
-      const radialSpike = Math.pow(Math.abs(Math.sin((distance - innerRampRadius) * spikeDensity)), 2.1) * spikeHeight;
-      const latticeNoise = Math.abs(Math.sin(x * 0.85) * Math.sin(z * 0.85));
-      const diagonalNoise = Math.abs(Math.sin((x + z) * 0.65));
-
-      const ringStrength = Math.pow(Math.max(distance - innerRampRadius, 0) / Math.max(ringEnd - innerRampRadius, 0.0001), 1.45);
-
-      const baseHeight = (0.35 + angularWave * 0.9 + radialSpike + latticeNoise * 0.8 + diagonalNoise * 0.55)
-        * rampBlend * ringStrength * edgeFade * hillScale;
-
-      let height = baseHeight + centralHeight;
-
-      if (distance <= centralCalderaRadius) {
-        const calderaBlend = Math.pow(Math.max(centralCalderaRadius - distance, 0) / centralCalderaRadius, 1.6);
-        const calderaWave = calderaBlend * (2.2 + Math.sin((centralCalderaRadius - distance) * 4.1) * 1.6);
-        height += calderaWave;
+      float gridLine(float coord) {
+        float grid = abs(fract(coord - 0.5) - 0.5) / fwidth(coord);
+        return 1.0 - clamp(grid, 0.0, 1.0);
       }
 
-      const edgeX = Math.max(Math.abs(x) - (maxRadius - cornerSpikeRadius), 0);
-      const edgeZ = Math.max(Math.abs(z) - (maxRadius - cornerSpikeRadius), 0);
-      const cornerDistance = Math.hypot(edgeX, edgeZ);
-      const cornerBlend = Math.max(1 - cornerDistance / cornerSpikeRadius, 0);
-      const cornerWave = Math.pow(Math.abs(Math.sin((x + z) * 0.45)), 1.2);
-      const cornerSpike = Math.pow(cornerBlend, 2.4) * (0.6 + cornerWave * 0.4) * cornerSpikeHeight;
-
-      posArray[i + 1] = height + cornerSpike;
-    }
-
-    positions.needsUpdate = true;
-    grid.geometry.computeBoundingBox();
-    grid.geometry.computeBoundingSphere();
-  }
-
-  if (grid.material && 'opacity' in grid.material) {
-    grid.material.opacity = 0.45;
-    grid.material.transparent = true;
-    grid.material.depthWrite = false;
-  }
-  scene.add(grid);
-  console.info('Grid floor added');
+      void main() {
+        float gridX = gridLine(vUv.x * 18.0);
+        float gridY = gridLine(vUv.y * 18.0);
+        float grid = max(gridX, gridY);
+        float glow = smoothstep(0.1, 0.9, (vWave * 0.5 + 0.5));
+        vec3 color = mix(uBase, uGlow, glow);
+        color += grid * uGlow * 0.55;
+        gl_FragColor = vec4(color, 1.0);
+      }
+    `,
+    transparent: false
+  }));
+  const floor = new THREE.Mesh(floorGeometry, floorMaterial);
+  floor.receiveShadow = true;
+  scene.add(floor);
+  console.info('Shader floor added');
 
   // Lighting
   const ambientLight = new THREE.AmbientLight(0xffffff, 0.3);
@@ -258,6 +285,11 @@ export function initScene(container, fpsCounter) {
       letter.position.z = initialZ + Math.sin(timestamp / 600 + phase) * 0.05;
     });
     updateLabels(camera, timestamp);
+    shaderMaterials.forEach(material => {
+      if (material.uniforms && material.uniforms.uTime) {
+        material.uniforms.uTime.value = timestamp * 0.001;
+      }
+    });
     renderer.render(scene, camera);
   }
 
