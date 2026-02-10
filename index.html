@@ -215,7 +215,7 @@
 
         var timer = setTimeout(function () { if (!didRespond) finishRedirect(); }, SW_WAIT_MS);
 
-        navigator.serviceWorker.register('/sw-redirect.js').then(function () {
+        navigator.serviceWorker.register('sw-redirect.js').then(function () {
           return navigator.serviceWorker.ready;
         }).then(function () {
           didRespond = true;
