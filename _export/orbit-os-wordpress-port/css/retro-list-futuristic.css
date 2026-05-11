@@ -1,0 +1,14 @@
+:root{
+  --bg:#000;
+  --panel:#001a33;
+  --ink:#0ff;
+  --muted:#08f;
+  --accent:#f0f;
+  --ok:#0f0;
+  --warn:#ff0;
+  --err:#f66;
+  --line:#033;
+}
+body{background:var(--bg);color:var(--ink);font-size:12px;}
+.btn{padding:.4rem .7rem;font-size:.8rem;}
+input[type="password"],input[type="text"],textarea{font-size:.8rem;}

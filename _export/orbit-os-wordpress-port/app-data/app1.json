@@ -1,0 +1,269 @@
+{
+  "menus": [
+    {
+      "label": "Project",
+      "items": [
+        {
+          "label": "System Info",
+          "type": "system-info"
+        },
+        {
+          "label": "CLI Terminal",
+          "type": "terminal"
+        },
+        {
+          "label": "File Manager",
+          "type": "file-manager"
+        },
+        {
+          "label": "Exit Orbit OS v 0.2.0"
+        }
+      ]
+    },
+    {
+      "label": "Edit",
+      "items": [
+        {
+          "label": "Undo"
+        },
+        {
+          "label": "Redo"
+        },
+        {
+          "label": "Cut"
+        },
+        {
+          "label": "Copy"
+        },
+        {
+          "label": "Paste"
+        }
+      ]
+    },
+    {
+      "label": "Tools",
+      "items": [
+        {
+          "label": "Calculator",
+          "type": "calculator"
+        },
+        {
+          "label": "Calendar",
+          "type": "calendar"
+        },
+        {
+          "label": "Console Log",
+          "type": "console-log"
+        },
+        {
+          "label": "Show Loading Demo",
+          "action": "show-boot-loader"
+        },
+        {
+          "label": "Docu Monster Studio Pro",
+          "type": "document-editor"
+        },
+        {
+          "label": "Orbit Comics Editor",
+          "type": "comic-forge"
+        },
+        {
+          "label": "ScanX Analyzer",
+          "type": "scanx"
+        }
+      ]
+    },
+    {
+      "label": "Windows",
+      "items": [
+        {
+          "label": "Tile Windows"
+        },
+        {
+          "label": "Cascade Windows"
+        },
+        {
+          "label": "Arrange Icons"
+        },
+        {
+          "label": "Close All"
+        }
+      ]
+    },
+    {
+      "label": "Theme",
+      "items": [
+        { "label": "Retro", "action": "set-theme", "theme": "retro" },
+        { "label": "Futuristic", "action": "set-theme", "theme": "futuristic" }
+      ]
+    }
+  ],
+  "status": "Orbit OS v 0.2.0 optimized and ready.",
+  "terminal": {
+    "banner": [
+      "Orbit OS v{version} CLI",
+      "(c) 2025 CyborgsDream",
+      "System date: {date}",
+      "System time: {time}",
+      ""
+    ],
+    "hint": "Type <strong>help</strong> or try <code>status</code>.",
+    "responses": {
+      "status": [
+        "Core services: ONLINE",
+        "Creative drives mounted successfully.",
+        "Build version: v{version}"
+      ],
+      "whoami": "orbit-user",
+      "ls apps": [
+        "cloud-storage.html",
+        "documonster.html",
+        "comic-issue-forge.html",
+        "scanx.html"
+      ]
+    },
+    "fallback": {
+      "type": "info",
+      "message": "Command \"{command}\" executed."
+    }
+  },
+  "welcome": {
+    "title": "Orbit OS v 0.2.0",
+    "lines": [
+      "Welcome to Orbit OS v 0.2.0.",
+      "Streamlined for faster window recovery and smoother boot.",
+      "(c) 2025 CyborgsDream"
+    ],
+    "button": "OK"
+  },
+  "icons": [
+    {
+      "type": "terminal",
+      "emoji": "⌨️",
+      "label": "Terminal"
+    },
+    {
+      "type": "text-editor",
+      "emoji": "📝",
+      "label": "TextEdit"
+    },
+    {
+      "type": "document-editor",
+      "emoji": "📄",
+      "label": "Docu Monster Studio Pro"
+    },
+    {
+      "type": "comic-forge",
+      "emoji": "🦸",
+      "label": "Orbit Comics Editor"
+    },
+    {
+      "type": "scanx",
+      "emoji": "🖨️",
+      "label": "ScanX"
+    },
+    {
+      "type": "calculator",
+      "emoji": "🧮",
+      "label": "Calculator"
+    },
+    {
+      "type": "calendar",
+      "emoji": "📅",
+      "label": "Calendar"
+    },
+    {
+      "type": "clock",
+      "emoji": "⏰",
+      "label": "Clock"
+    },
+    {
+      "type": "console-log",
+      "emoji": "📜",
+      "label": "Console"
+    },
+    {
+      "type": "html-studio",
+      "emoji": "🌐",
+      "label": "HTML Studio"
+    }
+  ],
+  "windows": {
+    "system-info": {
+      "title": "System Information",
+      "content": "<h2>Orbit OS v 0.2.0 Demo Machine</h2><p>Motorola 68030 @ 25MHz</p><p>2MB Chip RAM + 8MB Fast RAM</p><p>Kickstart 2.04</p><p>Orbit OS v 0.2.0</p><p>Display: 640x512 (ECS)</p><p>Floppy: 880KB 3.5\"</p><p>HD: 120MB SCSI</p><div style=\"margin-top: 20px; text-align: center;\"><div style=\"display: inline-block; padding: 10px; background: #0000aa; color: white;\">Creative Control</div></div>",
+      "width": 320,
+      "height": 300
+    },
+    "terminal": {
+      "title": "CLI",
+      "content": "<div class=\"terminal\" role=\"application\"><div class=\"terminal-screen\" tabindex=\"0\" aria-label=\"Orbit OS command line\"><div class=\"terminal-output\"></div><div class=\"terminal-input-line\"><span class=\"terminal-prompt\">orbit&gt;</span><span class=\"terminal-input\" aria-live=\"polite\"></span><span class=\"terminal-cursor\">█</span></div></div><div class=\"terminal-hints\">Type <strong>help</strong> or try <code>status</code>.</div></div>",
+      "width": 520,
+      "height": 320
+    },
+    "text-editor": {
+      "title": "Text Editor",
+      "content": "<div class=\"text-editor text-editor--wrap text-editor--mono\"><div class=\"text-editor-toolbar\"><div class=\"text-editor-menu\"><button type=\"button\" data-action=\"options\" class=\"text-editor-btn\" aria-expanded=\"false\">Options</button><button type=\"button\" data-action=\"new\" class=\"text-editor-btn\">New</button><button type=\"button\" data-action=\"save\" class=\"text-editor-btn\">Save</button><button type=\"button\" data-action=\"load\" class=\"text-editor-btn\">Load</button><button type=\"button\" data-action=\"word-count\" class=\"text-editor-btn\">Word Count</button><input type=\"file\" id=\"text-editor-file\" accept=\".txt,.md,.json,text/plain\" hidden></div><div class=\"text-editor-spacer\"></div><button type=\"button\" id=\"text-editor-export\" class=\"text-editor-btn primary\">Export PDF</button></div><div class=\"text-editor-options\" id=\"text-editor-options\" aria-hidden=\"true\"><label class=\"text-editor-option\"><span>Soft wrap text</span><input type=\"checkbox\" id=\"text-editor-option-wrap\" checked></label><label class=\"text-editor-option\"><span>Monospace mode</span><input type=\"checkbox\" id=\"text-editor-option-mono\" checked></label><label class=\"text-editor-option\"><span>Auto-save drafts</span><input type=\"checkbox\" id=\"text-editor-option-autosave\" checked></label><label class=\"text-editor-option text-editor-option--filename\"><span>Default filename</span><input type=\"text\" id=\"text-editor-option-filename\" value=\"orbit-notes.txt\" spellcheck=\"false\"></label><div class=\"text-editor-option text-editor-option--actions\"><span>Need your last copy?</span><button type=\"button\" id=\"text-editor-restore\" class=\"text-editor-btn subtle\">Restore Last Draft</button></div></div><div class=\"text-editor-status-row\"><div id=\"text-editor-status\">Ready.</div><div id=\"text-editor-stats\"></div></div><textarea id=\"text-editor-area\" class=\"text-editor-area\" autocomplete=\"off\">Welcome to Orbit OS v 0.2.0!\n\n• Crafted for focused creative work.\n• Windows snap, remember their state, and respect your layout.\n• Use the menu above to manage drafts.\n\nStay tuned for additional native tools in upcoming builds.</textarea></div>",
+      "width": 560,
+      "height": 420
+    },
+    "calculator": {
+        "title": "Calculator",
+        "content": "<div class=\"calculator\"><div class=\"calc-display\" id=\"calc-display\">0</div><button class=\"calc-btn\" onclick=\"clearCalc()\">C</button><button class=\"calc-btn\" onclick=\"appendCalc('%')\">%</button><button class=\"calc-btn\" onclick=\"appendCalc('←')\">←</button><button class=\"calc-btn operator\" onclick=\"appendCalc('/')\">×</button><button class=\"calc-btn\" onclick=\"appendCalc('7')\">7</button><button class=\"calc-btn\" onclick=\"appendCalc('8')\">8</button><button class=\"calc-btn\" onclick=\"appendCalc('9')\">9</button><button class=\"calc-btn operator\" onclick=\"appendCalc('*')\">×</button><button class=\"calc-btn\" onclick=\"appendCalc('4')\">4</button><button class=\"calc-btn\" onclick=\"appendCalc('5')\">5</button><button class=\"calc-btn\" onclick=\"appendCalc('6')\">6</button><button class=\"calc-btn operator\" onclick=\"appendCalc('-')\">-</button><button class=\"calc-btn\" onclick=\"appendCalc('1')\">1</button><button class=\"calc-btn\" onclick=\"appendCalc('2')\">2</button><button class=\"calc-btn\" onclick=\"appendCalc('3')\">3</button><button class=\"calc-btn operator\" onclick=\"appendCalc('+')\">+</button><button class=\"calc-btn\" onclick=\"appendCalc('0')\">0</button><button class=\"calc-btn\" onclick=\"appendCalc('.')\">.</button><button class=\"calc-btn operator\" onclick=\"calculate()\">=</button></div>",
+        "width": 250,
+        "height": 300
+      },
+    "calendar": {
+      "title": "Calendar",
+      "content": "<div class=\"calendar\"><div class=\"calendar-header\"><button onclick=\"changeMonth(-1)\" style=\"font-size: 18px;\">←</button><h3 id=\"calendar-month-year\">{MONTH_YEAR}</h3><button onclick=\"changeMonth(1)\" style=\"font-size: 18px;\">→</button></div><div class=\"calendar-grid\"><div class=\"calendar-day header\">Sun</div><div class=\"calendar-day header\">Mon</div><div class=\"calendar-day header\">Tue</div><div class=\"calendar-day header\">Wed</div><div class=\"calendar-day header\">Thu</div><div class=\"calendar-day header\">Fri</div><div class=\"calendar-day header\">Sat</div>{CALENDAR_DAYS}</div></div>",
+      "width": 350,
+      "height": 300
+    },
+    "clock": {
+      "title": "Clock",
+      "content": "<div class=\"gshock-clock\" role=\"img\" aria-label=\"CASHIO G-Shock inspired digital clock\"><div class=\"gshock-bezel\">CASHIO<br><span>G-SHOCK</span></div><div class=\"gshock-inner\"><div class=\"gshock-header\"><span id=\"gshock-day\">SUN</span><span class=\"gshock-signal\">SIG</span><span id=\"gshock-mode\">24H</span></div><div class=\"gshock-time\" id=\"gshock-time\">{TIME}</div><div class=\"gshock-footer\"><span id=\"gshock-date\">JAN 01</span><span id=\"gshock-ampm\">AM</span></div></div><div class=\"gshock-buttons\"><button id=\"gshock-toggle\" class=\"gshock-btn\" aria-label=\"Toggle 12 and 24 hour time\">MODE</button></div></div>",
+      "width": 260,
+      "height": 260
+    },
+    "console-log": {
+      "title": "Console Logs",
+      "content": "<div class=\"console-log-window\" style=\"width:100%;height:100%;background:#000;color:#fff;font-family:monospace;overflow:auto;font-size:16px;padding:4px;\"></div>",
+      "width": 400,
+      "height": 250
+    },
+    "html-studio": {
+      "title": "HTML Studio",
+      "content": "<iframe src=\"html-studio.html\" style=\"width:100%;height:100%;border:none;\"></iframe>",
+      "width": 600,
+      "height": 450
+    },
+    "document-editor": {
+      "title": "Docu Monster Studio Pro A4",
+      "content": "<iframe src=\"documonster.html\" style=\"width:100%;height:100%;border:none;background:#c0c0c0;\"></iframe>",
+      "width": 1280,
+      "height": 900
+    },
+    "comic-forge": {
+      "title": "Orbit Comics Editor v0.0.2",
+      "content": "<iframe src=\"comic-issue-forge.html\" style=\"width:100%;height:100%;border:none;background:#eef1ff;\"></iframe>",
+      "width": 1280,
+      "height": 860
+    },
+    "scanx": {
+      "title": "ScanX Publishing Studio",
+      "content": "<iframe src=\"scanx.html\" style=\"width:100%;height:100%;border:none;background:#f4f6ff;\"></iframe>",
+      "width": 900,
+      "height": 640
+    },
+    "mini-app": {
+      "title": "Mini App",
+      "content": "<p>Mini app pinned!</p>",
+      "width": 160,
+      "height": 120
+    }
+  },
+  "settings": {
+    "clockFormat": "en-US",
+    "persistWindows": true
+  }
+}

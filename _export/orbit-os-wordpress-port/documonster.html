@@ -1,0 +1,3118 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta http-equiv="Content-Language" content="en" />
+<title>Docu Monster Studio Pro — Orbit OS v 0.2.0</title>
+<style>
+  /* ===== Base ===== */
+  *,*::before,*::after{ box-sizing:border-box; }
+  html,body{ margin:0; padding:0; }
+  :root{
+    --bleed:3mm;
+    --page-w:210mm; --page-h:297mm;
+    --sheet-w:calc(var(--page-w) + 2*var(--bleed));
+    --sheet-h:calc(var(--page-h) + 2*var(--bleed));
+    --m-top:15mm; --m-out:17mm; --m-bot:20mm; --m-in:17mm;
+    --col-gap:6mm;
+    --accent:#0b84ff;
+    --ink:#101217; --ink-soft:#454853; --rule:#d7d9df; --paper:#fff; --thumb-bg:#eef0f6;
+    --chrome-bg:#f4f5f9; --chrome-border:#d3d6de; --chrome-border-strong:#b7bbc7;
+    --font-ui:"Tahoma","Segoe UI","MS Sans Serif",ui-sans-serif,system-ui,sans-serif;
+    --font-body:"Times New Roman","Noto Serif",ui-serif,serif;
+    --menu-h:26px; --sidebar-w:216px; --measure-w:232px; --workspace-pad:72px;
+    --crop-l:7mm; --crop-w:0.25mm;
+  }
+
+  body{ background:linear-gradient(135deg, #ede8dc 0%, #f6f3eb 55%, #e9e4d8 100%); font:12px var(--font-body); color:var(--ink); }
+  body.dirty #status{ background:#dede57; }
+  a{ color:inherit; }
+
+  .mobile-only{ display:none; }
+  body.mobile-layout{ --workspace-pad:36px; }
+  body.mobile-layout #menubar{ flex-wrap:wrap; gap:4px; padding:6px 10px; overflow-x:auto; justify-content:flex-start; box-shadow:none; }
+  body.mobile-layout .menu-root{ flex:0 1 auto; min-width:96px; }
+  body.mobile-layout .mobile-only{ display:inline-flex; }
+  body.mobile-layout #ui{
+    position:static;
+    top:auto;
+    left:auto;
+    bottom:auto;
+    width:100%;
+    max-height:none;
+    border-right:none;
+    border-bottom:1px solid var(--chrome-border);
+    overflow:visible;
+    padding:14px 12px;
+    background:#fdfdff;
+  }
+  body.mobile-layout #ui .win-group{ width:100%; }
+  body.mobile-layout #sidebar{
+    position:static;
+    top:auto;
+    left:auto;
+    bottom:auto;
+    width:100%;
+    max-height:none;
+    border-right:none;
+    border-bottom:1px solid var(--chrome-border);
+    padding:16px 14px;
+    background:#f9f9fb;
+  }
+  body.mobile-layout #pageViewport{
+    margin-left:0;
+    padding:32px 12px 120px;
+    max-width:100%;
+    overflow-x:auto;
+  }
+  body.mobile-layout #viewportZoomControls{
+    right:16px;
+    bottom:16px;
+  }
+  body.mobile-layout #viewportZoomControls button{
+    width:36px;
+    height:36px;
+  }
+  body.mobile-layout #rulerTop,
+  body.mobile-layout #rulerLeft{
+    display:none;
+  }
+  body.mobile-layout #thumbs .thumb{
+    max-width:320px;
+    margin-left:auto;
+    margin-right:auto;
+  }
+  body.mobile-ui-hidden #ui{ display:none !important; }
+  body.mobile-sidebar-hidden #sidebar{ display:none !important; }
+
+  /* ===== Menubar ===== */
+  #menubar{ position:sticky; top:0; z-index:1200; height:var(--menu-h); display:flex; align-items:center; gap:6px; padding:4px 14px; background:#fff; border-bottom:1px solid var(--chrome-border); box-shadow:0 1px 2px rgba(16,18,23,0.04); }
+  .menu-root{ font:11px var(--font-ui); border:1px solid transparent; background:transparent; padding:4px 8px; min-width:56px; text-align:left; color:var(--ink); border-radius:5px; cursor:pointer; transition:background 0.15s ease, color 0.15s ease, border-color 0.15s ease; }
+  .menu-root:focus-visible{ outline:2px solid var(--accent); outline-offset:1px; }
+  .menu-root.open, .menu-root:hover{ background:rgba(11,132,255,0.12); border-color:rgba(11,132,255,0.3); color:#0b3d91; }
+  .menu-dropdown{ position:absolute; background:#fff; border:1px solid var(--chrome-border); border-radius:8px; padding:6px 0; display:none; min-width:190px; box-shadow:0 12px 32px rgba(16,18,23,0.18); z-index:1300; }
+  .menu-dropdown.open{ display:block; }
+  .menu-dropdown button{ width:100%; text-align:left; background:transparent; border:none; font:11px var(--font-ui); padding:6px 16px; color:var(--ink); cursor:pointer; transition:background 0.15s ease, color 0.15s ease; }
+  .menu-dropdown button:hover{ background:rgba(11,132,255,0.1); color:#0b3d91; }
+  .menu-sep{ border-top:1px solid var(--chrome-border); margin:6px 0; }
+
+  /* ===== Toolbar ===== */
+  #ui{ position:fixed; top:var(--menu-h); left:0; bottom:0; width:var(--measure-w); z-index:1100; background:#fdfdff; padding:14px 12px; border-right:1px solid var(--chrome-border); display:flex; flex-direction:column; align-items:stretch; gap:12px; overflow:auto; }
+  .win-group{ padding:10px; background:#fff; border:1px solid var(--chrome-border); border-radius:10px; display:flex; align-items:center; gap:8px; flex-wrap:wrap; width:100%; box-shadow:0 1px 2px rgba(16,18,23,0.05); }
+  .win-btn{ padding:5px 10px; min-width:28px; background:linear-gradient(to bottom, #ffffff 0%, #f3f6fc 100%); border:1px solid #c8cfdb; border-radius:6px; cursor:pointer; font:11px var(--font-ui); color:var(--ink); transition:background 0.15s ease, border-color 0.15s ease, color 0.15s ease; }
+  .win-btn:hover{ background:linear-gradient(to bottom, #f6f9ff 0%, #e8f1ff 100%); border-color:#9fbef7; color:#0b3d91; }
+  .win-btn:active{ background:#dbe7ff; border-color:#7ea7ff; color:#0b3d91; }
+  .win-check{ display:inline-flex; align-items:center; gap:6px; font:11px var(--font-ui); color:var(--ink); }
+  .win-check input{ width:14px; height:14px; accent-color:var(--accent); }
+  .win-stat{ font:11px var(--font-ui); padding:4px 8px; background:#f3f5fb; border:1px solid var(--chrome-border); border-radius:6px; display:inline-flex; gap:6px; align-items:center; color:var(--ink-soft); }
+  input[type="number"], select, input[type="text"]{ font:11px var(--font-ui); padding:5px 8px; background:#fff; border:1px solid var(--chrome-border); border-radius:6px; color:var(--ink); min-height:28px; }
+  #status{ min-width:140px; }
+  .spacer{ flex:1 1 auto; }
+
+  /* Inspector */
+  #frameInspector{ display:none; flex-direction:column; align-items:flex-start; gap:4px; }
+  #frameInspector.active{ display:flex; }
+  #frameInspector .ins-grid{ display:grid; grid-template-columns:repeat(2, auto); gap:6px 12px; align-items:center; }
+  #frameInspector label{ font:11px var(--font-ui); display:flex; flex-direction:column; gap:3px; color:var(--ink); }
+  #frameInspector input[type="number"], #frameInspector input[type="text"], #frameInspector select{ min-width:72px; }
+  #frameInspector small{ font-size:10px; color:var(--ink-soft); }
+
+  /* ===== Sidebar ===== */
+  #sidebar{ position:fixed; top:var(--menu-h); left:var(--measure-w); bottom:0; width:var(--sidebar-w); background:#f9f9fb; border-right:1px solid var(--chrome-border); overflow:auto; padding:16px 14px; z-index:1000; display:flex; flex-direction:column; gap:16px; }
+  #releaseCard{ background:#fff; border:1px solid var(--chrome-border); border-radius:10px; padding:12px; font:11px var(--font-ui); color:var(--ink); box-shadow:0 1px 2px rgba(16,18,23,0.05); }
+  #releaseCard h2{ font:12px var(--font-ui); margin:0 0 8px 0; color:#0b3d91; letter-spacing:0.01em; text-transform:uppercase; }
+  #releaseCard p{ margin:0 0 6px 0; color:var(--ink-soft); }
+  #releaseCard ul{ margin:0; padding-left:18px; color:var(--ink-soft); }
+  #thumbs .thumb{ padding:8px; margin:8px 0; background:#fff; border:1px solid var(--chrome-border); border-radius:10px; cursor:pointer; transition:box-shadow 0.15s ease, border-color 0.15s ease; }
+  #thumbs .thumb:hover{ border-color:#9fbef7; box-shadow:0 6px 16px rgba(16,18,23,0.08); }
+  #thumbs .thumb.active{ border-color:var(--accent); box-shadow:0 0 0 2px rgba(11,132,255,0.2); }
+  .mini-wrap{ width:160px; height:230px; overflow:hidden; position:relative; margin:4px auto; background:#fff; border-radius:8px; box-shadow:0 1px 4px rgba(16,18,23,0.08); }
+  .mini-wrap .sheet{ box-shadow:none; border:none; }
+  .mini-wrap .trim::before, .mini-wrap .crop, .mini-wrap .marks{ display:none; }
+  .mini-meta{ text-align:center; font:10px var(--font-ui); color:var(--ink-soft); margin-top:6px; }
+
+  /* ===== Rulers ===== */
+  #rulerTop, #rulerLeft{ position:fixed; background:#f7f8fb; color:#000; font:10px var(--font-ui); z-index:900; pointer-events:none; }
+  #rulerTop{ top:calc(var(--menu-h) + 12px); left:calc(var(--measure-w) + var(--sidebar-w) + 12px); height:28px; width:calc(var(--sheet-w) + 36px); border:1px solid #808080; border-left:none; display:block; }
+  #rulerLeft{ top:calc(var(--menu-h) + 40px); left:calc(var(--measure-w) + var(--sidebar-w) - 24px); width:36px; height:calc(var(--sheet-h) + var(--workspace-pad)); border:1px solid #808080; border-top:none; display:block; }
+  #rulerTop::before{ content:""; position:absolute; inset:0; background:
+    repeating-linear-gradient(to right, rgba(0,0,0,0.3) 0, rgba(0,0,0,0.3) 1px, transparent 1px, transparent 3.7795px),
+    repeating-linear-gradient(to right, rgba(0,0,0,0.6) 0, rgba(0,0,0,0.6) 1.3px, transparent 1.3px, transparent 37.795px),
+    repeating-linear-gradient(to right, rgba(128,0,0,0.45) 0, rgba(128,0,0,0.45) 1.5px, transparent 1.5px, transparent 96px);
+    opacity:0.55;
+  }
+  #rulerLeft::before{ content:""; position:absolute; inset:0; background:
+    repeating-linear-gradient(to bottom, rgba(0,0,0,0.3) 0, rgba(0,0,0,0.3) 1px, transparent 1px, transparent 3.7795px),
+    repeating-linear-gradient(to bottom, rgba(0,0,0,0.6) 0, rgba(0,0,0,0.6) 1.3px, transparent 1.3px, transparent 37.795px),
+    repeating-linear-gradient(to bottom, rgba(128,0,0,0.45) 0, rgba(128,0,0,0.45) 1.5px, transparent 1.5px, transparent 96px);
+    opacity:0.55;
+  }
+  .ruler-labels{ position:relative; width:100%; height:100%; }
+  .ruler-labels span{ position:absolute; transform:translate(-50%,0); font-size:10px; color:#000; }
+  #rulerTop .inch span{ color:#800000; top:14px; }
+  #rulerTop .cm span{ top:2px; }
+  #rulerLeft .inch span{ color:#800000; left:14px; transform:translate(0,-50%); }
+  #rulerLeft .cm span{ left:2px; transform:translate(0,-50%); }
+
+  /* ===== Pages ===== */
+  #pageViewport{ margin-left:calc(var(--measure-w) + var(--sidebar-w) + 36px); padding:var(--workspace-pad) 20px 40px; transform-origin:top left; }
+  body.print-export #pageViewport{ margin:0 auto !important; padding:0 !important; transform:none !important; max-width:100%; }
+  #pages{ margin:0; padding:0; }
+  body.print-export #pages{ display:block; margin:0 auto !important; padding:0 !important; transform:none !important; }
+  .sheet{ position:relative; width:var(--sheet-w); height:var(--sheet-h); background:radial-gradient(circle at 30% 20%, rgba(255,255,255,0.45) 0%, transparent 42%), radial-gradient(circle at 70% 80%, rgba(255,255,255,0.38) 0%, transparent 46%), var(--paper); color:var(--ink); box-shadow:0 22px 40px rgba(16,18,23,0.14), 0 0 0 1px rgba(16,18,23,0.08); margin:18px auto; border:1px solid rgba(16,18,23,0.08); border-radius:12px; scroll-margin-top:calc(var(--menu-h) + var(--workspace-pad)); overflow:hidden; }
+  .sheet{ --inPage:var(--m-in); --outPage:var(--m-out); }
+  .sheet.even{ --inPage:var(--m-out); --outPage:var(--m-in); }
+  #viewportZoomControls{ position:fixed; right:28px; bottom:28px; display:flex; gap:10px; z-index:950; pointer-events:auto; }
+  #viewportZoomControls button{ width:38px; height:38px; border:1px solid var(--chrome-border-strong); background:#fff; display:flex; align-items:center; justify-content:center; cursor:pointer; padding:0; border-radius:10px; box-shadow:0 4px 12px rgba(16,18,23,0.12); color:var(--ink); transition:transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease; }
+  #viewportZoomControls button:hover{ transform:translateY(-1px); box-shadow:0 6px 18px rgba(16,18,23,0.16); border-color:#9fbef7; color:#0b3d91; }
+  #viewportZoomControls button:disabled{ opacity:0.45; cursor:not-allowed; box-shadow:none; transform:none; }
+  #viewportZoomControls button:focus-visible{ outline:2px solid var(--accent); outline-offset:2px; }
+  #viewportZoomControls button svg{ width:16px; height:16px; fill:currentColor; }
+  body.preview-open #viewportZoomControls{ display:none; }
+  .sheet.theme-standard{ --paper:#fff; --ink:#111; --ink-soft:#444; }
+  .sheet.theme-newsprint{ --paper:#fdf4e3; --ink:#352a1a; --ink-soft:#6a4f2d; }
+  .sheet.theme-midnight{ --paper:#151b2c; --ink:#f2f6ff; --ink-soft:#c8d4ff; }
+  .sheet.theme-midnight .subtitle{ color:rgba(200,212,255,0.78); }
+  .sheet.theme-newsprint .subtitle{ color:rgba(106,79,45,0.75); }
+
+  /* Crop marks */
+  .crop{ position:absolute; width:0; height:0; }
+  .crop::before, .crop::after{ content:""; position:absolute; background:#000; }
+  .crop.tl{ left:var(--bleed); top:var(--bleed); }
+  .crop.tr{ right:var(--bleed); top:var(--bleed); }
+  .crop.bl{ left:var(--bleed); bottom:var(--bleed); }
+  .crop.br{ right:var(--bleed); bottom:var(--bleed); }
+  .crop.tl::after, .crop.tr::after, .crop.bl::after, .crop.br::after{ height:var(--crop-w); width:var(--crop-l); }
+  .crop.tl::after{ left:0; top:calc(var(--m-top) - var(--crop-w)); transform:translateX(calc(-1 * var(--crop-l))); }
+  .crop.tr::after{ right:0; top:calc(var(--m-top) - var(--crop-w)); }
+  .crop.bl::after{ left:0; bottom:calc(var(--m-bot) - var(--crop-w)); transform:translateX(calc(-1 * var(--crop-l))); }
+  .crop.br::after{ right:0; bottom:calc(var(--m-bot) - var(--crop-w)); }
+  .crop.tl::before, .crop.tr::before, .crop.bl::before, .crop.br::before{ width:var(--crop-w); height:var(--crop-l); }
+  .crop.tl::before{ top:0; left:calc(var(--inPage) - var(--crop-w)); transform:translateY(calc(-1 * var(--crop-l))); }
+  .crop.tr::before{ top:0; right:calc(var(--outPage) - var(--crop-w)); transform:translateY(calc(-1 * var(--crop-l))); }
+  .crop.bl::before{ bottom:0; left:calc(var(--inPage) - var(--crop-w)); }
+  .crop.br::before{ bottom:0; right:calc(var(--outPage) - var(--crop-w)); }
+
+  /* Trim + content */
+  .trim{ position:absolute; left:var(--bleed); top:var(--bleed); width:var(--page-w); height:var(--page-h); }
+  .trim::before{ content:""; position:absolute; left:var(--inPage); right:var(--outPage); top:var(--m-top); bottom:var(--m-bot); border:1px dotted rgba(16,18,23,0.35); }
+  .content{ position:absolute; left:var(--inPage); right:var(--outPage); top:var(--m-top); bottom:var(--m-bot); padding:2mm 0; }
+
+  /* Marks */
+  .marks{ position:absolute; inset:0; pointer-events:none; }
+  .marks .colorbar{ position:absolute; left:var(--bleed); right:var(--bleed); bottom:0.8mm; height:6mm; display:flex; gap:0.6mm; align-items:stretch; }
+  .marks .patch{ flex:0 0 10mm; height:100%; border:0.2pt solid #ccc; }
+  .patch.c{ background:#00B5E2; } .patch.m{ background:#D5006D; } .patch.y{ background:#FFD400; } .patch.k{ background:#000; }
+  .patch.r{ background:#FF3B30; } .patch.g{ background:#34C759; } .patch.b{ background:#007AFF; }
+  .patch.w{ background:#fff; } .patch.g10{ background:#1a1a1a; } .patch.g20{ background:#333; } .patch.g30{ background:#4d4d4d; }
+  .patch.g40{ background:#666; } .patch.g50{ background:#808080; } .patch.g60{ background:#999; } .patch.g70{ background:#b3b3b3; }
+  .patch.g80{ background:#ccc; } .patch.g90{ background:#e6e6e6; }
+  .marks .info{ position:absolute; right:var(--bleed); top:0.8mm; font:11px var(--font-ui); color:#000; background:#fff; padding:2px 4px; border:1px solid #808080; }
+  .marks .reg{ position:absolute; width:7mm; height:7mm; border-radius:50%; border:1px solid #000; }
+  .marks .reg::before, .marks .reg::after{ content:""; position:absolute; left:50%; top:50%; background:#000; transform:translate(-50%,-50%); }
+  .marks .reg::before{ width:6mm; height:0.25mm; }
+  .marks .reg::after{ width:0.25mm; height:6mm; }
+  .marks .reg.tl{ left:1mm; top:1mm; } .marks .reg.tr{ right:1mm; top:1mm; }
+  .marks .reg.bl{ left:1mm; bottom:1mm; } .marks .reg.br{ right:1mm; bottom:1mm; }
+  .marks .safe-area{ position:absolute; left:var(--bleed); right:var(--bleed); top:var(--bleed); bottom:var(--bleed); border:1px dotted #bbb; }
+  body.printshop .marks::after{ content:""; position:absolute; inset:0; background:
+    repeating-linear-gradient(to bottom, rgba(0,0,0,.06), rgba(0,0,0,.06) 0.4mm, transparent 0.4mm, transparent 1.6mm),
+    repeating-linear-gradient(to right, rgba(0,0,0,.04), rgba(0,0,0,.04) 0.4mm, transparent 0.4mm, transparent 1.6mm);
+  }
+  body.printshop .marks .slur{ position:absolute; width:14mm; height:14mm; border:1px dashed #000; border-radius:50%; left:calc(50% - 7mm); top:1mm; }
+
+  /* Content blocks */
+  h1,h2,h3{ font-family:var(--font-ui); margin:0 0 3mm 0; line-height:1.2; letter-spacing:0.01em; }
+  h1.title{ font-size:22px; letter-spacing:0.06em; text-transform:uppercase; color:rgba(16,18,23,0.9); }
+  .subtitle{ font:14px/1.5 var(--font-ui); color:#3d3b37; margin:0 0 3mm 0; letter-spacing:0.08em; text-transform:uppercase; }
+  .deck{ font:13px/1.6 var(--font-body); color:#24221f; margin:0 0 5mm 0; text-align:justify; }
+  h2{ font-size:15px; }
+  h3{ font-size:13px; }
+  p{ margin:0 0 3.2mm 0; hyphens:auto; orphans:3; widows:3; }
+  ul.bullet{ margin:0 0 3mm 0; padding-left:18px; }
+  ul.bullet li{ margin:0 0 2mm 0; }
+  .news-kicker{ font:11px var(--font-ui); letter-spacing:0.32em; text-transform:uppercase; color:var(--ink-soft); margin:0 0 2mm 0; }
+  .news-banner{ font:18px var(--font-ui); letter-spacing:0.08em; text-transform:uppercase; margin:0 0 2mm 0; }
+  .dropcap{ float:left; font:700 28px/0.8 var(--font-ui); margin:0 6px 2px 0; text-transform:uppercase; }
+  .news-rail{ border-top:2px solid var(--ink); border-bottom:2px solid var(--ink); padding:2mm 0; font:11px var(--font-ui); letter-spacing:0.28em; text-transform:uppercase; text-align:center; }
+  .ad-box{ border:2px double var(--ink); padding:3mm; font:11px var(--font-ui); text-transform:uppercase; letter-spacing:0.18em; background:rgba(0,0,0,0.04); }
+  .head{ padding:6mm 0 3mm 0; border-bottom:1px solid #ddd; }
+  .column-window-stack{ display:flex; flex-wrap:wrap; gap:6mm; padding:4mm 0 0 0; align-items:flex-start; position:relative; }
+  .column-window-stack.split{ margin-bottom:6mm; }
+  .column-window-stack.selected{ outline:1px dashed var(--accent); outline-offset:2px; }
+  .column-window{ flex:0 0 auto; min-width:45mm; min-height:40mm; max-width:calc(100% - 2mm); background:linear-gradient(180deg, rgba(255,255,255,0.9) 0%, rgba(252,248,240,0.96) 100%); border:1px solid rgba(16,18,23,0.12); box-shadow:0 12px 26px rgba(16,18,23,0.14); display:flex; flex-direction:column; resize:both; overflow:auto; position:relative; border-radius:8px; }
+  .column-window.dragging{ opacity:0.4; }
+  .column-window-header{ font:11px var(--font-ui); background:linear-gradient(180deg, #f7f4ed 0%, #e7e0d2 100%); color:#1b1a17; padding:3px 8px; border-bottom:1px solid rgba(16,18,23,0.12); display:flex; justify-content:space-between; align-items:center; cursor:grab; border-top-left-radius:8px; border-top-right-radius:8px; }
+  .column-window-header .label{ font-weight:600; text-transform:uppercase; }
+  .column-window-header .size{ font-weight:500; font-size:10px; color:#333; }
+  .column-window-content{ flex:1 1 auto; padding:4mm 4.5mm; font-size:13px; line-height:1.6; outline:1px dashed transparent; transition:outline 0.12s ease, background 0.12s ease; color:#24221f; text-align:justify; letter-spacing:0.01em; }
+  .column-window-content p{ margin:0 0 3.6mm 0; text-indent:1.6em; }
+  .column-window-content p:first-of-type{ text-indent:0; }
+  .column-window-content:focus{ outline:1px dashed #008080; background:rgba(0,128,128,0.08); }
+  .column-window-drop-indicator{ position:absolute; inset:-2px; border:2px dashed rgba(0,128,128,0.65); pointer-events:none; }
+  .column-window-stack.style-accent .column-window-content{ background:rgba(0,128,128,0.08); border-left:3px solid var(--accent); }
+  .column-window-stack.style-note .column-window-content{ background:rgba(255,225,150,0.45); border:1px dashed #c58a00; }
+  .column-window-stack.style-inverse .column-window{ background:#0c3c52; color:#f5faff; border-color:#203a50; border-right-color:#405068; border-bottom-color:#405068; }
+  .column-window-stack.style-inverse .column-window-header{ background:#162a40; color:#f5faff; border-bottom-color:#203a50; }
+  .column-window-stack.style-inverse .column-window-content{ color:#f5faff; }
+  .column-window-stack.style-inverse .column-window-content h2,
+  .column-window-stack.style-inverse .column-window-content h3{ color:#f5faff; }
+  .span-all{ column-span:all; break-before:column; break-after:column; }
+  .split{ padding-bottom:6mm; }
+  .foot{ padding:3mm 0 4mm 0; border-top:1px solid #ddd; font:11px var(--font-ui); color:#333; display:flex; justify-content:space-between; gap:6mm; }
+  .foot span{ flex:1 1 auto; }
+  .foot span[contenteditable="true"]:focus{ outline:1px dashed #008080; }
+  figure.frame{ margin:0; }
+  .frame{ border:1px solid rgba(0,0,0,0.35); background:#fff; box-shadow:3px 3px 0 rgba(0,0,0,0.2); position:absolute; display:flex; flex-direction:column; }
+  .frame.mode-float-left, .frame.mode-float-right, .frame.mode-block{ position:relative; box-shadow:2px 2px 0 rgba(0,0,0,0.2); }
+  .frame.mode-float-left{ float:left; margin:0 4mm 3mm 0; }
+  .frame.mode-float-right{ float:right; margin:0 0 3mm 4mm; }
+  .frame.mode-block{ float:none; margin:3mm auto; }
+  .frame.selected{ outline:2px dashed #008080; }
+  .frame-content{ flex:1 1 auto; padding:3mm; font-size:12px; line-height:1.4; }
+  .frame-content:focus{ outline:1px dashed #008080; }
+  .frame-image{ flex:1 1 auto; background:repeating-linear-gradient(135deg,#dde7ef,#dde7ef 12px,#c7d6e5 12px,#c7d6e5 24px); display:flex; align-items:center; justify-content:center; color:#344860; font:11px var(--font-ui); text-align:center; padding:4mm; }
+  .frame-image[data-src]{ background-size:cover; background-position:center; color:transparent; text-indent:-9999px; }
+  .frame figcaption{ font:11px var(--font-ui); color:#333; padding:2mm 3mm 3mm; }
+  .frame .resize-handle{ position:absolute; width:10px; height:10px; background:#000080; border:1px solid #fff; display:none; }
+  .frame .resize-handle.se{ right:-5px; bottom:-5px; cursor:se-resize; }
+  .frame .resize-handle.e{ right:-5px; top:50%; transform:translateY(-50%); cursor:e-resize; }
+  .frame .resize-handle.s{ bottom:-5px; left:50%; transform:translateX(-50%); cursor:s-resize; }
+  .frame.selected .resize-handle{ display:block; }
+  .frame.style-outline{ border:2px solid var(--accent); box-shadow:4px 4px 0 rgba(0,128,128,0.2); }
+
+  /* Zoom controls */
+  #zoomControls{ display:flex; gap:6px; align-items:center; flex-wrap:wrap; }
+  #zoomControls button{ padding:2px 6px; font:12px var(--font-ui); background:#c0c0c0; border:2px solid #fff; border-right-color:#000; border-bottom-color:#000; cursor:pointer; }
+  #zoomControls button:active{ border:2px solid #000; border-right-color:#fff; border-bottom-color:#fff; }
+  #zoomDisplay{ font:12px var(--font-ui); background:#fff; border:2px solid #000; border-right-color:#fff; border-bottom-color:#fff; padding:2px 10px; min-width:56px; text-align:center; }
+
+  /* Full page preview */
+  body.preview-open{ overflow:hidden; }
+  #pagePreviewModal{ position:fixed; inset:0; display:none; align-items:center; justify-content:center; padding:32px; background:rgba(8,12,22,0.82); z-index:3200; }
+  #pagePreviewModal.open{ display:flex; }
+  #pagePreviewModal .page-preview-card{ width:min(1100px, 100%); height:min(90vh, 760px); background:#0f1626; border:3px solid #0a4d9c; border-right-color:#58a6ff; border-bottom-color:#58a6ff; box-shadow:0 18px 48px rgba(0,0,0,0.55); display:flex; flex-direction:column; }
+  .page-preview-bar{ display:flex; align-items:center; justify-content:space-between; gap:18px; padding:14px 18px; background:linear-gradient(135deg,#15213b,#0d1628); color:#f5f9ff; font:13px var(--font-ui); text-transform:uppercase; letter-spacing:0.08em; }
+  .page-preview-heading{ display:flex; flex-direction:column; gap:6px; font-size:12px; text-transform:none; letter-spacing:normal; }
+  .page-preview-heading strong{ font-size:15px; text-transform:uppercase; letter-spacing:0.12em; }
+  .page-preview-controls{ display:flex; align-items:center; gap:10px; }
+  .page-preview-controls button{ padding:4px 12px; font:12px var(--font-ui); background:#1e2c45; color:#f5f9ff; border:2px solid #0a4d9c; border-right-color:#58a6ff; border-bottom-color:#58a6ff; cursor:pointer; }
+  .page-preview-controls button:disabled{ opacity:0.45; cursor:not-allowed; }
+  .page-preview-controls button:active{ border-color:#58a6ff; border-right-color:#0a4d9c; border-bottom-color:#0a4d9c; }
+  .page-preview-controls input[type="range"]{ accent-color:#58a6ff; width:160px; }
+  .page-preview-body{ flex:1; display:flex; align-items:center; gap:18px; padding:18px; background:#0a111f; }
+  .page-preview-viewport{ flex:1; height:100%; overflow:auto; background:rgba(12,20,34,0.6); border:2px solid rgba(72,118,181,0.45); border-radius:14px; padding:18px 24px; display:flex; justify-content:center; align-items:flex-start; }
+  .page-preview-viewport::-webkit-scrollbar{ width:10px; height:10px; }
+  .page-preview-viewport::-webkit-scrollbar-thumb{ background:rgba(88,166,255,0.35); border-radius:8px; }
+  .page-preview-sheet{ min-width:0; display:flex; justify-content:center; }
+  .page-preview-sheet .sheet{ transform-origin:top center; pointer-events:none; margin:0 auto; box-shadow:0 16px 40px rgba(0,0,0,0.45); }
+  .page-preview-nav{ width:44px; height:44px; border-radius:50%; border:2px solid #58a6ff; background:#14203a; color:#f5f9ff; font-size:20px; display:flex; align-items:center; justify-content:center; cursor:pointer; }
+  .page-preview-nav:disabled{ opacity:0.35; cursor:not-allowed; }
+  .page-preview-nav:active{ border-color:#0a4d9c; }
+
+  @media (max-width: 640px){
+    #pagePreviewModal{ padding:16px; }
+    #pagePreviewModal .page-preview-card{ height:min(92vh, 640px); }
+    .page-preview-bar{ flex-direction:column; align-items:flex-start; gap:12px; }
+    .page-preview-controls{ flex-wrap:wrap; justify-content:flex-start; }
+    .page-preview-body{ flex-direction:column; align-items:stretch; }
+    .page-preview-nav{ width:100%; height:40px; border-radius:12px; }
+    .page-preview-viewport{ width:100%; }
+  }
+
+  /* Template modal */
+  #templateModal{ position:fixed; inset:0; background:rgba(0,0,0,0.55); z-index:2000; display:none; align-items:center; justify-content:center; padding:24px; }
+  #templateModal.open{ display:flex; }
+  .template-modal-card{ background:#f4f4f4; border:3px solid #000; border-right-color:#fff; border-bottom-color:#fff; box-shadow:6px 6px 0 rgba(0,0,0,0.35); width:min(680px, 100%); max-height:calc(100vh - 48px); overflow:hidden; display:flex; flex-direction:column; }
+  .template-modal-header{ background:#000080; color:#fff; padding:14px 18px; font:16px var(--font-ui); text-transform:uppercase; letter-spacing:0.08em; }
+  .template-modal-body{ padding:18px; display:flex; flex-direction:column; gap:16px; overflow:auto; }
+  .template-grid{ display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:14px; }
+  .template-option{ background:#fff; border:2px solid #808080; border-right-color:#fff; border-bottom-color:#fff; padding:12px; cursor:pointer; display:flex; flex-direction:column; gap:8px; min-height:140px; }
+  .template-option:hover, .template-option:focus{ outline:2px dashed #000080; }
+  .template-option h3{ margin:0; font:14px var(--font-ui); text-transform:uppercase; }
+  .template-option p{ margin:0; font:12px var(--font-ui); color:#222; }
+  .template-actions{ display:flex; justify-content:flex-end; gap:12px; margin-top:8px; }
+  .template-actions button{ padding:6px 16px; font:12px var(--font-ui); background:#c0c0c0; border:2px solid #fff; border-right-color:#000; border-bottom-color:#000; cursor:pointer; }
+  .template-actions button:active{ border:2px solid #000; border-right-color:#fff; border-bottom-color:#fff; }
+
+  @media print{
+    .column-window-stack{ display:block; outline:none !important; }
+    .column-window{ page-break-inside:avoid; box-shadow:none; border:1px solid #ccc; resize:none; min-width:auto; min-height:auto; width:auto !important; height:auto !important; }
+    .column-window-header{ display:none; }
+    .column-window-content{ outline:none; background:transparent !important; padding:0; }
+    #templateModal{ display:none !important; }
+  }
+  .frame.style-shadow{ box-shadow:6px 6px 0 rgba(0,0,0,0.35); }
+  .frame.style-banner figcaption{ background:var(--accent); color:#fff; text-transform:uppercase; letter-spacing:0.12em; padding:3mm 4mm; }
+  .frame.style-banner .frame-content{ padding-top:4mm; }
+  .quote{ font-size:14px; line-height:1.3; }
+  .attribution{ font:11px var(--font-ui); text-transform:uppercase; letter-spacing:0.08em; }
+  .callout{ font:12px var(--font-ui); font-weight:bold; }
+  .note{ font:12px var(--font-ui); }
+
+  /* Toggles */
+  body.hide-guides .trim::before{ display:none !important; }
+  body.hide-crops .crop{ display:none !important; }
+  body.hide-colorbar .marks .colorbar{ display:none !important; }
+  body.hide-reg .marks .reg{ display:none !important; }
+  body.hide-safe .marks .safe-area{ opacity:0 !important; }
+
+  /* Print overrides */
+  @media print{
+    @page{ size:216mm 303mm; margin:0; }
+    html,body{ width:216mm; height:303mm; margin:0; padding:0; }
+    #menubar,#ui,#sidebar,#rulerTop,#rulerLeft{ display:none!important; }
+    #pages{ margin:0; padding:0; }
+    body, #pages{ position:static !important; }
+    .sheet{ position:relative !important; left:0!important; top:0!important; width:216mm!important; height:303mm!important; margin:0!important; box-shadow:none!important; border:none!important; page-break-after:always; page-break-inside:avoid; overflow:hidden; }
+    .sheet:last-child{ page-break-after:auto; }
+    .trim{ left:3mm!important; top:3mm!important; width:210mm!important; height:297mm!important; }
+    :root{ --m-top:12mm; --m-bot:12mm; --m-in:12mm; --m-out:12mm; }
+    body.pdf-mirror .sheet.even{ --m-in:20mm; --m-out:14mm; }
+    *{ -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+    .frame .resize-handle{ display:none !important; }
+  }
+</style>
+<body>
+  <div id="menubar" role="menubar">
+    <button class="menu-root" data-menu="file" type="button">File</button>
+    <button class="menu-root" data-menu="export" type="button">Export</button>
+    <button class="menu-root" data-menu="edit" type="button">Edit</button>
+    <button class="menu-root mobile-only" id="mobileToggleTools" type="button" aria-controls="ui" aria-expanded="false">Tools</button>
+    <button class="menu-root mobile-only" id="mobileTogglePages" type="button" aria-controls="sidebar" aria-expanded="false">Pages</button>
+    <div class="menu-dropdown" data-panel="file" role="menu">
+      <button type="button" data-action="new-doc">New</button>
+      <button type="button" data-action="open-doc">Open…</button>
+      <button type="button" data-action="save-doc">Save</button>
+      <button type="button" data-action="save-as-doc">Save As…</button>
+      <div class="menu-sep"></div>
+      <button type="button" data-action="load-autosave">Load Autosave</button>
+    </div>
+    <div class="menu-dropdown" data-panel="export" role="menu">
+      <button type="button" data-action="export-bleed">Print with Bleed PDF</button>
+      <button type="button" data-action="export-trim">Print Trimmed PDF</button>
+      <div class="menu-sep"></div>
+      <button type="button" data-action="toggle-mirror">Toggle Mirrored Gutter</button>
+      <button type="button" data-action="toggle-printshop">Toggle Printshop Grid</button>
+    </div>
+    <div class="menu-dropdown" data-panel="edit" role="menu">
+      <button type="button" data-action="add-col-1">Add 1 Column Block</button>
+      <button type="button" data-action="add-col-2">Add 2 Column Block</button>
+      <button type="button" data-action="add-col-3">Add 3 Column Block</button>
+      <div class="menu-sep"></div>
+      <button type="button" data-action="add-text-frame">Add Text Frame</button>
+      <button type="button" data-action="add-image-frame">Add Image Frame</button>
+      <div class="menu-sep"></div>
+      <button type="button" data-action="new-page">New Page After Current</button>
+      <button type="button" data-action="duplicate-page">Duplicate Current Page</button>
+      <div class="menu-sep"></div>
+      <button type="button" data-action="toggle-guides">Toggle Guides</button>
+      <button type="button" data-action="toggle-crops">Toggle Marks</button>
+      <button type="button" data-action="toggle-colorbar">Toggle Color Bars</button>
+    </div>
+  </div>
+
+  <div id="ui">
+    <div class="win-group" id="navGroup">
+      <button class="win-btn" id="firstBtn">|◀</button>
+      <button class="win-btn" id="prevBtn">◀</button>
+      <span class="win-stat">Page <span id="cur">1</span> / <span id="tot">1</span></span>
+      <input type="number" id="goto" min="1" value="1" />
+      <button class="win-btn" id="goBtn">Go</button>
+      <button class="win-btn" id="nextBtn">▶</button>
+      <button class="win-btn" id="lastBtn">▶|</button>
+    </div>
+    <div class="win-group" id="pageActions">
+      <button class="win-btn" id="newPageBtn">+ Page</button>
+      <button class="win-btn" id="duplicatePageBtn">Duplicate</button>
+    </div>
+    <div class="win-group" id="zoomControls">
+      <button class="win-btn" id="zoomOutBtn">−</button>
+      <button class="win-btn" id="zoomInBtn">+</button>
+      <button class="win-btn" id="zoomResetBtn">Reset</button>
+      <button class="win-btn" id="zoomFullBtn">Fit Page</button>
+      <button class="win-btn" id="openPreviewBtn">Full Page View</button>
+      <span id="zoomDisplay">100%</span>
+    </div>
+    <div class="win-group" id="styleControls">
+      <label class="win-check">Page Style:
+        <select id="pageThemeSelect">
+          <option value="standard">Standard</option>
+          <option value="newsprint">Newsprint</option>
+          <option value="midnight">Midnight Studio</option>
+        </select>
+      </label>
+      <label class="win-check">Element Style:
+        <select id="elementStyleSelect" disabled>
+          <option value="standard">Standard</option>
+        </select>
+      </label>
+    </div>
+    <div class="win-group" id="toggleGroup">
+      <label class="win-check"><input type="checkbox" id="chkGuides" checked> Guides</label>
+      <label class="win-check"><input type="checkbox" id="chkCrops" checked> Marks</label>
+      <label class="win-check"><input type="checkbox" id="chkColor" checked> Color bars</label>
+      <label class="win-check"><input type="checkbox" id="chkReg" checked> Registration</label>
+      <label class="win-check"><input type="checkbox" id="chkSafe"> Safe</label>
+      <label class="win-check"><input type="checkbox" id="chkShop"> Printshop grid</label>
+      <label class="win-check"><input type="checkbox" id="chkMirror"> Mirrored gutter (PDF)</label>
+      <label class="win-check">Preset:
+        <select id="selColorPreset">
+          <option value="std">Standard</option>
+          <option value="ugra">Ugra/Fogra 21</option>
+        </select>
+      </label>
+    </div>
+    <div class="win-group" id="frameInspector">
+      <div class="ins-grid">
+        <label>X (mm)
+          <input type="number" id="framePosX" step="0.5" />
+        </label>
+        <label>Y (mm)
+          <input type="number" id="framePosY" step="0.5" />
+        </label>
+        <label>Width (mm)
+          <input type="number" id="frameWidth" step="0.5" min="10" />
+        </label>
+        <label>Height (mm)
+          <input type="number" id="frameHeight" step="0.5" min="10" />
+        </label>
+        <label>Wrap Mode
+          <select id="frameWrap">
+            <option value="overlay">Overlay (free)</option>
+            <option value="float-left">Float Left</option>
+            <option value="float-right">Float Right</option>
+            <option value="block">Block</option>
+          </select>
+        </label>
+        <label>Caption
+          <input type="text" id="frameCaption" />
+        </label>
+        <label id="frameImageUrlLabel">Image URL
+          <input type="text" id="frameImageUrl" placeholder="https://…" />
+        </label>
+      </div>
+      <small>Edit values to reposition or update the selected frame.</small>
+    </div>
+    <div class="win-group">
+      <span class="win-stat" id="status">Ready.</span>
+      <span class="win-stat" id="ver">Orbit OS v 0.2.0 • Docu Monster Studio Pro 0.1.1</span>
+    </div>
+  </div>
+
+  <div id="rulerTop" aria-hidden="true">
+    <div class="ruler-labels cm"></div>
+    <div class="ruler-labels inch"></div>
+  </div>
+  <div id="rulerLeft" aria-hidden="true">
+    <div class="ruler-labels cm"></div>
+    <div class="ruler-labels inch"></div>
+  </div>
+
+  <aside id="sidebar">
+    <div id="releaseCard"></div>
+    <div id="thumbs"></div>
+  </aside>
+  <div id="pageViewport">
+    <div id="pages"></div>
+  </div>
+  <div id="viewportZoomControls" role="group" aria-label="Canvas zoom controls">
+    <button type="button" id="viewportZoomOut" aria-label="Zoom out">
+      <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+        <rect x="5" y="11" width="14" height="2" rx="1"></rect>
+      </svg>
+    </button>
+    <button type="button" id="viewportZoomIn" aria-label="Zoom in">
+      <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+        <rect x="11" y="5" width="2" height="14" rx="1"></rect>
+        <rect x="5" y="11" width="14" height="2" rx="1"></rect>
+      </svg>
+    </button>
+  </div>
+  <div id="pagePreviewModal" role="dialog" aria-modal="true" aria-labelledby="pagePreviewHeading" tabindex="-1" aria-hidden="true">
+    <div class="page-preview-card">
+      <div class="page-preview-bar">
+        <div class="page-preview-heading" id="pagePreviewHeading">
+          <strong>Page Preview</strong>
+          <span>Page 1 of 1</span>
+        </div>
+        <div class="page-preview-controls">
+          <button type="button" id="pagePreviewZoomOut">−</button>
+          <input type="range" id="pagePreviewZoomRange" min="40" max="200" value="100" />
+          <span id="pagePreviewZoomDisplay">100%</span>
+          <button type="button" id="pagePreviewZoomIn">+</button>
+          <button type="button" id="pagePreviewZoomFit">Fit</button>
+          <button type="button" id="pagePreviewClose">Close</button>
+        </div>
+      </div>
+      <div class="page-preview-body">
+        <button type="button" class="page-preview-nav" id="pagePreviewPrev" aria-label="Previous page">◀</button>
+        <div class="page-preview-viewport" id="pagePreviewViewport">
+          <div class="page-preview-sheet" id="pagePreviewSheet"></div>
+        </div>
+        <button type="button" class="page-preview-nav" id="pagePreviewNext" aria-label="Next page">▶</button>
+      </div>
+    </div>
+  </div>
+  <div id="templateModal" role="dialog" aria-modal="true" aria-labelledby="templateModalTitle" tabindex="-1">
+    <div class="template-modal-card">
+      <div class="template-modal-header" id="templateModalTitle">New Document Templates</div>
+      <div class="template-modal-body">
+        <p>Select a starting layout for your next spread.</p>
+        <div class="template-grid" id="templateList"></div>
+        <div class="template-actions">
+          <button type="button" id="templateCancel">Cancel</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <input type="file" id="openFileInput" accept=".dx,.DX,.json,application/json" hidden />
+
+<script>
+(function(){
+  'use strict';
+  const pxPerMm = 96/25.4;
+  const STORAGE_KEY = 'documonster-studiopro-autosave-v0-1';
+  const pagesEl = document.getElementById('pages');
+  const releaseCardEl = document.getElementById('releaseCard');
+  const curEl = document.getElementById('cur');
+  const totEl = document.getElementById('tot');
+  const gotoEl = document.getElementById('goto');
+  const prevBtn = document.getElementById('prevBtn');
+  const nextBtn = document.getElementById('nextBtn');
+  const firstBtn = document.getElementById('firstBtn');
+  const lastBtn = document.getElementById('lastBtn');
+  const goBtn = document.getElementById('goBtn');
+  const newPageBtn = document.getElementById('newPageBtn');
+  const duplicatePageBtn = document.getElementById('duplicatePageBtn');
+  const thumbsEl = document.getElementById('thumbs');
+  const chkGuides = document.getElementById('chkGuides');
+  const chkCrops = document.getElementById('chkCrops');
+  const chkColor = document.getElementById('chkColor');
+  const chkReg = document.getElementById('chkReg');
+  const chkSafe = document.getElementById('chkSafe');
+  const chkShop = document.getElementById('chkShop');
+  const chkMirror = document.getElementById('chkMirror');
+  const selColorPreset = document.getElementById('selColorPreset');
+  const pageThemeSelect = document.getElementById('pageThemeSelect');
+  const elementStyleSelect = document.getElementById('elementStyleSelect');
+  const statusEl = document.getElementById('status');
+  const versionEl = document.getElementById('ver');
+  const menubar = document.getElementById('menubar');
+  const uiPanel = document.getElementById('ui');
+  const sidebar = document.getElementById('sidebar');
+  const openFileInput = document.getElementById('openFileInput');
+  const frameInspector = document.getElementById('frameInspector');
+  const framePosX = document.getElementById('framePosX');
+  const framePosY = document.getElementById('framePosY');
+  const frameWidth = document.getElementById('frameWidth');
+  const frameHeight = document.getElementById('frameHeight');
+  const frameWrap = document.getElementById('frameWrap');
+  const frameCaption = document.getElementById('frameCaption');
+  const frameImageUrl = document.getElementById('frameImageUrl');
+  const frameImageUrlLabel = document.getElementById('frameImageUrlLabel');
+  const rulerTopEl = document.getElementById('rulerTop');
+  const rulerTopCm = document.querySelector('#rulerTop .cm');
+  const rulerTopIn = document.querySelector('#rulerTop .inch');
+  const rulerLeftEl = document.getElementById('rulerLeft');
+  const rulerLeftCm = document.querySelector('#rulerLeft .cm');
+  const rulerLeftIn = document.querySelector('#rulerLeft .inch');
+  const pageViewport = document.getElementById('pageViewport');
+  const zoomOutBtn = document.getElementById('zoomOutBtn');
+  const zoomInBtn = document.getElementById('zoomInBtn');
+  const zoomResetBtn = document.getElementById('zoomResetBtn');
+  const zoomFullBtn = document.getElementById('zoomFullBtn');
+  const zoomDisplay = document.getElementById('zoomDisplay');
+  const openPreviewBtn = document.getElementById('openPreviewBtn');
+  const templateModal = document.getElementById('templateModal');
+  const templateList = document.getElementById('templateList');
+  const templateCancel = document.getElementById('templateCancel');
+  const pagePreviewModal = document.getElementById('pagePreviewModal');
+  const pagePreviewViewport = document.getElementById('pagePreviewViewport');
+  const pagePreviewSheet = document.getElementById('pagePreviewSheet');
+  const pagePreviewClose = document.getElementById('pagePreviewClose');
+  const pagePreviewZoomRange = document.getElementById('pagePreviewZoomRange');
+  const pagePreviewZoomDisplay = document.getElementById('pagePreviewZoomDisplay');
+  const pagePreviewZoomIn = document.getElementById('pagePreviewZoomIn');
+  const pagePreviewZoomOutBtn = document.getElementById('pagePreviewZoomOut');
+  const pagePreviewZoomFit = document.getElementById('pagePreviewZoomFit');
+  const pagePreviewPrev = document.getElementById('pagePreviewPrev');
+  const pagePreviewNext = document.getElementById('pagePreviewNext');
+  const pagePreviewHeading = document.getElementById('pagePreviewHeading');
+  const viewportZoomOutBtn = document.getElementById('viewportZoomOut');
+  const viewportZoomInBtn = document.getElementById('viewportZoomIn');
+  const mobileToggleTools = document.getElementById('mobileToggleTools');
+  const mobileTogglePages = document.getElementById('mobileTogglePages');
+  const pageCanvasRoot = pagesEl || document;
+
+  let docModel = null;
+  let pages = [];
+  let obs = null;
+  let cur = 0;
+  let isDirty = false;
+  let menuOpen = null;
+  let selectedFrame = null;
+  let selectedFramePage = -1;
+  let selectedFrameIndex = -1;
+  let selectedColumnsBlock = null;
+  let selectedColumnsPage = -1;
+  let selectedColumnsIndex = -1;
+  let styledSelection = { type:null, pageIndex:-1, elementIndex:-1 };
+  let currentStyleOptionType = null;
+  let zoomLevel = 1;
+  let previewPageIndex = 0;
+  let previewZoomLevel = 1;
+  let previewShouldRefit = false;
+  let previewSyncFromSnap = false;
+  let columnDragState = null;
+
+  const PAGE_THEMES = ['standard','newsprint','midnight'];
+  const PAGE_THEME_CLASSES = PAGE_THEMES.map(t=>'theme-'+t);
+  const COLUMN_STYLES = ['standard','accent','note','inverse'];
+  const FRAME_STYLES = ['standard','outline','shadow','banner'];
+  const COLUMN_STYLE_CLASSES = COLUMN_STYLES.filter(v=>v!=='standard').map(v=>'style-'+v);
+  const FRAME_STYLE_CLASSES = FRAME_STYLES.filter(v=>v!=='standard').map(v=>'style-'+v);
+  const DX_MIME = 'application/vnd.orbit-documonster+json';
+  const DX_EXTENSION = '.dx';
+  const ACCEPTED_EXTENSIONS = ['.dx', '.json'];
+  const ELEMENT_STYLE_OPTIONS = {
+    columns:[
+      { value:'standard', label:'Standard Body' },
+      { value:'accent', label:'Accent Block' },
+      { value:'note', label:'Note Panel' },
+      { value:'inverse', label:'Inverse Type' }
+    ],
+    frame:[
+      { value:'standard', label:'Standard Frame' },
+      { value:'outline', label:'Outline Emphasis' },
+      { value:'shadow', label:'Drop Shadow Card' },
+      { value:'banner', label:'Banner Caption' }
+    ]
+  };
+
+  const MIN_CANVAS_ZOOM = 0.35;
+  const MAX_CANVAS_ZOOM = 2.5;
+  const MOBILE_BREAKPOINT = 1080;
+
+  const DEFAULT_TEMPLATE_ID = 'heritage-gazette';
+
+  let mobileAutoZoomed = false;
+
+  function createColumnElement(columns, windows, style = 'standard', layout = []){
+    const count = Math.min(4, Math.max(1, parseInt(columns, 10) || 1));
+    const normalizedWindows = Array.from({ length:count }, (_, idx)=>{
+      if(Array.isArray(windows) && typeof windows[idx] === 'string' && windows[idx].trim()){
+        return windows[idx];
+      }
+      if(idx === 0 && Array.isArray(windows) && typeof windows[0] === 'string'){
+        return windows[0];
+      }
+      return '<p>Start typing…</p>';
+    });
+    const normalizedLayout = Array.from({ length:count }, (_, idx)=>{
+      const slot = Array.isArray(layout) ? layout[idx] : null;
+      const width = slot && Number.isFinite(slot.width) ? slot.width : null;
+      const height = slot && Number.isFinite(slot.height) ? slot.height : null;
+      return { width, height };
+    });
+    return {
+      type:'columns',
+      columns:count,
+      windows:normalizedWindows,
+      windowLayout:normalizedLayout,
+      style:normalizeStyleValue('columns', style),
+      html: normalizedWindows.join('')
+    };
+  }
+
+  function createFrameModel(data){
+    return Object.assign({
+      type:'frame',
+      frameType:'text',
+      mode:'overlay',
+      x:30,
+      y:30,
+      width:60,
+      height:40,
+      content:'<p>Double-click to edit frame text.</p>',
+      src:'',
+      caption:'',
+      style:'standard'
+    }, data || {});
+  }
+
+  function heritageGazetteTemplate(){
+    return {
+      version:'1.3.0',
+      docVersion:'1.3.0',
+      codename:'Heritage Gazette',
+      docName:'Docu Monster Studio Pro',
+      releaseNotes:[
+        'Two-page broadsheet kit inspired by 1940s U.S. metropolitan newspapers.',
+        'Banner headlines, war bulletins, and local advertising rails mirror historic layouts.',
+        'Includes editorial, community, and radio listing modules tuned for serif body copy.'
+      ],
+      pages:[
+        {
+          title:'THE EVENING LEDGER',
+          subtitle:'Founded 1898 • Final Edition',
+          deck:'Compose a commanding banner with wire-photo placement and column grids faithful to 1940s broadsheets.',
+          theme:'standard',
+          elements:[
+            createColumnElement(1,[
+              '<p class="news-kicker">Late City Final</p><h1 class="title news-banner">Nation Watches Capitol Talks</h1><p class="deck">Set your lede with decisive verbs and authoritative tone to anchor the edition.</p>'
+            ], 'standard', [ { width:160, height:46 } ]),
+            createFrameModel({
+              frameType:'image',
+              mode:'block',
+              width:160,
+              height:80,
+              caption:'Swap in a wire-service photograph with a crisp cutline beneath the fold.',
+              style:'outline'
+            }),
+            createColumnElement(3,[
+              '<p><span class="dropcap">W</span>ashington, D.C.—Write your front-page lead here. Reference telegraph briefings, committee chairs, and the national mood.</p><p>Follow with a second paragraph that delivers figures or quotations from correspondents to mirror syndicated coverage.</p>',
+              '<p><strong>Capitol Steps.</strong> Use this column for sidebars: highlight negotiations, floor debates, and analysis from the city desk.</p><p>Insert subheads or bold phrases like “Industry Mobilizes” to punctuate the narrative.</p>',
+              '<p><strong>City Reaction.</strong> Quote streetcar riders, shopkeepers, and factory crews to humanize the headlines.</p><ul class="bullet"><li>Strike board convenes at dawn</li><li>Bond drive surpasses goal</li><li>Victory gardens expanded</li></ul>'
+            ], 'standard', [ { width:55, height:115 }, { width:55, height:115 }, { width:55, height:115 } ]),
+            createColumnElement(2,[
+              '<div class="news-rail">War Bulletins</div><p><strong>London.</strong> Summarize Allied movements with datelines and terse sentences.</p><p><strong>Pacific.</strong> Note convoy positions, naval escorts, and wireless reports.</p>',
+              '<div class="news-rail">Home Front</div><p>Reserve this rail for ration reminders, blackout drills, or civil defense notices.</p><p>Keep copy tight, factual, and ready for last-minute rewrites.</p>'
+            ], 'note', [ { width:70, height:90 }, { width:70, height:90 } ]),
+            createFrameModel({
+              mode:'float-right',
+              width:60,
+              height:50,
+              content:'<div class="ad-box">Place department store advertising, subscription drives, or classified spotlights here.</div>',
+              style:'banner'
+            })
+          ],
+          footerLeft:'The Evening Ledger • City Desk',
+          footerRight:'Edition {{version}} • Page {{page}} of {{total}}'
+        },
+        {
+          title:'SECOND SECTION',
+          subtitle:'Home Front & Community',
+          deck:'Inside spread with editorials, community notebook, and radio listings styled after 1940s feature pages.',
+          theme:'standard',
+          elements:[
+            createColumnElement(3,[
+              '<p><span class="dropcap">E</span>ditorial Board—Craft opinion columns with measured cadence. Cite letters, telegrams, and senate testimony for authenticity.</p><p>Use italics for signatures or board statements.</p>',
+              '<p><strong>Community Notebook.</strong> Chronicle charity teas, USO dances, and neighborhood drives with tidy paragraphing.</p><p>Include short subheads for each civic update.</p>',
+              '<p><strong>Sports Ticker.</strong> Post box scores, double-header recaps, and pennant races. Keep statistics in tight sentences for easy scanning.</p>'
+            ], 'standard', [ { width:55, height:110 }, { width:55, height:110 }, { width:55, height:110 } ]),
+            createFrameModel({
+              frameType:'image',
+              mode:'block',
+              width:150,
+              height:60,
+              caption:'Drop in archival photography, courtroom sketches, or hometown portraits.',
+              style:'shadow'
+            }),
+            createFrameModel({
+              mode:'overlay',
+              x:22,
+              y:138,
+              width:70,
+              height:36,
+              content:'<div class="news-rail">City Calendar</div><p>List parades, air-raid wardens’ drills, and council meetings.</p>',
+              style:'banner'
+            }),
+            createFrameModel({
+              mode:'block',
+              width:150,
+              height:55,
+              content:'<div class="ad-box">Evening Ledger Radio Listings<br>8:00—Drama Hour<br>9:30—Swing Session<br>11:00—Sign-Off News</div>',
+              style:'outline'
+            })
+          ],
+          footerLeft:'Ledger Features • Community Bureau',
+          footerRight:'Page {{page}} of {{total}} • {{codename}}'
+        }
+      ]
+    };
+  }
+
+  function velocityFeatureTemplate(){
+    return {
+      version:'1.2.0',
+      docVersion:'1.2.0',
+      codename:'Velocity Feature',
+      docName:'Docu Monster Studio Pro',
+      releaseNotes:[
+        'Wired-inspired feature grid with neon accent banding and modular hero art.',
+        'Pre-styled callouts and stat blocks for technology reporting.',
+        'Midnight studio theme tuned for high-contrast photography and white type.'
+      ],
+      pages:[
+        {
+          title:'VELOCITY MAGAZINE',
+          subtitle:'THE FUTURE OF URBAN MOBILITY',
+          deck:'An immersive feature package in the spirit of WIRED with asymmetric image anchors and modular columns.',
+          theme:'midnight',
+          elements:[
+            createFrameModel({
+              frameType:'image',
+              mode:'block',
+              width:150,
+              height:90,
+              caption:'Swap in a hero image to anchor the feature opener. The layout reserves space for headline overlays.',
+              style:'shadow'
+            }),
+            createColumnElement(2,[
+              '<p>Electric grids, edge computing, and autonomous systems converge in cities worldwide. Velocity traces the code that keeps night routes glowing and safe.</p>'+
+              '<p>From Seoul to San Francisco, transit directors are shipping beta firmware to bus depots like clockwork.</p>',
+              '<p>Use this spread to narrate the main story. Neon dividers and uppercase subheads evoke the velocity of printed tech monthlies.</p>'+
+              '<p>Drop quotes or stats into the overlay frames to punctuate your reporting.</p>'
+            ], 'inverse', [ { width:90, height:120 }, { width:90, height:120 } ]),
+            createFrameModel({
+              frameType:'text',
+              mode:'overlay',
+              x:118,
+              y:45,
+              width:60,
+              height:32,
+              content:'<p class="callout">Key stat: 68% of commuters will ride autonomous shuttles by 2032, according to the Velocity Index.</p>',
+              style:'banner'
+            }),
+            createColumnElement(3,[
+              '<h3 class="span-all">Signal Boost</h3><p>Map out the partners accelerating this rollout—from chipset designers to city halls.</p>',
+              '<p>Short blocks like these mimic Wired’s modular briefs. Keep entries sharp and data-rich.</p>',
+              '<p>Pair each card with icons or mini graphics by converting the frame style to accent mode.</p>'
+            ], 'accent', [ { width:55, height:90 }, { width:55, height:90 }, { width:55, height:90 } ])
+          ],
+          footerLeft:'Velocity Magazine • Tech Futures',
+          footerRight:'Feature Package • Page {{page}}/{{total}}'
+        },
+        {
+          title:'VELOCITY LAB',
+          subtitle:'Prototypes, pilots, and platform bets',
+          deck:'A modular lab page for deep dives and annotated diagrams.',
+          theme:'midnight',
+          elements:[
+            createColumnElement(3,[
+              '<p><strong>Prototype Watch.</strong> Catalog the hardware labs refining lidar, solid-state batteries, and curbside hubs.</p>',
+              '<p><strong>Policy Shift.</strong> Summarize the latest legislation that keeps micromobility lanes funded.</p>',
+              '<p><strong>Platform Notes.</strong> Break down the API updates your engineering desk should watch.</p>'
+            ], 'standard', [ { width:58, height:120 }, { width:58, height:120 }, { width:58, height:120 } ]),
+            createFrameModel({
+              frameType:'image',
+              mode:'overlay',
+              x:92,
+              y:132,
+              width:78,
+              height:58,
+              caption:'Overlay a system diagram or product render to mirror the iconic Wired lab sections.',
+              style:'outline'
+            }),
+            createFrameModel({
+              frameType:'text',
+              mode:'float-right',
+              width:60,
+              height:45,
+              content:'<p class="note">Edit the inspector to switch this card to accent or inverse styling. Perfect for listing specs or upcoming release dates.</p>',
+              style:'shadow'
+            })
+          ],
+          footerLeft:'Velocity Lab Notes',
+          footerRight:'Docu Monster Studio Pro • Page {{page}}'
+        },
+        {
+          title:'DATA STUDIO',
+          subtitle:'Urban metrics decoded',
+          deck:'Use this closer to visualise metrics and highlight reporter notes.',
+          theme:'midnight',
+          elements:[
+            createColumnElement(2,[
+              '<h3 class="span-all">Timeline: Autonomy Arrives</h3><p>Build a milestone timeline inside these windows. Mix bold numerals with short descriptors to emulate print infographics.</p>',
+              '<p>Pair the second column with insight cards or analyst commentary. Swap styles for quick emphasis.</p>'
+            ], 'accent', [ { width:88, height:110 }, { width:88, height:110 } ]),
+            createFrameModel({
+              frameType:'text',
+              mode:'overlay',
+              x:25,
+              y:140,
+              width:70,
+              height:40,
+              content:'<p class="quote">“Street-level autonomy is no longer a lab experiment—it’s live code in need of constant tuning.”</p><p class="attribution">— Velocity Magazine</p>',
+              style:'banner'
+            }),
+            createFrameModel({
+              frameType:'image',
+              mode:'block',
+              width:120,
+              height:60,
+              caption:'Use this block for heat maps or city grid composites that stretch across both columns.',
+              style:'shadow'
+            })
+          ],
+          footerLeft:'Velocity • Data Studio',
+          footerRight:'{{codename}} {{version}} • Page {{page}}/{{total}}'
+        }
+      ]
+    };
+  }
+
+  function metropolisBriefingTemplate(){
+    return {
+      version:'1.2.0',
+      docVersion:'1.2.0',
+      codename:'Metropolis Briefing',
+      docName:'Docu Monster Studio Pro',
+      releaseNotes:[
+        'Broadsheet front page inspired by The New York Times with balanced serif typography.',
+        'Built-in opinion column and skyline photo frame with print-style captions.',
+        'Mirrored gutter-friendly layout tuned for broadsheet exports.'
+      ],
+      pages:[
+        {
+          title:'METROPOLIS MORNING TIMES',
+          subtitle:'National Edition • Founded 1896',
+          deck:'A restrained broadsheet composition echoing The New York Times front page with measured columns and hierarchy.',
+          theme:'newsprint',
+          elements:[
+            createColumnElement(4,[
+              '<p><strong>Lead Story.</strong> Set the tone with measured sentences, classic serif styling, and paragraph spacing that mirrors print.</p>',
+              '<p>Use the second column for continuation or a secondary report. Crossheads and italics capture the voice of the paper.</p>',
+              '<p>Third column holds analytical graf or data note. Keep sentences crisp to preserve the broadsheet rhythm.</p>',
+              '<p>Reserve the fourth column for quick reactions, background, or explainer boxes.</p>'
+            ], 'standard', [ { width:40, height:140 }, { width:40, height:140 }, { width:40, height:140 }, { width:40, height:140 } ]),
+            createFrameModel({
+              frameType:'image',
+              mode:'overlay',
+              x:60,
+              y:60,
+              width:88,
+              height:60,
+              caption:'Classic skyline photo box with italicised caption, sized for broadsheet above-the-fold imagery.',
+              style:'outline'
+            }),
+            createColumnElement(2,[
+              '<h3 class="span-all">Editorial Board</h3><p>The left window is ideal for a lead editorial or analysis column.</p>',
+              '<p>Use the right window for an op-ed or letters to the editor. Swap to inverse styling for weekend editions.</p>'
+            ], 'note', [ { width:85, height:90 }, { width:85, height:90 } ])
+          ],
+          footerLeft:'Metropolis Morning Times',
+          footerRight:'City Desk • Page {{page}} of {{total}}'
+        },
+        {
+          title:'IN FOCUS',
+          subtitle:'Investigations & Culture',
+          deck:'A second spread for investigative packages, arts coverage, and long-form features.',
+          theme:'newsprint',
+          elements:[
+            createColumnElement(3,[
+              '<p><strong>Long Read.</strong> Continue the main package with considered columns and generous pull quotes.</p>',
+              '<p>Middle column can host timeline sidebars or fact boxes with drop caps.</p>',
+              '<p>Third column supports arts, book reviews, or metro briefs just like the Sunday section.</p>'
+            ], 'standard', [ { width:55, height:130 }, { width:55, height:130 }, { width:55, height:130 } ]),
+            createFrameModel({
+              frameType:'text',
+              mode:'float-left',
+              width:50,
+              height:45,
+              content:'<p class="quote">“Metropolitan reporting demands nuance. Pair this pull quote with investigative highlights.”</p>',
+              style:'banner'
+            }),
+            createFrameModel({
+              frameType:'image',
+              mode:'float-right',
+              width:60,
+              height:55,
+              caption:'Use this portrait frame for reporters, sources, or archival photography.',
+              style:'shadow'
+            })
+          ],
+          footerLeft:'Metropolis Culture',
+          footerRight:'Edition {{version}} • Page {{page}}'
+        }
+      ]
+    };
+  }
+
+  function atlasExpeditionTemplate(){
+    return {
+      version:'1.2.0',
+      docVersion:'1.2.0',
+      codename:'Atlas Expedition',
+      docName:'Docu Monster Studio Pro',
+      releaseNotes:[
+        'Travel feature modeled after National Geographic spreads with immersive photography.',
+        'Caption-ready floating frames and story windows for field notes.',
+        'Adventure log cards and expedition timeline styled for magazine production.'
+      ],
+      pages:[
+        {
+          title:'ATLAS EXPEDITION REPORT',
+          subtitle:'Into the Karakoram',
+          deck:'A National Geographic-inspired opener with sweeping imagery, rich serif deck, and editorial annotations.',
+          theme:'standard',
+          elements:[
+            createFrameModel({
+              frameType:'image',
+              mode:'overlay',
+              x:26,
+              y:40,
+              width:160,
+              height:95,
+              caption:'Replace with your hero landscape. The frame spans the spread for cinematic impact.',
+              style:'shadow'
+            }),
+            createColumnElement(2,[
+              '<p>Begin with a narrative lede and descriptive language. This column is tuned for NatGeo-style storytelling with immersive detail.</p>',
+              '<p>Use the right-hand column for context: expedition logistics, altitude stats, and the science behind the journey.</p>'
+            ], 'accent', [ { width:80, height:110 }, { width:80, height:110 } ]),
+            createFrameModel({
+              frameType:'text',
+              mode:'overlay',
+              x:150,
+              y:120,
+              width:60,
+              height:38,
+              content:'<p class="note">Field Note: Record GPS coordinates, elevation, and weather to mimic real expedition captions.</p>',
+              style:'banner'
+            })
+          ],
+          footerLeft:'Atlas Expedition • Field Journal',
+          footerRight:'Page {{page}} • {{codename}} {{version}}'
+        },
+        {
+          title:'FIELD JOURNAL',
+          subtitle:'Voices from the trail',
+          deck:'Layer quotes, sidebars, and equipment callouts as seen in premium travel magazines.',
+          theme:'standard',
+          elements:[
+            createColumnElement(3,[
+              '<p><strong>Journal Entry.</strong> Chronicle day-by-day impressions with italic standfirsts and generous margins.</p>',
+              '<p><strong>Research Log.</strong> Summarise the scientific mission, sample data, or interview highlights.</p>',
+              '<p><strong>Logistics.</strong> Detail access routes, permit requirements, and gear lists for fellow explorers.</p>'
+            ], 'standard', [ { width:55, height:120 }, { width:55, height:120 }, { width:55, height:120 } ]),
+            createFrameModel({
+              frameType:'image',
+              mode:'float-right',
+              width:70,
+              height:60,
+              caption:'Drop in portraiture or macro shots to echo National Geographic photo essays.',
+              style:'outline'
+            }),
+            createFrameModel({
+              frameType:'text',
+              mode:'float-left',
+              width:60,
+              height:45,
+              content:'<p class="callout">Gear Locker: list essential equipment, camera settings, or survival tips in this card.</p>',
+              style:'shadow'
+            })
+          ],
+          footerLeft:'Atlas Expedition Notes',
+          footerRight:'Field Journal • Page {{page}}/{{total}}'
+        },
+        {
+          title:'EXPEDITION DATA',
+          subtitle:'Elevation, routes, and observations',
+          deck:'A closing spread dedicated to annotated maps and specimen logs.',
+          theme:'standard',
+          elements:[
+            createColumnElement(2,[
+              '<h3 class="span-all">Route Timeline</h3><p>Plot the trek from base camp to summit. Break each stage into digestible paragraphs for clarity.</p>',
+              '<p>Pair the second column with measurements, species lists, or glaciology insights to mirror NatGeo research pages.</p>'
+            ], 'accent', [ { width:85, height:110 }, { width:85, height:110 } ]),
+            createFrameModel({
+              frameType:'image',
+              mode:'block',
+              width:120,
+              height:65,
+              caption:'Use this space for a locator map, drone mosaic, or geological cross-section.',
+              style:'shadow'
+            }),
+            createFrameModel({
+              frameType:'text',
+              mode:'overlay',
+              x:30,
+              y:140,
+              width:65,
+              height:36,
+              content:'<p class="note">Checklist: Document species observed, weather anomalies, or cultural insights.</p>',
+              style:'banner'
+            })
+          ],
+          footerLeft:'Atlas Expedition Research',
+          footerRight:'Docu Monster • Page {{page}}/{{total}}'
+        }
+      ]
+    };
+  }
+
+  function blankTemplate(){
+    return {
+      version:'1.2.0',
+      docVersion:'1.2.0',
+      codename:'Studio Blank',
+      docName:'Docu Monster Studio Pro',
+      releaseNotes:['An empty grid with guides and a neutral theme for building bespoke spreads.'],
+      pages:[
+        {
+          title:'UNTITLED FEATURE',
+          subtitle:'',
+          deck:'',
+          theme:'standard',
+          elements:[
+            createColumnElement(2,['<p>Start typing…</p>','<p>Duplicate or delete blocks to suit your brief.</p>']),
+            createFrameModel({
+              frameType:'image',
+              mode:'overlay',
+              x:90,
+              y:70,
+              width:80,
+              height:55,
+              caption:'Drop an image or chart here when planning your layout.',
+              style:'outline'
+            })
+          ],
+          footerLeft:'Docu Monster Studio Pro',
+          footerRight:'Page {{page}} / {{total}}'
+        }
+      ]
+    };
+  }
+
+  const DOCUMENT_TEMPLATES = [
+    { id:'heritage-gazette', label:'Heritage Gazette Front Page', description:'Traditional 1940s U.S. newspaper spread with banner headlines and classifieds.', create:heritageGazetteTemplate },
+    { id:'velocity-feature', label:'Velocity Magazine Feature', description:'Wired-inspired technology feature with neon accents.', create:velocityFeatureTemplate },
+    { id:'metropolis-briefing', label:'Metropolis Morning Briefing', description:'New York Times-style broadsheet front page.', create:metropolisBriefingTemplate },
+    { id:'atlas-expedition', label:'Atlas Expedition Report', description:'National Geographic-inspired travel narrative.', create:atlasExpeditionTemplate },
+    { id:'blank-spread', label:'Blank Studio Spread', description:'Neutral grid ready for bespoke layouts.', create:blankTemplate }
+  ];
+
+  const TEMPLATE_MAP = new Map(DOCUMENT_TEMPLATES.map(t=>[t.id, t]));
+
+  docModel = normalizeDocument(loadFromStorage() || TEMPLATE_MAP.get(DEFAULT_TEMPLATE_ID).create());
+
+  function mmToPx(mm){ return mm * pxPerMm; }
+  function pxToMm(px){ return px / pxPerMm; }
+  function getTotalPages(){ return docModel.pages.length || 1; }
+
+  function defaultDocument(){
+    const entry = TEMPLATE_MAP.get(DEFAULT_TEMPLATE_ID);
+    return entry ? entry.create() : velocityFeatureTemplate();
+  }
+
+  function normalizeDocument(input){
+    const base = defaultDocument();
+    const doc = Object.assign({}, base, input || {});
+    doc.version = doc.version || base.version;
+    doc.docVersion = doc.docVersion || base.docVersion;
+    doc.codename = doc.codename || base.codename;
+    doc.docName = typeof doc.docName === 'string' && doc.docName.trim() ? doc.docName : base.docName;
+    doc.releaseNotes = Array.isArray(doc.releaseNotes) && doc.releaseNotes.length ? doc.releaseNotes : base.releaseNotes.slice();
+    doc.pages = Array.isArray(doc.pages) && doc.pages.length ? doc.pages.map(normalizePage) : base.pages.slice().map(normalizePage);
+    return doc;
+  }
+
+  function normalizeTheme(value){
+    return PAGE_THEMES.includes(value) ? value : 'standard';
+  }
+
+  function normalizeStyleValue(type, value){
+    const list = type === 'frame' ? FRAME_STYLES : COLUMN_STYLES;
+    return list.includes(value) ? value : 'standard';
+  }
+
+  function normalizePage(page, idx){
+    const p = Object.assign({
+      title:'Untitled Page '+(idx+1),
+      subtitle:'',
+      deck:'',
+      elements:[],
+      footerLeft:'Docu Monster Studio Pro',
+      footerRight:'Page {{page}}',
+      theme:'standard'
+    }, page || {});
+    p.theme = normalizeTheme(p.theme);
+    p.elements = Array.isArray(p.elements) ? p.elements.map(normalizeElement) : [];
+    return p;
+  }
+
+  function normalizeElement(el){
+    if(!el || !el.type){
+      return createColumnElement(1, ['<p>Edit me.</p>']);
+    }
+    if(el.type === 'columns'){
+      const columns = Math.min(4, Math.max(1, parseInt(el.columns, 10) || (Array.isArray(el.windows) ? el.windows.length : 1)));
+      const windows = Array.isArray(el.windows) ? el.windows.slice(0, columns).map(html=> typeof html === 'string' && html.trim() ? html : '<p>Start typing…</p>') : [];
+      if(!windows.length){
+        const baseHtml = typeof el.html === 'string' ? el.html : '<p>Edit me.</p>';
+        windows.push(baseHtml);
+      }
+      while(windows.length < columns){
+        windows.push('<p>Start typing…</p>');
+      }
+      const layout = Array.isArray(el.windowLayout) ? el.windowLayout.slice(0, columns).map(item=>({
+        width: item && Number.isFinite(item.width) ? item.width : null,
+        height: item && Number.isFinite(item.height) ? item.height : null
+      })) : [];
+      while(layout.length < columns){
+        layout.push({ width:null, height:null });
+      }
+      return {
+        type:'columns',
+        columns,
+        windows,
+        windowLayout:layout,
+        style: normalizeStyleValue('columns', el.style),
+        html: windows.join('')
+      };
+    }
+    const mode = el.mode || 'overlay';
+    return {
+      type:'frame',
+      frameType: el.frameType === 'image' ? 'image' : 'text',
+      mode: mode,
+      x: typeof el.x === 'number' ? el.x : 30,
+      y: typeof el.y === 'number' ? el.y : 40,
+      width: typeof el.width === 'number' ? el.width : 60,
+      height: typeof el.height === 'number' ? el.height : 40,
+      content: typeof el.content === 'string' ? el.content : '<p>Frame content</p>',
+      src: typeof el.src === 'string' ? el.src : '',
+      caption: typeof el.caption === 'string' ? el.caption : '',
+      style: normalizeStyleValue('frame', el.style)
+    };
+  }
+
+  function loadFromStorage(){
+    try{
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if(!raw) return null;
+      return JSON.parse(raw);
+    }catch(err){
+      console.warn('Failed to load autosave', err);
+      return null;
+    }
+  }
+
+  function saveToStorage(){
+    try{
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(docModel));
+      markDirty(false);
+      setStatus('Saved to local storage (.dx autosave).');
+    }catch(err){
+      console.error('Save failed', err);
+      setStatus('Save failed: '+err.message, false);
+    }
+  }
+
+  function markDirty(state = true){
+    isDirty = state;
+    document.body.classList.toggle('dirty', isDirty);
+    if(isDirty){
+      setStatus('Unsaved changes', false);
+    }
+  }
+
+  function setStatus(msg, transient = true){
+    statusEl.textContent = msg;
+    if(transient){
+      clearTimeout(setStatus._timer);
+      setStatus._timer = setTimeout(()=>{
+        statusEl.textContent = isDirty ? 'Unsaved changes' : 'Ready.';
+      }, 3200);
+    }
+  }
+
+  function updateVersionInfo(){
+    versionEl.textContent = docModel.codename+' v '+docModel.version+' • '+docModel.docName+' '+docModel.docVersion;
+    document.title = 'Docu Monster Studio Pro — '+docModel.codename+' v '+docModel.version;
+  }
+
+  function renderReleaseCard(){
+    const notes = (docModel.releaseNotes || []).map(note=>'<li>'+note+'</li>').join('');
+    releaseCardEl.innerHTML = '<h2>'+docModel.codename+' v '+docModel.version+'</h2>'+
+      '<p>'+docModel.docName+' '+docModel.docVersion+' • '+docModel.codename+' v '+docModel.version+'</p>'+
+      '<ul>'+notes+'</ul>';
+  }
+
+  function createTrim(section){
+    const trim = document.createElement('div');
+    trim.className = 'trim';
+    ['tl','tr','bl','br'].forEach(pos=>{
+      const m = document.createElement('div');
+      m.className = 'crop '+pos;
+      trim.appendChild(m);
+    });
+    section.appendChild(trim);
+    return trim;
+  }
+
+  function addMarks(section, idx){
+    const marks = document.createElement('div');
+    marks.className = 'marks';
+    const bar = document.createElement('div');
+    bar.className = 'colorbar';
+    marks.appendChild(bar);
+    const info = document.createElement('div');
+    info.className = 'info';
+    info.textContent = docModel.codename+' v '+docModel.version+' — page '+(idx+1)+'/'+getTotalPages();
+    marks.appendChild(info);
+    ['tl','tr','bl','br'].forEach(pos=>{
+      const r = document.createElement('div');
+      r.className = 'reg '+pos;
+      marks.appendChild(r);
+    });
+    const safe = document.createElement('div');
+    safe.className = 'safe-area';
+    marks.appendChild(safe);
+    const slur = document.createElement('div');
+    slur.className = 'slur';
+    marks.appendChild(slur);
+    section.appendChild(marks);
+  }
+
+  function targetWindowIndicator(windowEl){
+    let indicator = windowEl.querySelector('.column-window-drop-indicator');
+    if(!indicator){
+      indicator = document.createElement('div');
+      indicator.className = 'column-window-drop-indicator';
+      windowEl.appendChild(indicator);
+    }
+    return indicator;
+  }
+
+  function renderPage(page, idx){
+    const sheet = document.createElement('section');
+    sheet.className = 'sheet '+(idx%2 ? 'even' : 'odd');
+    sheet.dataset.index = String(idx);
+    applyPageThemeClass(sheet, page.theme || 'standard');
+    const trim = createTrim(sheet);
+    const content = document.createElement('div');
+    content.className = 'content';
+    trim.appendChild(content);
+    addMarks(sheet, idx);
+
+    const head = document.createElement('header');
+    head.className = 'head';
+    const titleEl = document.createElement('h1');
+    titleEl.className = 'title';
+    titleEl.contentEditable = 'true';
+    titleEl.textContent = page.title;
+    titleEl.addEventListener('input', ()=>{ page.title = titleEl.textContent.trim(); markDirty(); });
+    head.appendChild(titleEl);
+
+    const sub = document.createElement('p');
+    sub.className = 'subtitle';
+    sub.contentEditable = 'true';
+    sub.textContent = page.subtitle || '';
+    sub.addEventListener('input', ()=>{ page.subtitle = sub.textContent.trim(); markDirty(); });
+    head.appendChild(sub);
+
+    const deck = document.createElement('p');
+    deck.className = 'deck';
+    deck.contentEditable = 'true';
+    deck.textContent = page.deck || '';
+    deck.addEventListener('input', ()=>{ page.deck = deck.textContent.trim(); markDirty(); });
+    head.appendChild(deck);
+    content.appendChild(head);
+
+    page.elements.forEach((el, elementIndex)=>{
+      if(el.type === 'columns'){
+        const stack = document.createElement('div');
+        stack.className = 'column-window-stack split';
+        stack.dataset.pageIndex = String(idx);
+        stack.dataset.elementIndex = String(elementIndex);
+        el.style = applyElementStyleClass(stack, el.style, 'columns');
+        const windows = Array.isArray(el.windows) ? el.windows : [typeof el.html === 'string' ? el.html : '<p>Edit me.</p>'];
+        if(!Array.isArray(el.windowLayout) || el.windowLayout.length !== windows.length){
+          el.windowLayout = windows.map(()=>({ width:null, height:null }));
+        }
+        if(selectedColumnsPage === idx && selectedColumnsIndex === elementIndex){
+          selectedColumnsBlock = stack;
+          stack.classList.add('selected');
+        }
+
+        const updateSizeLabel = (windowEl, labelEl, windowIndex, triggerDirty = false)=>{
+          const widthPx = windowEl.offsetWidth;
+          const heightPx = windowEl.offsetHeight;
+          const widthMm = parseFloat(pxToMm(widthPx).toFixed(1));
+          const heightMm = parseFloat(pxToMm(heightPx).toFixed(1));
+          labelEl.textContent = Math.round(widthMm)+'×'+Math.round(heightMm)+'mm';
+          const prev = el.windowLayout[windowIndex] || { width:null, height:null };
+          const changed = !prev || Math.abs((prev.width || 0) - widthMm) > 0.2 || Math.abs((prev.height || 0) - heightMm) > 0.2;
+          el.windowLayout[windowIndex] = { width:widthMm, height:heightMm };
+          if(triggerDirty && changed){
+            markDirty();
+          }
+        };
+
+        const handleWindowResize = (windowEl, labelEl, windowIndex)=>{
+          const observer = new ResizeObserver(()=>{
+            updateSizeLabel(windowEl, labelEl, windowIndex, true);
+          });
+          observer.observe(windowEl);
+        };
+
+        const ensureDropCleanup = ()=>{
+          stack.querySelectorAll('.column-window-drop-indicator').forEach(el=>el.remove());
+        };
+
+        const handleDragDrop = (targetWindow, event)=>{
+          if(!columnDragState || columnDragState.pageIndex !== idx || columnDragState.elementIndex !== elementIndex) return;
+          event.preventDefault();
+          const fromIndex = columnDragState.windowIndex;
+          let toIndex = parseInt(targetWindow.dataset.windowIndex, 10);
+          const rect = targetWindow.getBoundingClientRect();
+          const isAfter = (event.clientX - rect.left) > rect.width/2;
+          if(isAfter) toIndex += 1;
+          handleColumnReorder(idx, elementIndex, fromIndex, toIndex);
+          ensureDropCleanup();
+        };
+
+        windows.forEach((windowHtml, windowIndex)=>{
+          const windowEl = document.createElement('section');
+          windowEl.className = 'column-window';
+          windowEl.draggable = true;
+          windowEl.dataset.windowIndex = String(windowIndex);
+
+          const header = document.createElement('div');
+          header.className = 'column-window-header';
+          const label = document.createElement('span');
+          label.className = 'label';
+          label.textContent = 'Column '+(windowIndex+1);
+          const size = document.createElement('span');
+          size.className = 'size';
+          header.appendChild(label);
+          header.appendChild(size);
+          windowEl.appendChild(header);
+
+          const body = document.createElement('div');
+          body.className = 'column-window-content';
+          body.contentEditable = 'true';
+          body.dataset.pageIndex = String(idx);
+          body.dataset.elementIndex = String(elementIndex);
+          body.dataset.windowIndex = String(windowIndex);
+          body.innerHTML = windowHtml;
+          body.addEventListener('input', ()=>{
+            el.windows[windowIndex] = body.innerHTML;
+            el.html = el.windows.join('');
+            markDirty();
+          });
+          body.addEventListener('focus', ()=>{ selectColumnsBlock(stack, idx, elementIndex); });
+          body.addEventListener('click', ()=>{ selectColumnsBlock(stack, idx, elementIndex); });
+          windowEl.appendChild(body);
+
+          const layout = el.windowLayout[windowIndex] || { width:null, height:null };
+          if(Number.isFinite(layout.width)){ windowEl.style.width = mmToPx(layout.width)+'px'; }
+          if(Number.isFinite(layout.height)){ windowEl.style.height = mmToPx(layout.height)+'px'; }
+
+          windowEl.addEventListener('dragstart', ev=>{
+            if(!ev.target.closest('.column-window-header')){
+              ev.preventDefault();
+              return;
+            }
+            columnDragState = { pageIndex:idx, elementIndex, windowIndex };
+            windowEl.classList.add('dragging');
+            ensureDropCleanup();
+            ev.dataTransfer.effectAllowed = 'move';
+            ev.dataTransfer.setData('text/plain', '');
+          });
+          windowEl.addEventListener('dragend', ()=>{
+            windowEl.classList.remove('dragging');
+            columnDragState = null;
+            ensureDropCleanup();
+          });
+          windowEl.addEventListener('dragover', ev=>{
+            if(!columnDragState || columnDragState.pageIndex !== idx || columnDragState.elementIndex !== elementIndex){ return; }
+            ev.preventDefault();
+            const indicator = targetWindowIndicator(windowEl);
+            const rect = windowEl.getBoundingClientRect();
+            const isAfter = (ev.clientX - rect.left) > rect.width/2;
+            indicator.style.left = isAfter ? 'auto' : '0';
+            indicator.style.right = isAfter ? '0' : 'auto';
+          });
+          windowEl.addEventListener('dragleave', ensureDropCleanup);
+          windowEl.addEventListener('drop', ev=>{
+            handleDragDrop(windowEl, ev);
+          });
+
+          updateSizeLabel(windowEl, size, windowIndex);
+          handleWindowResize(windowEl, size, windowIndex);
+
+          stack.appendChild(windowEl);
+        });
+
+        stack.addEventListener('dragover', ev=>{
+          if(!columnDragState || columnDragState.pageIndex !== idx || columnDragState.elementIndex !== elementIndex){ return; }
+          ev.preventDefault();
+        });
+        stack.addEventListener('drop', ev=>{
+          if(!columnDragState || columnDragState.pageIndex !== idx || columnDragState.elementIndex !== elementIndex){ return; }
+          ev.preventDefault();
+          handleColumnReorder(idx, elementIndex, columnDragState.windowIndex, el.windows.length);
+          ensureDropCleanup();
+        });
+
+        content.appendChild(stack);
+      } else {
+        const frame = createFrameElement(el, idx, elementIndex);
+        content.appendChild(frame);
+      }
+    });
+
+    const foot = document.createElement('footer');
+    foot.className = 'foot';
+    const left = document.createElement('span');
+    left.contentEditable = 'true';
+    left.textContent = resolveFooter(page.footerLeft, idx);
+    left.addEventListener('input', ()=>{ page.footerLeft = left.textContent; markDirty(); });
+    const right = document.createElement('span');
+    right.contentEditable = 'true';
+    right.textContent = resolveFooter(page.footerRight, idx);
+    right.addEventListener('input', ()=>{ page.footerRight = right.textContent; markDirty(); });
+    foot.appendChild(left);
+    foot.appendChild(right);
+    content.appendChild(foot);
+    return sheet;
+  }
+
+  function applyPageThemeClass(sheet, theme){
+    const safeTheme = normalizeTheme(theme);
+    PAGE_THEME_CLASSES.forEach(cls=>sheet.classList.remove(cls));
+    sheet.classList.add('theme-'+safeTheme);
+    sheet.dataset.theme = safeTheme;
+  }
+
+  function resolveFooter(template, idx){
+    const total = getTotalPages();
+    return (template || '').replace(/{{page}}/g, String(idx+1))
+      .replace(/{{total}}/g, String(total))
+      .replace(/{{version}}/g, docModel.version)
+      .replace(/{{codename}}/g, docModel.codename);
+  }
+
+  function createFrameElement(el, pageIndex, elementIndex){
+    const frame = document.createElement('figure');
+    frame.className = 'frame frame-'+el.frameType;
+    frame.dataset.pageIndex = String(pageIndex);
+    frame.dataset.elementIndex = String(elementIndex);
+    frame.tabIndex = 0;
+
+    const contentWrap = document.createElement('div');
+    if(el.frameType === 'text'){
+      contentWrap.className = 'frame-content';
+      contentWrap.contentEditable = 'true';
+      contentWrap.innerHTML = el.content;
+      contentWrap.addEventListener('input', ()=>{ el.content = contentWrap.innerHTML; markDirty(); });
+    } else {
+      contentWrap.className = 'frame-image';
+      if(el.src){
+        contentWrap.dataset.src = el.src;
+        contentWrap.style.backgroundImage = 'url("'+el.src.replace(/"/g,'&quot;')+'")';
+      } else {
+        contentWrap.textContent = 'Set an image URL from the inspector.';
+      }
+    }
+    frame.appendChild(contentWrap);
+
+    const cap = document.createElement('figcaption');
+    cap.contentEditable = 'true';
+    cap.textContent = el.caption || '';
+    cap.addEventListener('input', ()=>{ el.caption = cap.textContent; markDirty(); });
+    frame.appendChild(cap);
+
+    ['se','e','s'].forEach(dir=>{
+      const handle = document.createElement('div');
+      handle.className = 'resize-handle '+dir;
+      frame.appendChild(handle);
+    });
+
+    frame.addEventListener('click', ev=>{
+      ev.stopPropagation();
+      selectFrame(frame, pageIndex, elementIndex);
+    });
+
+    frame.addEventListener('pointerdown', ev=>{
+      if(el.mode !== 'overlay') return;
+      if(ev.target.classList.contains('resize-handle')) return;
+      ev.preventDefault();
+      frame.setPointerCapture(ev.pointerId);
+      const startX = ev.clientX;
+      const startY = ev.clientY;
+      const startLeft = el.x;
+      const startTop = el.y;
+      const move = mv=>{
+        const dxMm = pxToMm(mv.clientX - startX);
+        const dyMm = pxToMm(mv.clientY - startY);
+        el.x = Math.max(0, startLeft + dxMm);
+        el.y = Math.max(0, startTop + dyMm);
+        applyFrameMode(frame, el);
+        if(isSelectedFrame(frame)) updateInspectorFields(el);
+        markDirty();
+      };
+      const up = ()=>{
+        frame.releasePointerCapture(ev.pointerId);
+        frame.removeEventListener('pointermove', move);
+        frame.removeEventListener('pointerup', up);
+      };
+      frame.addEventListener('pointermove', move);
+      frame.addEventListener('pointerup', up, { once:true });
+    });
+
+    ['se','e','s'].forEach(dir=>{
+      frame.querySelector('.resize-handle.'+dir).addEventListener('pointerdown', ev=>{
+        if(el.mode !== 'overlay') return;
+        ev.preventDefault();
+        ev.stopPropagation();
+        frame.setPointerCapture(ev.pointerId);
+        const startX = ev.clientX;
+        const startY = ev.clientY;
+        const startW = el.width;
+        const startH = el.height;
+        const move = mv=>{
+          const dxMm = pxToMm(mv.clientX - startX);
+          const dyMm = pxToMm(mv.clientY - startY);
+          if(dir.includes('e')) el.width = Math.max(20, startW + dxMm);
+          if(dir.includes('s')) el.height = Math.max(20, startH + dyMm);
+          applyFrameMode(frame, el);
+          if(isSelectedFrame(frame)) updateInspectorFields(el);
+          markDirty();
+        };
+        const up = ()=>{
+          frame.releasePointerCapture(ev.pointerId);
+          frame.removeEventListener('pointermove', move);
+          frame.removeEventListener('pointerup', up);
+        };
+        frame.addEventListener('pointermove', move);
+        frame.addEventListener('pointerup', up);
+      });
+    });
+
+    applyFrameMode(frame, el);
+    el.style = applyElementStyleClass(frame, el.style, 'frame');
+    return frame;
+  }
+
+  function applyFrameMode(frame, el){
+    frame.classList.remove('mode-overlay','mode-float-left','mode-float-right','mode-block');
+    frame.classList.add('mode-'+el.mode);
+    frame.style.width = mmToPx(el.width)+'px';
+    frame.style.height = mmToPx(el.height)+'px';
+    if(el.mode === 'overlay'){
+      frame.style.position = 'absolute';
+      frame.style.left = mmToPx(el.x)+'px';
+      frame.style.top = mmToPx(el.y)+'px';
+      frame.style.float = 'none';
+      frame.style.margin = '0';
+    } else {
+      frame.style.position = 'relative';
+      frame.style.left = '';
+      frame.style.top = '';
+      if(el.mode === 'float-left'){
+        frame.style.float = 'left';
+        frame.style.margin = '0 4mm 3mm 0';
+      } else if(el.mode === 'float-right'){
+        frame.style.float = 'right';
+        frame.style.margin = '0 0 3mm 4mm';
+      } else {
+        frame.style.float = 'none';
+        frame.style.margin = '3mm auto';
+      }
+    }
+  }
+
+  function applyElementStyleClass(node, styleName, type){
+    const safeStyle = type === 'frame' ? normalizeStyleValue('frame', styleName) : normalizeStyleValue('columns', styleName);
+    const list = type === 'frame' ? FRAME_STYLE_CLASSES : COLUMN_STYLE_CLASSES;
+    list.forEach(cls=>node.classList.remove(cls));
+    if(safeStyle && safeStyle !== 'standard'){
+      node.classList.add('style-'+safeStyle);
+    }
+    return safeStyle;
+  }
+
+  function renderDocument(){
+    pagesEl.innerHTML = '';
+    docModel.pages.forEach((page, idx)=>{
+      const sheet = renderPage(page, idx);
+      pagesEl.appendChild(sheet);
+    });
+    pages = pagesEl ? Array.from(pagesEl.querySelectorAll('.sheet')) : Array.from(document.querySelectorAll('#pages .sheet'));
+    if(obs){ obs.disconnect(); }
+    obs = new IntersectionObserver(entries=>{
+      let topMost = null;
+      let topY = Infinity;
+      entries.forEach(entry=>{
+        if(entry.isIntersecting){
+          const rect = entry.target.getBoundingClientRect();
+          if(rect.top >= 0 && rect.top < topY){
+            topY = rect.top;
+            topMost = entry.target;
+          }
+        }
+      });
+      if(topMost){
+        const idx = pages.indexOf(topMost);
+        if(idx >= 0){
+          cur = idx;
+          updateNavigationState(true);
+        }
+      }
+    },{ root:null, rootMargin:'0px', threshold:[0.55] });
+    pages.forEach(p=>obs.observe(p));
+    refreshCounts();
+    renderReleaseCard();
+    applyColorPreset();
+    buildThumbnails();
+    restoreFrameSelection();
+    restoreColumnsSelection();
+    updatePageThemeControl();
+    refreshElementStyleControl();
+    applyZoom();
+    applyMobileState();
+    if(isPreviewOpen()){
+      previewShouldRefit = true;
+      renderPagePreview();
+    }
+  }
+
+  function handleColumnReorder(pageIndex, elementIndex, fromIndex, toIndex){
+    const page = docModel.pages[pageIndex];
+    if(!page) return;
+    const el = page.elements[elementIndex];
+    if(!el || el.type !== 'columns') return;
+    const windows = Array.isArray(el.windows) ? el.windows.slice() : [];
+    if(!windows.length) return;
+    const layout = Array.isArray(el.windowLayout) ? el.windowLayout.slice() : windows.map(()=>({ width:null, height:null }));
+    if(fromIndex < 0 || fromIndex >= windows.length) return;
+    let normalizedTo = Math.max(0, Math.min(toIndex, windows.length));
+    if(normalizedTo === fromIndex || normalizedTo === fromIndex+1) return;
+    const [moved] = windows.splice(fromIndex, 1);
+    const [layoutMoved] = layout.splice(fromIndex, 1);
+    if(normalizedTo > windows.length){ normalizedTo = windows.length; }
+    windows.splice(normalizedTo > fromIndex ? normalizedTo-1 : normalizedTo, 0, moved);
+    layout.splice(normalizedTo > fromIndex ? normalizedTo-1 : normalizedTo, 0, layoutMoved || { width:null, height:null });
+    el.windows = windows;
+    el.windowLayout = layout;
+    el.columns = windows.length;
+    el.html = windows.join('');
+    markDirty();
+    selectedColumnsPage = pageIndex;
+    selectedColumnsIndex = elementIndex;
+    renderDocument();
+    snapTo(pageIndex, true);
+  }
+
+  function buildTemplateGallery(){
+    if(!templateList) return;
+    templateList.innerHTML = '';
+    DOCUMENT_TEMPLATES.forEach(entry=>{
+      const option = document.createElement('button');
+      option.type = 'button';
+      option.className = 'template-option';
+      option.dataset.templateId = entry.id;
+      option.innerHTML = '<h3>'+entry.label+'</h3><p>'+entry.description+'</p>';
+      option.addEventListener('click', ()=>{
+        createDocumentFromTemplate(entry.id);
+      });
+      templateList.appendChild(option);
+    });
+  }
+
+  function openTemplateChooser(){
+    if(isDirty && !confirm('Discard current changes and create a new document?')) return;
+    buildTemplateGallery();
+    if(templateModal){
+      templateModal.classList.add('open');
+      try{
+        templateModal.focus({ preventScroll:true });
+      }catch(err){
+        templateModal.focus();
+      }
+    }
+  }
+
+  function closeTemplateChooser(){
+    if(templateModal){
+      templateModal.classList.remove('open');
+    }
+  }
+
+  function createDocumentFromTemplate(templateId){
+    const entry = TEMPLATE_MAP.get(templateId) || TEMPLATE_MAP.get(DEFAULT_TEMPLATE_ID);
+    if(!entry) return;
+    docModel = normalizeDocument(entry.create());
+    markDirty(false);
+    updateVersionInfo();
+    renderDocument();
+    snapTo(0, true);
+    closeTemplateChooser();
+    setStatus('Template loaded: '+entry.label+'.');
+  }
+
+  if(templateCancel){
+    templateCancel.addEventListener('click', closeTemplateChooser);
+  }
+  if(templateModal){
+    templateModal.addEventListener('click', ev=>{
+      if(ev.target === templateModal) closeTemplateChooser();
+    });
+  }
+
+  function clampZoom(value){
+    return Math.min(MAX_CANVAS_ZOOM, Math.max(MIN_CANVAS_ZOOM, value));
+  }
+
+  function applyZoom(){
+    if(!pageViewport) return;
+    pageViewport.style.transform = 'scale('+zoomLevel.toFixed(3)+')';
+    if(zoomDisplay){
+      zoomDisplay.textContent = Math.round(zoomLevel*100)+'%';
+    }
+    if(zoomOutBtn){
+      zoomOutBtn.disabled = zoomLevel <= MIN_CANVAS_ZOOM + 0.01;
+    }
+    if(zoomInBtn){
+      zoomInBtn.disabled = zoomLevel >= MAX_CANVAS_ZOOM - 0.01;
+    }
+    if(viewportZoomOutBtn){
+      viewportZoomOutBtn.disabled = zoomLevel <= MIN_CANVAS_ZOOM + 0.01;
+    }
+    if(viewportZoomInBtn){
+      viewportZoomInBtn.disabled = zoomLevel >= MAX_CANVAS_ZOOM - 0.01;
+    }
+    buildRulers();
+  }
+
+  function zoomTo(value){
+    const clamped = clampZoom(value);
+    if(Math.abs(clamped - zoomLevel) < 0.01) return;
+    zoomLevel = clamped;
+    applyZoom();
+  }
+
+  function zoomIn(){ zoomTo(zoomLevel + 0.1); }
+  function zoomOut(){ zoomTo(zoomLevel - 0.1); }
+  function zoomReset(){ zoomTo(1); }
+
+  function zoomFit(){
+    if(!pageViewport || !pages.length){
+      zoomTo(1);
+      return;
+    }
+    const sheet = pages[cur] || pages[0];
+    if(!sheet){ zoomTo(1); return; }
+    const widthPx = sheet.offsetWidth || sheet.getBoundingClientRect().width;
+    const heightPx = sheet.offsetHeight || sheet.getBoundingClientRect().height;
+    if(!widthPx || !heightPx){ zoomTo(1); return; }
+    const viewportRect = pageViewport.getBoundingClientRect();
+    const availableWidth = Math.max(120, window.innerWidth - viewportRect.left - 32);
+    const availableHeight = Math.max(120, window.innerHeight - viewportRect.top - 32);
+    const rawScale = Math.min(availableWidth / widthPx, availableHeight / heightPx);
+    zoomTo(rawScale);
+  }
+
+  function isMobileLayout(){
+    return window.innerWidth <= MOBILE_BREAKPOINT;
+  }
+
+  function syncMobileToggleState(){
+    if(mobileToggleTools){
+      const expanded = !document.body.classList.contains('mobile-ui-hidden');
+      mobileToggleTools.setAttribute('aria-expanded', expanded ? 'true' : 'false');
+    }
+    if(mobileTogglePages){
+      const expanded = !document.body.classList.contains('mobile-sidebar-hidden');
+      mobileTogglePages.setAttribute('aria-expanded', expanded ? 'true' : 'false');
+    }
+  }
+
+  function applyMobileState(){
+    if(isMobileLayout()){
+      document.body.classList.add('mobile-layout');
+      if(!document.body.classList.contains('mobile-layout-active')){
+        document.body.classList.add('mobile-layout-active');
+        document.body.classList.add('mobile-ui-hidden','mobile-sidebar-hidden');
+        if(!mobileAutoZoomed){
+          zoomFit();
+          mobileAutoZoomed = true;
+        }
+      }
+    } else {
+      document.body.classList.remove('mobile-layout','mobile-layout-active','mobile-ui-hidden','mobile-sidebar-hidden');
+      mobileAutoZoomed = false;
+    }
+    syncMobileToggleState();
+    buildRulers();
+  }
+
+  if(zoomInBtn) zoomInBtn.addEventListener('click', zoomIn);
+  if(zoomOutBtn) zoomOutBtn.addEventListener('click', zoomOut);
+  if(zoomResetBtn) zoomResetBtn.addEventListener('click', zoomReset);
+  if(zoomFullBtn) zoomFullBtn.addEventListener('click', zoomFit);
+  if(viewportZoomInBtn) viewportZoomInBtn.addEventListener('click', zoomIn);
+  if(viewportZoomOutBtn) viewportZoomOutBtn.addEventListener('click', zoomOut);
+
+  if(mobileToggleTools){
+    mobileToggleTools.addEventListener('click', ()=>{
+      if(!document.body.classList.contains('mobile-layout')) return;
+      document.body.classList.toggle('mobile-ui-hidden');
+      syncMobileToggleState();
+      if(!document.body.classList.contains('mobile-ui-hidden') && uiPanel){
+        try{
+          uiPanel.scrollIntoView({ behavior:'smooth', block:'start' });
+        } catch(err){
+          uiPanel.scrollIntoView();
+        }
+      }
+    });
+  }
+
+  if(mobileTogglePages){
+    mobileTogglePages.addEventListener('click', ()=>{
+      if(!document.body.classList.contains('mobile-layout')) return;
+      document.body.classList.toggle('mobile-sidebar-hidden');
+      syncMobileToggleState();
+      if(!document.body.classList.contains('mobile-sidebar-hidden') && sidebar){
+        try{
+          sidebar.scrollIntoView({ behavior:'smooth', block:'start' });
+        } catch(err){
+          sidebar.scrollIntoView();
+        }
+      }
+    });
+  }
+
+  function isPreviewOpen(){
+    return !!(pagePreviewModal && pagePreviewModal.classList.contains('open'));
+  }
+
+  function clampPreviewZoom(value){
+    return Math.min(3, Math.max(0.3, value));
+  }
+
+  function applyPreviewZoom(){
+    if(!pagePreviewSheet) return;
+    const sheet = pagePreviewSheet.querySelector('.sheet');
+    if(sheet){
+      sheet.style.transform = 'scale('+previewZoomLevel.toFixed(3)+')';
+    }
+    if(pagePreviewZoomDisplay){
+      pagePreviewZoomDisplay.textContent = Math.round(previewZoomLevel*100)+'%';
+    }
+    if(pagePreviewZoomRange){
+      const sliderValue = Math.round(previewZoomLevel*100);
+      const min = parseInt(pagePreviewZoomRange.min, 10) || 40;
+      const max = parseInt(pagePreviewZoomRange.max, 10) || 200;
+      const clamped = Math.max(min, Math.min(max, sliderValue));
+      pagePreviewZoomRange.value = String(clamped);
+    }
+  }
+
+  function computePreviewFit(sheet){
+    if(!sheet || !pagePreviewViewport) return clampPreviewZoom(1);
+    const sheetRect = sheet.getBoundingClientRect();
+    if(!sheetRect.width || !sheetRect.height) return clampPreviewZoom(1);
+    const viewportRect = pagePreviewViewport.getBoundingClientRect();
+    const availableWidth = Math.max(140, viewportRect.width - 40);
+    const availableHeight = Math.max(140, viewportRect.height - 40);
+    const rawScale = Math.min(availableWidth / sheetRect.width, availableHeight / sheetRect.height);
+    if(!Number.isFinite(rawScale) || rawScale <= 0) return clampPreviewZoom(1);
+    return clampPreviewZoom(rawScale);
+  }
+
+  function updatePreviewHeading(){
+    if(!pagePreviewHeading) return;
+    const total = getTotalPages();
+    const page = docModel.pages[previewPageIndex];
+    const suffix = page && page.title ? ' — '+page.title : '';
+    pagePreviewHeading.innerHTML = '<strong>Page Preview</strong><span>Page '+(previewPageIndex+1)+' of '+total+suffix+'</span>';
+  }
+
+  function updatePreviewNavButtons(){
+    if(pagePreviewPrev){
+      pagePreviewPrev.disabled = (previewPageIndex <= 0);
+    }
+    if(pagePreviewNext){
+      pagePreviewNext.disabled = (previewPageIndex >= getTotalPages()-1);
+    }
+  }
+
+  function renderPagePreview(){
+    if(!isPreviewOpen() || !pagePreviewSheet) return;
+    const source = pages[previewPageIndex];
+    pagePreviewSheet.innerHTML = '';
+    if(!source){
+      const empty = document.createElement('div');
+      empty.style.color = '#fff';
+      empty.style.font = '14px var(--font-ui)';
+      empty.style.padding = '16px';
+      empty.textContent = 'No page available.';
+      pagePreviewSheet.appendChild(empty);
+      updatePreviewHeading();
+      updatePreviewNavButtons();
+      return;
+    }
+    const clone = source.cloneNode(true);
+    clone.style.transform = '';
+    clone.style.transformOrigin = 'top center';
+    pagePreviewSheet.appendChild(clone);
+    if(previewShouldRefit){
+      previewZoomLevel = computePreviewFit(clone);
+      previewShouldRefit = false;
+    }
+    applyPreviewZoom();
+    updatePreviewHeading();
+    updatePreviewNavButtons();
+  }
+
+  function openPagePreview(index){
+    if(!pagePreviewModal) return;
+    const total = getTotalPages();
+    const target = Number.isFinite(index) ? index : cur;
+    previewPageIndex = Math.max(0, Math.min(total-1, target));
+    previewShouldRefit = true;
+    pagePreviewModal.classList.add('open');
+    pagePreviewModal.setAttribute('aria-hidden', 'false');
+    document.body.classList.add('preview-open');
+    renderPagePreview();
+    setTimeout(()=>{ try{ pagePreviewModal.focus({ preventScroll:true }); } catch(err){ pagePreviewModal.focus(); } }, 0);
+  }
+
+  function closePagePreview(){
+    if(!pagePreviewModal) return;
+    pagePreviewModal.classList.remove('open');
+    pagePreviewModal.setAttribute('aria-hidden', 'true');
+    document.body.classList.remove('preview-open');
+  }
+
+  function goToPreviewPage(index, resetZoom = false){
+    const total = getTotalPages();
+    const target = Math.max(0, Math.min(total-1, index));
+    previewShouldRefit = resetZoom;
+    if(target !== previewPageIndex){
+      previewSyncFromSnap = true;
+      previewPageIndex = target;
+      snapTo(target, false);
+      previewSyncFromSnap = false;
+    } else {
+      renderPagePreview();
+    }
+  }
+
+  function previewZoomTo(value){
+    previewZoomLevel = clampPreviewZoom(value);
+    applyPreviewZoom();
+  }
+
+  function previewZoomBy(step){
+    previewZoomTo(previewZoomLevel + step);
+  }
+
+  function previewZoomFit(){
+    previewShouldRefit = true;
+    renderPagePreview();
+  }
+
+  function handlePreviewWheelZoom(ev){
+    if(!(ev.ctrlKey || ev.metaKey)) return;
+    ev.preventDefault();
+    const delta = ev.deltaY;
+    if(!Number.isFinite(delta) || delta === 0) return;
+    previewZoomBy(delta < 0 ? 0.1 : -0.1);
+  }
+
+  function handleWheelZoom(ev){
+    if(!(ev.ctrlKey || ev.metaKey)) return;
+    ev.preventDefault();
+    const delta = ev.deltaY;
+    if(!Number.isFinite(delta) || delta === 0) return;
+    const step = delta < 0 ? 0.1 : -0.1;
+    zoomTo(zoomLevel + step);
+  }
+
+  if(pageViewport){
+    pageViewport.addEventListener('wheel', handleWheelZoom, { passive:false });
+  }
+
+  if(openPreviewBtn){
+    openPreviewBtn.addEventListener('click', ()=>openPagePreview(cur));
+  }
+  if(pagePreviewModal){
+    pagePreviewModal.addEventListener('click', ev=>{
+      if(ev.target === pagePreviewModal) closePagePreview();
+    });
+  }
+  if(pagePreviewClose){
+    pagePreviewClose.addEventListener('click', closePagePreview);
+  }
+  if(pagePreviewZoomRange){
+    pagePreviewZoomRange.addEventListener('input', ()=>{
+      const value = parseInt(pagePreviewZoomRange.value, 10) || 100;
+      previewZoomTo(value / 100);
+    });
+  }
+  if(pagePreviewZoomIn){
+    pagePreviewZoomIn.addEventListener('click', ()=>previewZoomBy(0.1));
+  }
+  if(pagePreviewZoomOutBtn){
+    pagePreviewZoomOutBtn.addEventListener('click', ()=>previewZoomBy(-0.1));
+  }
+  if(pagePreviewZoomFit){
+    pagePreviewZoomFit.addEventListener('click', previewZoomFit);
+  }
+  if(pagePreviewPrev){
+    pagePreviewPrev.addEventListener('click', ()=>goToPreviewPage(previewPageIndex-1));
+  }
+  if(pagePreviewNext){
+    pagePreviewNext.addEventListener('click', ()=>goToPreviewPage(previewPageIndex+1));
+  }
+  if(pagePreviewViewport){
+    pagePreviewViewport.addEventListener('wheel', handlePreviewWheelZoom, { passive:false });
+  }
+  if(pagesEl){
+    pagesEl.addEventListener('dblclick', ev=>{
+      if(ev.target.closest('[contenteditable="true"]')) return;
+      const sheet = ev.target.closest('.sheet');
+      if(!sheet) return;
+      const idx = pages.indexOf(sheet);
+      if(idx >= 0){
+        openPagePreview(idx);
+      }
+    });
+  }
+
+  function refreshCounts(){
+    const total = getTotalPages();
+    totEl.textContent = String(total);
+    gotoEl.max = total;
+    if(total === 0){
+      cur = 0;
+      curEl.textContent = '0';
+      gotoEl.value = '0';
+      updateNavigationButtons();
+      return;
+    }
+    cur = Math.min(cur, total-1);
+    curEl.textContent = String(cur+1);
+    gotoEl.value = String(cur+1);
+    updateNavigationButtons();
+  }
+
+  function updateNavigationButtons(){
+    const total = getTotalPages();
+    prevBtn.disabled = (cur === 0);
+    firstBtn.disabled = (cur === 0);
+    nextBtn.disabled = (cur >= total-1);
+    lastBtn.disabled = (cur >= total-1);
+  }
+
+  function scrollPageIntoView(target, behavior){
+    if(!target) return;
+    const style = getComputedStyle(target);
+    const marginTop = parseFloat(style.scrollMarginTop) || 0;
+    const y = target.getBoundingClientRect().top + window.scrollY - marginTop;
+    window.scrollTo({ top: Math.max(0, y), left: 0, behavior });
+  }
+
+  function updateNavigationState(skipScroll){
+    const total = getTotalPages();
+    cur = Math.max(0, Math.min(total-1, cur));
+    curEl.textContent = String(cur+1);
+    gotoEl.value = String(cur+1);
+    updateNavigationButtons();
+    setActiveThumb();
+    updatePageThemeControl();
+    refreshElementStyleControl();
+    buildRulers();
+    if(!skipScroll){
+      scrollPageIntoView(pages[cur], 'smooth');
+    }
+  }
+
+  function snapTo(idx, instant = false){
+    const total = getTotalPages();
+    cur = Math.max(0, Math.min(total-1, idx));
+    const target = pages[cur];
+    if(target){
+      scrollPageIntoView(target, instant ? 'auto' : 'smooth');
+    }
+    updateNavigationState(true);
+    if(isPreviewOpen()){
+      if(!previewSyncFromSnap){
+        previewPageIndex = cur;
+      }
+      renderPagePreview();
+    }
+  }
+
+  function buildThumbnails(){
+    thumbsEl.innerHTML = '';
+    if(!pages.length) return;
+    const rect = pages[0].getBoundingClientRect();
+    const baseW = rect.width || pages[0].offsetWidth || 1000;
+    const baseH = rect.height || pages[0].offsetHeight || 1400;
+    pages.forEach((page, idx)=>{
+      const wrap = document.createElement('div');
+      wrap.className = 'thumb';
+      wrap.dataset.index = String(idx);
+      const mini = document.createElement('div');
+      mini.className = 'mini-wrap';
+      const clone = page.cloneNode(true);
+      clone.style.pointerEvents = 'none';
+      mini.appendChild(clone);
+      wrap.appendChild(mini);
+      const meta = document.createElement('div');
+      meta.className = 'mini-meta';
+      meta.textContent = 'Page '+(idx+1);
+      wrap.appendChild(meta);
+      wrap.addEventListener('click', ()=>{ snapTo(idx, false); });
+      thumbsEl.appendChild(wrap);
+      const availW = mini.clientWidth;
+      let scale = availW / baseW;
+      if(!isFinite(scale) || scale <= 0){ scale = 0.2; }
+      clone.style.transformOrigin = 'top left';
+      clone.style.transform = 'scale('+scale.toFixed(4)+')';
+      mini.style.height = (baseH*scale)+'px';
+    });
+    setActiveThumb();
+    applyColorPreset();
+  }
+
+  function setActiveThumb(){
+    document.querySelectorAll('#thumbs .thumb.active').forEach(el=>el.classList.remove('active'));
+    const active = thumbsEl.querySelector('.thumb[data-index="'+cur+'"]');
+    if(active) active.classList.add('active');
+  }
+
+  function applyToggles(){
+    document.body.classList.toggle('hide-guides', !chkGuides.checked);
+    document.body.classList.toggle('hide-crops', !chkCrops.checked);
+    document.body.classList.toggle('hide-colorbar', !chkColor.checked);
+    document.body.classList.toggle('hide-reg', !chkReg.checked);
+    document.body.classList.toggle('hide-safe', !chkSafe.checked);
+    document.body.classList.toggle('printshop', chkShop.checked);
+  }
+  [chkGuides, chkCrops, chkColor, chkReg, chkSafe, chkShop].forEach(el=>el.addEventListener('change', applyToggles));
+  applyToggles();
+
+  function applyColorPreset(){
+    const preset = selColorPreset.value;
+    const bars = document.querySelectorAll('.marks .colorbar');
+    bars.forEach(bar=>{
+      bar.innerHTML = '';
+      let patches = [];
+      if(preset === 'ugra'){
+        patches = ['c','m','y','k'];
+        for(let i=0;i<=20;i++){
+          const val = Math.round((i/20)*90);
+          patches.push('g'+(val || '90'));
+        }
+      } else {
+        patches = ['c','m','y','k','r','g','b','w','g10','g20','g30','g40','g50','g60','g70','g80','g90'];
+      }
+      patches.forEach(p=>{
+        const d = document.createElement('div');
+        d.className = 'patch '+p;
+        bar.appendChild(d);
+      });
+    });
+  }
+  selColorPreset.addEventListener('change', applyColorPreset);
+
+  function buildRulers(){
+    if(document.body.classList.contains('mobile-layout')){
+      rulerTopEl.style.display = 'none';
+      rulerLeftEl.style.display = 'none';
+      return;
+    }
+    if(!pages.length){
+      rulerTopEl.style.display = 'none';
+      rulerLeftEl.style.display = 'none';
+      return;
+    }
+    const sheet = pages[cur] || pages[0];
+    const rect = sheet.getBoundingClientRect();
+    const baseWidthPx = sheet.offsetWidth || rect.width;
+    const baseHeightPx = sheet.offsetHeight || rect.height;
+    const zoom = zoomLevel || 1;
+    const widthPx = baseWidthPx * zoom;
+    const heightPx = baseHeightPx * zoom;
+    const widthMm = pxToMm(baseWidthPx);
+    const heightMm = pxToMm(baseHeightPx);
+    const cmTopCount = Math.ceil(widthMm / 10);
+    const inTopCount = Math.ceil(widthMm / 25.4);
+    const cmLeftCount = Math.ceil(heightMm / 10);
+    const inLeftCount = Math.ceil(heightMm / 25.4);
+    rulerTopCm.innerHTML = '';
+    rulerTopIn.innerHTML = '';
+    rulerLeftCm.innerHTML = '';
+    rulerLeftIn.innerHTML = '';
+    rulerTopEl.style.display = 'block';
+    rulerLeftEl.style.display = 'block';
+    rulerTopEl.style.width = Math.round(widthPx)+'px';
+    rulerTopEl.style.left = Math.max(0, Math.round(rect.left))+'px';
+    const verticalWidth = rulerLeftEl.offsetWidth || 36;
+    rulerLeftEl.style.left = Math.max(0, Math.round(rect.left - verticalWidth))+'px';
+    rulerLeftEl.style.height = Math.round(heightPx + 40*(zoomLevel || 1))+'px';
+    for(let i=0;i<=cmTopCount;i++){
+      const span = document.createElement('span');
+      span.textContent = i;
+      span.style.left = (mmToPx(i*10)*zoom)+'px';
+      rulerTopCm.appendChild(span);
+    }
+    for(let i=0;i<=inTopCount;i++){
+      const span = document.createElement('span');
+      span.textContent = i+'"';
+      span.style.left = (mmToPx(i*25.4)*zoom)+'px';
+      rulerTopIn.appendChild(span);
+    }
+    for(let i=0;i<=cmLeftCount;i++){
+      const span = document.createElement('span');
+      span.textContent = i;
+      span.style.top = (mmToPx(i*10)*zoom)+'px';
+      rulerLeftCm.appendChild(span);
+    }
+    for(let i=0;i<=inLeftCount;i++){
+      const span = document.createElement('span');
+      span.textContent = i+'"';
+      span.style.top = (mmToPx(i*25.4)*zoom)+'px';
+      rulerLeftIn.appendChild(span);
+    }
+  }
+
+  function selectFrame(frameEl, pageIndex, elementIndex){
+    pageCanvasRoot.querySelectorAll('.frame.selected').forEach(el=>el.classList.remove('selected'));
+    frameEl.classList.add('selected');
+    selectedFrame = frameEl;
+    selectedFramePage = pageIndex;
+    selectedFrameIndex = elementIndex;
+    frameInspector.classList.add('active');
+    updateInspectorFields(docModel.pages[pageIndex].elements[elementIndex]);
+    clearColumnsSelection(true);
+    setStyledSelection('frame', pageIndex, elementIndex);
+  }
+
+  function restoreFrameSelection(){
+    if(selectedFramePage < 0 || selectedFrameIndex < 0) return;
+    const selector = '.frame[data-page-index="'+selectedFramePage+'"][data-element-index="'+selectedFrameIndex+'"]';
+    const frame = pageCanvasRoot.querySelector(selector);
+    if(frame){
+      selectFrame(frame, selectedFramePage, selectedFrameIndex);
+    } else {
+      clearFrameSelection();
+    }
+  }
+
+  function isSelectedFrame(frameEl){
+    return selectedFrame && frameEl === selectedFrame;
+  }
+
+  function updateInspectorFields(el){
+    if(el.mode === 'overlay'){
+      framePosX.disabled = false;
+      framePosY.disabled = false;
+      framePosX.value = el.x.toFixed(1);
+      framePosY.value = el.y.toFixed(1);
+    } else {
+      framePosX.disabled = true;
+      framePosY.disabled = true;
+      framePosX.value = '—';
+      framePosY.value = '—';
+    }
+    frameWidth.value = el.width.toFixed(1);
+    frameHeight.value = el.height.toFixed(1);
+    frameWrap.value = el.mode;
+    frameCaption.value = el.caption || '';
+    if(el.frameType === 'image'){
+      frameImageUrlLabel.style.display = '';
+      frameImageUrl.value = el.src || '';
+    } else {
+      frameImageUrlLabel.style.display = 'none';
+      frameImageUrl.value = '';
+    }
+  }
+
+  function clearFrameSelection(silent = false){
+    pageCanvasRoot.querySelectorAll('.frame.selected').forEach(el=>el.classList.remove('selected'));
+    selectedFrame = null;
+    selectedFrameIndex = -1;
+    selectedFramePage = -1;
+    frameInspector.classList.remove('active');
+    if(!silent && styledSelection.type === 'frame'){
+      clearStyleControl();
+    }
+  }
+
+  document.addEventListener('click', ev=>{
+    if(!ev.target.closest('.frame') && !ev.target.closest('#frameInspector')){
+      clearFrameSelection();
+    }
+    if(!ev.target.closest('.column-window-stack') && !ev.target.closest('#styleControls')){
+      clearColumnsSelection();
+    }
+  });
+
+  function selectColumnsBlock(block, pageIndex, elementIndex){
+    if(selectedColumnsBlock && selectedColumnsBlock !== block){
+      selectedColumnsBlock.classList.remove('selected');
+    }
+    selectedColumnsBlock = block;
+    selectedColumnsPage = pageIndex;
+    selectedColumnsIndex = elementIndex;
+    block.classList.add('selected');
+    clearFrameSelection(true);
+    setStyledSelection('columns', pageIndex, elementIndex);
+  }
+
+  function clearColumnsSelection(skipStyle = false){
+    if(selectedColumnsBlock){
+      selectedColumnsBlock.classList.remove('selected');
+    }
+    selectedColumnsBlock = null;
+    selectedColumnsPage = -1;
+    selectedColumnsIndex = -1;
+    if(!skipStyle && styledSelection.type === 'columns'){
+      clearStyleControl();
+    }
+  }
+
+  function restoreColumnsSelection(){
+    if(selectedColumnsPage < 0 || selectedColumnsIndex < 0) return;
+    const selector = '.column-window-stack[data-page-index="'+selectedColumnsPage+'"][data-element-index="'+selectedColumnsIndex+'"]';
+    const block = pageCanvasRoot.querySelector(selector);
+    if(block){
+      selectedColumnsBlock = block;
+      block.classList.add('selected');
+      setStyledSelection('columns', selectedColumnsPage, selectedColumnsIndex);
+    } else {
+      clearColumnsSelection();
+    }
+  }
+
+  function populateElementStyleOptions(type, currentValue){
+    if(!elementStyleSelect) return;
+    const options = ELEMENT_STYLE_OPTIONS[type] || ELEMENT_STYLE_OPTIONS.columns;
+    if(currentStyleOptionType !== type){
+      elementStyleSelect.innerHTML = '';
+      options.forEach(opt=>{
+        const option = document.createElement('option');
+        option.value = opt.value;
+        option.textContent = opt.label;
+        elementStyleSelect.appendChild(option);
+      });
+      currentStyleOptionType = type;
+    }
+    const hasValue = options.some(opt=>opt.value === currentValue);
+    elementStyleSelect.value = hasValue ? currentValue : options[0].value;
+  }
+
+  function setStyledSelection(type, pageIndex, elementIndex){
+    const page = docModel.pages[pageIndex];
+    if(!page){
+      clearStyleControl();
+      return;
+    }
+    const element = page.elements[elementIndex];
+    if(!element){
+      clearStyleControl();
+      return;
+    }
+    const normalized = type === 'frame' ? normalizeStyleValue('frame', element.style) : normalizeStyleValue('columns', element.style);
+    element.style = normalized;
+    styledSelection = { type, pageIndex, elementIndex };
+    populateElementStyleOptions(type, normalized);
+    elementStyleSelect.disabled = false;
+    elementStyleSelect.value = normalized;
+  }
+
+  function clearStyleControl(){
+    styledSelection = { type:null, pageIndex:-1, elementIndex:-1 };
+    if(elementStyleSelect){
+      elementStyleSelect.innerHTML = '<option value="standard">Standard</option>';
+      elementStyleSelect.value = 'standard';
+      elementStyleSelect.disabled = true;
+    }
+    currentStyleOptionType = null;
+  }
+
+  function refreshElementStyleControl(){
+    if(!elementStyleSelect) return;
+    if(!styledSelection.type){
+      clearStyleControl();
+      return;
+    }
+    if(styledSelection.pageIndex !== cur){
+      if(styledSelection.type === 'columns'){
+        clearColumnsSelection();
+      } else {
+        clearStyleControl();
+      }
+      return;
+    }
+    const page = docModel.pages[styledSelection.pageIndex];
+    if(!page){
+      clearStyleControl();
+      return;
+    }
+    const element = page.elements[styledSelection.elementIndex];
+    if(!element){
+      if(styledSelection.type === 'columns'){
+        clearColumnsSelection();
+      } else {
+        clearStyleControl();
+      }
+      return;
+    }
+    const normalized = styledSelection.type === 'frame' ? normalizeStyleValue('frame', element.style) : normalizeStyleValue('columns', element.style);
+    element.style = normalized;
+    populateElementStyleOptions(styledSelection.type, normalized);
+    elementStyleSelect.disabled = false;
+    elementStyleSelect.value = normalized;
+  }
+
+  function updatePageThemeControl(){
+    if(!pageThemeSelect) return;
+    const page = docModel.pages[cur];
+    if(!page){
+      pageThemeSelect.value = 'standard';
+      pageThemeSelect.disabled = true;
+      return;
+    }
+    const theme = normalizeTheme(page.theme);
+    page.theme = theme;
+    pageThemeSelect.disabled = false;
+    pageThemeSelect.value = theme;
+  }
+
+  framePosX.addEventListener('input', ()=>{
+    if(!selectedFrame) return;
+    const el = docModel.pages[selectedFramePage].elements[selectedFrameIndex];
+    if(el.mode !== 'overlay') return;
+    el.x = parseFloat(framePosX.value) || 0;
+    applyFrameMode(selectedFrame, el);
+    markDirty();
+  });
+  framePosY.addEventListener('input', ()=>{
+    if(!selectedFrame) return;
+    const el = docModel.pages[selectedFramePage].elements[selectedFrameIndex];
+    if(el.mode !== 'overlay') return;
+    el.y = parseFloat(framePosY.value) || 0;
+    applyFrameMode(selectedFrame, el);
+    markDirty();
+  });
+  frameWidth.addEventListener('input', ()=>{
+    if(!selectedFrame) return;
+    const el = docModel.pages[selectedFramePage].elements[selectedFrameIndex];
+    el.width = Math.max(20, parseFloat(frameWidth.value) || el.width);
+    applyFrameMode(selectedFrame, el);
+    markDirty();
+  });
+  frameHeight.addEventListener('input', ()=>{
+    if(!selectedFrame) return;
+    const el = docModel.pages[selectedFramePage].elements[selectedFrameIndex];
+    el.height = Math.max(20, parseFloat(frameHeight.value) || el.height);
+    applyFrameMode(selectedFrame, el);
+    markDirty();
+  });
+  frameWrap.addEventListener('change', ()=>{
+    if(!selectedFrame) return;
+    const el = docModel.pages[selectedFramePage].elements[selectedFrameIndex];
+    el.mode = frameWrap.value;
+    applyFrameMode(selectedFrame, el);
+    updateInspectorFields(el);
+    markDirty();
+  });
+  frameCaption.addEventListener('input', ()=>{
+    if(!selectedFrame) return;
+    const el = docModel.pages[selectedFramePage].elements[selectedFrameIndex];
+    el.caption = frameCaption.value;
+    const cap = selectedFrame.querySelector('figcaption');
+    if(cap) cap.textContent = el.caption;
+    markDirty();
+  });
+  frameImageUrl.addEventListener('change', ()=>{
+    if(!selectedFrame) return;
+    const el = docModel.pages[selectedFramePage].elements[selectedFrameIndex];
+    if(el.frameType !== 'image') return;
+    el.src = frameImageUrl.value.trim();
+    const wrap = selectedFrame.querySelector('.frame-image');
+    if(wrap){
+      if(el.src){
+        wrap.dataset.src = el.src;
+        wrap.style.backgroundImage = 'url("'+el.src.replace(/"/g,'&quot;')+'")';
+        wrap.textContent = '';
+      } else {
+        wrap.removeAttribute('data-src');
+        wrap.style.backgroundImage = '';
+        wrap.textContent = 'Set an image URL from the inspector.';
+      }
+    }
+    markDirty();
+  });
+
+  function addColumnsToCurrent(count){
+    const page = docModel.pages[cur];
+    if(!page) return;
+    const windows = Array.from({ length:count }, (_, idx)=> idx === 0 ? '<p>Type your story here.</p>' : '<p>Start typing…</p>');
+    page.elements.push(createColumnElement(count, windows));
+    markDirty();
+    renderDocument();
+    snapTo(cur, true);
+  }
+
+  function addFrameToCurrent(type){
+    const page = docModel.pages[cur];
+    if(!page) return;
+    const frame = {
+      type:'frame',
+      frameType:type,
+      mode:'overlay',
+      x:30,
+      y:40,
+      width:60,
+      height:40,
+      content: type === 'text' ? '<p>Double-click to edit frame text.</p>' : '',
+      src:'',
+      caption:'',
+      style:'standard'
+    };
+    page.elements.push(frame);
+    selectedFramePage = cur;
+    selectedFrameIndex = page.elements.length-1;
+    selectedFrame = null;
+    markDirty();
+    renderDocument();
+    snapTo(cur, true);
+  }
+
+  function addPage(afterIndex){
+    const inheritTheme = docModel.pages[afterIndex] ? docModel.pages[afterIndex].theme : 'standard';
+    const base = { title:'Untitled Spread', subtitle:'', deck:'', theme:inheritTheme, elements:[createColumnElement(1, ['<p>Start typing…</p>'])], footerLeft:'Docu Monster Studio Pro • Orbit OS', footerRight:'Page {{page}} / {{total}}' };
+    docModel.pages.splice(afterIndex+1, 0, base);
+    markDirty();
+    renderDocument();
+    snapTo(afterIndex+1, true);
+  }
+
+  function duplicateCurrentPage(){
+    const page = docModel.pages[cur];
+    if(!page) return;
+    const clone = JSON.parse(JSON.stringify(page));
+    docModel.pages.splice(cur+1, 0, clone);
+    markDirty();
+    renderDocument();
+    snapTo(cur+1, true);
+  }
+
+  function newDocument(){
+    openTemplateChooser();
+  }
+
+  function getFileExtension(name){
+    if(typeof name !== 'string') return '';
+    const idx = name.lastIndexOf('.');
+    return idx >= 0 ? name.slice(idx).toLowerCase() : '';
+  }
+
+  function suggestDownloadName(){
+    const base = (docModel && (docModel.codename || docModel.docName)) || 'documonster';
+    const slug = base.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/(^-|-$)/g,'') || 'documonster';
+    const timestamp = new Date().toISOString().replace(/[:T]/g,'-').split('.')[0];
+    return `${slug}-${timestamp}`;
+  }
+
+  function applyLoadedDocument(data, meta = {}){
+    let normalized;
+    try{
+      normalized = normalizeDocument(data);
+    }catch(err){
+      console.error('Invalid document payload', err);
+      setStatus('Failed to load document: '+err.message, false);
+      return false;
+    }
+    docModel = normalized;
+    markDirty(false);
+    updateVersionInfo();
+    renderDocument();
+    snapTo(0, true);
+    if(meta.persistToStorage){
+      try{
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(docModel));
+      }catch(err){
+        console.warn('Autosave write failed', err);
+      }
+    }
+    const statusMessage = meta.status || (meta.source ? meta.source+' document loaded.' : 'Document loaded.');
+    const transient = meta.hasOwnProperty('transient') ? !!meta.transient : false;
+    setStatus(statusMessage, transient);
+    if(window.parent && window.parent !== window){
+      window.parent.postMessage({ type:'documonster:document-loaded', payload:{ source: meta.source || 'external', name: meta.name || '', pageCount: getTotalPages() } }, '*');
+    }
+    return true;
+  }
+
+  function handleExternalDocumentLoad(payload){
+    if(!payload || typeof payload !== 'object') return;
+    const meta = Object.assign({ source:'External', transient:false }, payload.meta || {});
+    if(payload.meta && Object.prototype.hasOwnProperty.call(payload.meta, 'persistToStorage')){
+      meta.persistToStorage = !!payload.meta.persistToStorage;
+    }
+    meta.name = meta.name || (payload.meta && payload.meta.name) || '';
+    meta.status = meta.status || meta.note || (meta.source ? `Received document from ${meta.source}.` : 'Document received.');
+    applyLoadedDocument(payload.document, meta);
+  }
+
+  function openDocumentFile(){
+    openFileInput.value = '';
+    openFileInput.click();
+  }
+
+  openFileInput.addEventListener('change', ()=>{
+    const file = openFileInput.files && openFileInput.files[0];
+    if(!file) return;
+    const ext = getFileExtension(file.name);
+    if(ext && !ACCEPTED_EXTENSIONS.includes(ext)){
+      setStatus('Unsupported file type. Please choose a .dx document.', false);
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = ()=>{
+      let data;
+      try{
+        data = JSON.parse(reader.result);
+      }catch(err){
+        console.error('Failed to parse document', err);
+        setStatus('Invalid document file: '+err.message, false);
+        return;
+      }
+      applyLoadedDocument(data, { source:'File', name:file.name, status:'Loaded '+file.name, transient:false });
+    };
+    reader.readAsText(file);
+  });
+
+  window.addEventListener('message', event=>{
+    const data = event.data;
+    if(!data || typeof data !== 'object') return;
+    if(data.type === 'documonster:load-document'){
+      handleExternalDocumentLoad(data.payload || {});
+    }
+  });
+
+  function notifyParentReady(){
+    if(window.parent && window.parent !== window){
+      window.parent.postMessage({ type:'documonster:ready' }, '*');
+    }
+  }
+
+  function loadAutosave(){
+    const saved = loadFromStorage();
+    if(!saved){
+      setStatus('No autosave found.', true);
+      return;
+    }
+    docModel = normalizeDocument(saved);
+    markDirty(false);
+    updateVersionInfo();
+    renderDocument();
+    snapTo(0, true);
+    setStatus('Autosave restored.');
+  }
+
+  function saveAsDocument(){
+    const blob = new Blob([JSON.stringify(docModel, null, 2)], { type:DX_MIME });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `${suggestDownloadName()}${DX_EXTENSION}`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(a.href);
+    markDirty(false);
+    setStatus('DX file downloaded.');
+  }
+
+  function openMenu(id, anchor){
+    closeMenus();
+    const panel = document.querySelector('.menu-dropdown[data-panel="'+id+'"]');
+    if(!panel) return;
+    const rect = anchor.getBoundingClientRect();
+    panel.style.left = rect.left+'px';
+    panel.style.top = (rect.bottom)+'px';
+    panel.classList.add('open');
+    anchor.classList.add('open');
+    menuOpen = { id, anchor, panel };
+  }
+
+  function closeMenus(){
+    document.querySelectorAll('.menu-dropdown.open').forEach(el=>el.classList.remove('open'));
+    document.querySelectorAll('.menu-root.open').forEach(el=>el.classList.remove('open'));
+    menuOpen = null;
+  }
+
+  menubar.addEventListener('click', ev=>{
+    const root = ev.target.closest('.menu-root');
+    if(root){
+      const id = root.dataset.menu;
+      if(menuOpen && menuOpen.id === id){
+        closeMenus();
+      } else {
+        openMenu(id, root);
+      }
+    }
+    const action = ev.target.closest('.menu-dropdown button');
+    if(action){
+      handleMenuAction(action.dataset.action);
+      closeMenus();
+    }
+  });
+
+  document.addEventListener('keydown', ev=>{
+    if(ev.key === 'Escape'){
+      if(isPreviewOpen()){
+        closePagePreview();
+        return;
+      }
+      if(templateModal && templateModal.classList.contains('open')){
+        closeTemplateChooser();
+      } else {
+        closeMenus();
+      }
+    }
+  });
+
+  document.addEventListener('click', ev=>{
+    if(!ev.target.closest('#menubar')) closeMenus();
+  });
+
+  function handleMenuAction(action){
+    switch(action){
+      case 'new-doc': return newDocument();
+      case 'open-doc': return openDocumentFile();
+      case 'save-doc': return saveToStorage();
+      case 'save-as-doc': return saveAsDocument();
+      case 'load-autosave': return loadAutosave();
+      case 'export-bleed': return exportPdfBleed();
+      case 'export-trim': return exportPdfTrim();
+      case 'toggle-mirror': chkMirror.checked = !chkMirror.checked; return;
+      case 'toggle-printshop': chkShop.checked = !chkShop.checked; applyToggles(); return;
+      case 'add-col-1': return addColumnsToCurrent(1);
+      case 'add-col-2': return addColumnsToCurrent(2);
+      case 'add-col-3': return addColumnsToCurrent(3);
+      case 'add-text-frame': return addFrameToCurrent('text');
+      case 'add-image-frame': return addFrameToCurrent('image');
+      case 'new-page': return addPage(cur);
+      case 'duplicate-page': return duplicateCurrentPage();
+      case 'toggle-guides': chkGuides.checked = !chkGuides.checked; applyToggles(); return;
+      case 'toggle-crops': chkCrops.checked = !chkCrops.checked; applyToggles(); return;
+      case 'toggle-colorbar': chkColor.checked = !chkColor.checked; applyToggles(); return;
+      default: return;
+    }
+  }
+
+  function injectPrintStyle(css){
+    let t = document.getElementById('print-style');
+    if(t) t.remove();
+    t = document.createElement('style');
+    t.id = 'print-style';
+    t.type = 'text/css';
+    t.appendChild(document.createTextNode(css));
+    document.head.appendChild(t);
+  }
+
+  function prePrintCommon(){
+    applyToggles();
+    document.body.classList.toggle('pdf-mirror', !!chkMirror.checked);
+    document.body.classList.add('print-export');
+    thumbsEl.innerHTML = '';
+    window.scrollTo({ top:0, behavior:'auto' });
+  }
+
+  function postPrint(){
+    const t = document.getElementById('print-style');
+    if(t) t.remove();
+    document.body.classList.remove('print-export');
+    document.body.classList.remove('pdf-mirror');
+    applyToggles();
+    buildThumbnails();
+  }
+
+  function runPrintRestore(callback){
+    let finished = false;
+    const finalize = ()=>{
+      if(finished) return;
+      finished = true;
+      window.removeEventListener('afterprint', handleAfterPrint);
+      callback();
+    };
+    const handleAfterPrint = ()=>{
+      clearTimeout(fallbackTimer);
+      finalize();
+    };
+    const fallbackTimer = setTimeout(finalize, 1500);
+    window.addEventListener('afterprint', handleAfterPrint);
+    return finalize;
+  }
+
+  function exportPdfBleed(){
+    prePrintCommon();
+    injectPrintStyle('@page{size:216mm 303mm;margin:0} html,body{width:216mm;height:303mm;margin:0;padding:0} #menubar,#ui,#sidebar,#rulerTop,#rulerLeft,#viewportZoomControls{display:none!important;} #pageViewport{margin:0!important;padding:0!important;transform:none!important;position:static!important;} #pages{margin:0!important;padding:0!important;transform:none!important;} .sheet{left:0;top:0;width:216mm!important;height:303mm!important;margin:0!important;position:relative!important;box-shadow:none!important;border:none!important;} .trim{left:3mm!important;top:3mm!important;width:210mm!important;height:297mm!important} :root{--m-top:12mm;--m-bot:12mm;--m-in:12mm;--m-out:12mm}');
+    const restore = runPrintRestore(postPrint);
+    setTimeout(()=>window.print(), 120);
+  }
+
+  function exportPdfTrim(){
+    const prev = { crops:chkCrops.checked, color:chkColor.checked, reg:chkReg.checked };
+    chkCrops.checked = false;
+    chkColor.checked = false;
+    chkReg.checked = false;
+    applyToggles();
+    prePrintCommon();
+    injectPrintStyle('@page{size:210mm 297mm;margin:0} html,body{width:210mm;height:297mm;margin:0;padding:0} #menubar,#ui,#sidebar,#rulerTop,#rulerLeft,#viewportZoomControls{display:none!important;} #pageViewport{margin:0!important;padding:0!important;transform:none!important;position:static!important;} #pages{margin:0!important;padding:0!important;transform:none!important;} .sheet{left:0;top:0;width:210mm!important;height:297mm!important;margin:0!important;position:relative!important;box-shadow:none!important;border:none!important;} .trim{left:0!important;top:0!important;width:210mm!important;height:297mm!important} .marks,.crop,.trim::before{display:none!important;} :root{--m-top:12mm;--m-bot:12mm;--m-in:12mm;--m-out:12mm;--bleed:0mm;--sheet-w:210mm;--sheet-h:297mm}');
+    setTimeout(()=>window.print(), 120);
+    runPrintRestore(()=>{
+      chkCrops.checked = prev.crops;
+      chkColor.checked = prev.color;
+      chkReg.checked = prev.reg;
+      postPrint();
+    });
+  }
+
+  prevBtn.addEventListener('click', ()=>snapTo(cur-1, false));
+  nextBtn.addEventListener('click', ()=>snapTo(cur+1, false));
+  firstBtn.addEventListener('click', ()=>snapTo(0, false));
+  lastBtn.addEventListener('click', ()=>snapTo(getTotalPages()-1, false));
+  goBtn.addEventListener('click', ()=>{ const v = parseInt(gotoEl.value,10)||1; snapTo(v-1, false); });
+  gotoEl.addEventListener('keydown', ev=>{ if(ev.key === 'Enter'){ const v = parseInt(gotoEl.value,10)||1; snapTo(v-1, false); }});
+  newPageBtn.addEventListener('click', ()=>addPage(cur));
+  duplicatePageBtn.addEventListener('click', duplicateCurrentPage);
+  pageThemeSelect.addEventListener('change', ()=>{
+    const page = docModel.pages[cur];
+    if(!page) return;
+    const theme = normalizeTheme(pageThemeSelect.value);
+    page.theme = theme;
+    const sheet = pages[cur];
+    if(sheet){
+      applyPageThemeClass(sheet, theme);
+    }
+    markDirty();
+    buildThumbnails();
+  });
+  elementStyleSelect.addEventListener('change', ()=>{
+    if(!styledSelection.type) return;
+    const pageIdx = styledSelection.pageIndex;
+    const elementIdx = styledSelection.elementIndex;
+    const type = styledSelection.type;
+    const page = docModel.pages[pageIdx];
+    if(!page) return;
+    const element = page.elements[elementIdx];
+    if(!element) return;
+    const normalized = type === 'frame' ? normalizeStyleValue('frame', elementStyleSelect.value) : normalizeStyleValue('columns', elementStyleSelect.value);
+    element.style = normalized;
+    if(type === 'frame'){
+      const frame = pageCanvasRoot.querySelector('.frame[data-page-index="'+pageIdx+'"][data-element-index="'+elementIdx+'"]');
+      if(frame) applyElementStyleClass(frame, normalized, 'frame');
+    } else {
+      const block = pageCanvasRoot.querySelector('.column-window-stack[data-page-index="'+pageIdx+'"][data-element-index="'+elementIdx+'"]');
+      if(block) applyElementStyleClass(block, normalized, 'columns');
+    }
+    populateElementStyleOptions(type, normalized);
+    elementStyleSelect.value = normalized;
+    markDirty();
+    buildThumbnails();
+  });
+
+  window.addEventListener('keydown', ev=>{
+    if(isPreviewOpen()){
+      if(ev.ctrlKey || ev.metaKey){
+        if(ev.key === '=' || ev.key === '+'){
+          ev.preventDefault();
+          previewZoomBy(0.1);
+          return;
+        }
+        if(ev.key === '-'){
+          ev.preventDefault();
+          previewZoomBy(-0.1);
+          return;
+        }
+        if(ev.key === '0'){
+          ev.preventDefault();
+          previewZoomFit();
+          return;
+        }
+      }
+      if(ev.key === 'ArrowRight' || ev.key === 'PageDown'){
+        ev.preventDefault();
+        goToPreviewPage(previewPageIndex+1);
+        return;
+      }
+      if(ev.key === 'ArrowLeft' || ev.key === 'PageUp'){
+        ev.preventDefault();
+        goToPreviewPage(previewPageIndex-1);
+        return;
+      }
+      if(ev.key === 'Home'){
+        ev.preventDefault();
+        goToPreviewPage(0, true);
+        return;
+      }
+      if(ev.key === 'End'){
+        ev.preventDefault();
+        goToPreviewPage(getTotalPages()-1, true);
+        return;
+      }
+      if(ev.key === 'Enter' && !ev.ctrlKey && !ev.metaKey){
+        ev.preventDefault();
+        closePagePreview();
+        return;
+      }
+    }
+    if(ev.ctrlKey || ev.metaKey){
+      if(ev.key === '=' || ev.key === '+'){
+        ev.preventDefault();
+        zoomIn();
+        return;
+      }
+      if(ev.key === '-'){
+        ev.preventDefault();
+        zoomOut();
+        return;
+      }
+      if(ev.key === '0'){
+        ev.preventDefault();
+        zoomReset();
+        return;
+      }
+    }
+    if(ev.target === gotoEl) return;
+    if(ev.key === 'ArrowRight' || ev.key === 'PageDown') snapTo(cur+1, false);
+    if(ev.key === 'ArrowLeft' || ev.key === 'PageUp') snapTo(cur-1, false);
+    if(ev.key === 'Home') snapTo(0, false);
+    if(ev.key === 'End') snapTo(getTotalPages()-1, false);
+  });
+
+  window.addEventListener('afterprint', postPrint);
+  window.addEventListener('beforeunload', ev=>{
+    if(isDirty){
+      ev.preventDefault();
+      ev.returnValue = '';
+    }
+  });
+
+  renderDocument();
+  applyMobileState();
+  updateVersionInfo();
+  snapTo(0, true);
+  setStatus('Ready.', false);
+  notifyParentReady();
+  window.addEventListener('resize', ()=>{
+    buildThumbnails();
+    applyZoom();
+    applyMobileState();
+    if(isPreviewOpen()){
+      previewShouldRefit = true;
+      renderPagePreview();
+    }
+  });
+
+})();
+</script>
+</body>
+</html>
