@@ -1,0 +1,1 @@
+WinAPI.createWindow('cloud-storage');

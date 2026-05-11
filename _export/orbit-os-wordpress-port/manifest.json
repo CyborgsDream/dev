@@ -1,0 +1,98 @@
+{
+  "package": "orbit-os-wordpress-port",
+  "entry_html": "app-index.html",
+  "derived_from": [
+    "apps/app1/app-index.html"
+  ],
+  "modules": {
+    "desktop_shell": {
+      "files": [
+        "app-index.html",
+        "app-data/app1.json",
+        "app-js/gui-api.js",
+        "shared/consolelogs.js"
+      ],
+      "notes": "Main Orbit OS desktop UI, boot sequence, window manager, menu/taskbar, and dynamic app script loading."
+    },
+    "app_runtime_scripts": {
+      "folder": "app-js/",
+      "files": [
+        "activity.js",
+        "calculator.js",
+        "calendar.js",
+        "clock.js",
+        "cloudstorage.js",
+        "comicissueforge.js",
+        "console.js",
+        "documonsterstudiopro.js",
+        "gui-api.js",
+        "htmlstudio.js",
+        "jokes.js",
+        "notes.js",
+        "orbitcomicseditor.js",
+        "puzzle.js",
+        "retro-list.js",
+        "scanx.js",
+        "terminal.js",
+        "textedit.js"
+      ]
+    },
+    "iframe_apps": {
+      "files": [
+        "html-studio.html",
+        "documonster.html",
+        "comic-issue-forge.html",
+        "scanx.html",
+        "cloud-storage.html",
+        "retro-list.html"
+      ]
+    },
+    "app_styles": {
+      "folder": "app-css/",
+      "files": [
+        "futuristic.css",
+        "retro-list-futuristic.css",
+        "retro-list-light.css"
+      ]
+    }
+  },
+  "css_files": [
+    "app-css/futuristic.css",
+    "app-css/retro-list-futuristic.css",
+    "app-css/retro-list-light.css"
+  ],
+  "javascript_files": [
+    "app-js/*.js",
+    "shared/consolelogs.js"
+  ],
+  "asset_folders": [
+    "assets/",
+    "screenshots/"
+  ],
+  "images_icons_fonts": {
+    "local_images_found": [],
+    "font_dependencies": [
+      "Google Fonts: VT323 (remote)"
+    ]
+  },
+  "known_dependencies": [
+    "Browser native APIs",
+    "Dynamic import for shared/consolelogs.js",
+    "Remote Google Font VT323",
+    "Remote Monaco loader in html-studio.html: https://cdn.jsdelivr.net/npm/monaco-editor@0.41.0/min/vs/loader.js"
+  ],
+  "hardcoded_paths": [
+    "fetch('app-data/app1.json')",
+    "import('../../shared/consolelogs.js')",
+    "script src='app-js/gui-api.js'",
+    "gui-api dynamic script load: app-js/{app}.js",
+    "iframe src values in app-data/app1.json: html-studio.html, documonster.html, comic-issue-forge.html, scanx.html"
+  ],
+  "wordpress_changes_required": [
+    "Replace relative URLs with plugin-resolved base URL/path.",
+    "Move inline CSS/JS from app-index.html into enqueueable plugin assets.",
+    "Restrict asset enqueue to shortcode presence.",
+    "Provide configurable TRACE app URL (e.g., /trace-workspace/).",
+    "Replace remote dependencies or make them optional/local for stricter VPS deployments."
+  ]
+}
